@@ -1,1 +1,1 @@
-# spocs
+# Secure Private On Chain Storage (SPOCS)
