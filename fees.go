@@ -1,4 +1,4 @@
-package bopsend
+package spocs
 
 import (
 	"fmt"

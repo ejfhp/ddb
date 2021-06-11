@@ -3,7 +3,7 @@ package spocs_test
 import (
 	"testing"
 
-	"github.com/ejfhp/bitonpaper/go/spocs"
+	"github.com/ejfhp/spocs"
 )
 
 func TestBitcoinToSatoshi(t *testing.T) {

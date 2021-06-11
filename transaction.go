@@ -54,18 +54,6 @@ func UTXOsToAddress(utxos []*UTXO, toAddress string, key string, fee uint64) (*b
 	return tx, nil
 }
 
-//GetBalance return the number of UTXO and the amount of satoshi for the given address
-func GetBalance(address string) (int, uint64, error) {
-	t := trace.New().Source("transaction.go", "", "CalculateFee")
-	woc := NewWOC()
-	num, amount, err := woc.GetUnspentAmount("main", address)
-	if err != nil {
-		log.Println(trace.Alert("cannot get balance").UTC().Add("address", address).Error(err).Append(t))
-		return 0, 0, fmt.Errorf("cannot get balance: %w", err)
-	}
-	return num, amount, nil
-}
-
 //Sweep send all the balance connected to the given key to the given address and returns the TXID if success
 func Sweep(fromKey string, toAddress string) (string, error) {
 	t := trace.New().Source("transaction.go", "", "Sweep")

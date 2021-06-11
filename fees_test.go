@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ejfhp/bitonpaper/go/spocs"
+	"github.com/ejfhp/spocs"
 	log "github.com/ejfhp/trail"
 )
 

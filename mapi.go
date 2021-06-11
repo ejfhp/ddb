@@ -4,20 +4,6 @@ import (
 	"math"
 )
 
-type UTXO struct {
-	TXPos        uint32
-	TXHash       string
-	Value        float64
-	ScriptPubKey *ScriptPubKey
-}
-
-type Unspent struct {
-	Height uint32 `json:"height"`
-	TXPos  uint32 `json:"tx_pos"`
-	TXHash string `json:"tx_hash"`
-	Value  uint64 `json:"value"`
-}
-
 type TX struct {
 	ID       string  `json:"txidv"`
 	Hash     string  `json:"hash"`
