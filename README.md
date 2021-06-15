@@ -1,3 +1,3 @@
-# REMMINGS - Remind My Things
+# REMY - Remind My...
 
 Secure, private on-chain storage built on the Bitcoin (BSV) blockchain.
