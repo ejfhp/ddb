@@ -7,8 +7,13 @@ type UTXO struct {
 	ScriptPubKey *ScriptPubKey
 }
 
-type ChainStorage interface {
+type Explorer interface {
 	GetUTXOs(net string, address string) ([]*UTXO, error)
 	GetTX(net string, txHash string) (*TX, error)
 	GetTXIDs(net string, address string) (*TX, error)
+}
+
+type Miner interface {
+	GetFees() (Fees, error)
+	SubmitTX(rawTX string) (string, error)
 }
