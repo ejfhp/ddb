@@ -1,4 +1,4 @@
-package spocs
+package remy
 
 import (
 	"fmt"
@@ -11,6 +11,66 @@ import (
 	"github.com/libsv/go-bt"
 )
 
+type TX struct {
+	ID       string  `json:"txidv"`
+	Hash     string  `json:"hash"`
+	Hex      string  `json:"hex"`
+	Version  int     `json:"version"`
+	Size     uint32  `json:"size"`
+	Locktime uint32  `json:"locktime"`
+	In       []*Vin  `json:"vin"`
+	Out      []*Vout `json:"vout"`
+}
+
+type Vin struct {
+	Coinbase  string     `json:"coinbase"`
+	TXID      string     `json:"txid"`
+	Vout      int        `json:"vout"`
+	ScriptSig *ScriptSig `json:"scriptSig>"`
+	Sequence  int        `json:"sequence"`
+}
+
+type Vout struct {
+	Value        float64       `json:"value"`
+	N            uint32        `json:"n"`
+	ScriptPubKey *ScriptPubKey `json:"scriptPubKey"`
+}
+
+type ScriptSig struct {
+	Asm string `json:"asm"`
+	Hex string `json:"hex"`
+}
+
+type ScriptPubKey struct {
+	Asm      string   `json:"asm"`
+	Hex      string   `json:"hex"`
+	ReqSigs  int      `json:"reqSigs"`
+	Type     string   `json:"type"`
+	Adresses []string `json:"addresses"`
+}
+
+func OPReturn(utxo *UTXO, key string, fee uint64, payload []byte) (*bt.Tx, error) {
+	t := trace.New().Source("transaction.go", "", "OPReturn")
+	tx := bt.NewTx()
+	var satInput uint64 = 0
+	log.Println(trace.Info("preparing OPReturn transaction").UTC().Append(t))
+	input, err := bt.NewInputFromUTXO(utxo.TXHash, utxo.TXPos, utxo.Satoshis(), utxo.ScriptPubKey.Hex, math.MaxUint32)
+	if err != nil {
+		log.Println(trace.Alert("cannot add UTXO").UTC().Add("TxHash", u.TXHash).Add("TxPos", fmt.Sprintf("%d", u.TXPos)).Error(err).Append(t))
+		return nil, fmt.Errorf("cannot get UTXOs: %w", err)
+	}
+	satInput += u.Satoshis()
+	tx.AddInput(input)
+	satOutput := satInput - fee
+	log.Println(trace.Info("calculating fee").UTC().Add("inputs", fmt.Sprintf("%d", satInput)).Add("outputs", fmt.Sprintf("%d", satOutput)).Add("fee", fmt.Sprintf("%d", fee)).Append(t))
+	output, err := bt.NewP2PKHOutputFromAddress(toAddress, satOutput)
+	if err != nil {
+		log.Println(trace.Alert("cannot create output").UTC().Add("toAddress", toAddress).Add("satoshi", fmt.Sprintf("%d", satOutput)).Error(err).Append(t))
+		return nil, fmt.Errorf("cannot create output to %s for %d satoshi: %w", toAddress, satOutput, err)
+	}
+	tx.AddOutput(output)
+
+}
 func UTXOsToAddress(utxos []*UTXO, toAddress string, key string, fee uint64) (*bt.Tx, error) {
 	t := trace.New().Source("transaction.go", "", "SendUTXOsToAddress")
 	tx := bt.NewTx()
@@ -52,50 +112,4 @@ func UTXOsToAddress(utxos []*UTXO, toAddress string, key string, fee uint64) (*b
 		}
 	}
 	return tx, nil
-}
-
-//Sweep send all the balance connected to the given key to the given address and returns the TXID if success
-func Sweep(fromKey string, toAddress string) (string, error) {
-	t := trace.New().Source("transaction.go", "", "Sweep")
-	woc := NewWOC()
-	fromAddress, err := AddressOf(fromKey)
-	if err != nil {
-		log.Println(trace.Alert("failed to get derive address from key").UTC().Add("key", fromKey).Error(err).Append(t))
-		return "", fmt.Errorf("failed to get derive address from key: %v", err)
-	}
-	utxo, err := woc.GetUTXOs("main", fromAddress)
-	if err != nil {
-		log.Println(trace.Alert("failed to get UTXO").UTC().Add("address", fromAddress).Error(err).Append(t))
-		return "", fmt.Errorf("failed to get UTXO: %v", err)
-	}
-	taal := NewTAAL()
-	fees, err := taal.GetFee()
-	if err != nil {
-		log.Println(trace.Alert("failed to get fees").UTC().Error(err).Append(t))
-		return "", fmt.Errorf("failed to get fees: %v", err)
-	}
-	pretx, err := UTXOsToAddress(utxo, toAddress, fromKey, 0)
-	if err != nil {
-		log.Println(trace.Alert("failed to build TX").UTC().Error(err).Append(t))
-		return "", fmt.Errorf("failed to build TX: %v", err)
-	}
-	fee, err := CalculateFee(pretx.ToBytes(), fees)
-	if err != nil {
-		log.Println(trace.Alert("failed to calculate fees").UTC().Error(err).Append(t))
-		return "", fmt.Errorf("failed to calculate fees: %v", err)
-	}
-	tx, err := UTXOsToAddress(utxo, toAddress, fromKey, fee)
-	if err != nil {
-		log.Println(trace.Alert("failed to build TX").UTC().Error(err).Append(t))
-		return "", fmt.Errorf("failed to build TX: %v", err)
-	}
-	txid, err := taal.SubmitTX(tx.ToString())
-	if err != nil {
-		log.Println(trace.Alert("failed to submit TX").UTC().Error(err).Append(t))
-		return "", fmt.Errorf("failed to submit TX: %v", err)
-	}
-	if txid != tx.GetTxID() {
-		log.Println(trace.Alert("weird, the returned TX ID is unexpected").UTC().Add("TXID from MAPI", txid).Add("TXID", tx.GetTxID()).Append(t))
-	}
-	return txid, nil
 }

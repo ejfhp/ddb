@@ -1,13 +1,13 @@
-package spocs_test
+package remy_test
 
 import (
 	"testing"
 
-	"github.com/ejfhp/spocs"
+	"github.com/ejfhp/remy"
 )
 
 func TestBitcoinToSatoshi(t *testing.T) {
-	utxos := map[uint64]*spocs.UTXO{
+	utxos := map[uint64]*remy.UTXO{
 		1:         {Value: 0.00000001},
 		211337:    {Value: 0.00211337},
 		211338:    {Value: 0.00211338},

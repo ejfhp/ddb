@@ -1,14 +1,14 @@
-package spocs_test
+package remy_test
 
 import (
 	"testing"
 
-	"github.com/ejfhp/spocs"
+	"github.com/ejfhp/remy"
 )
 
 func TestCheckWIFReEncoding(t *testing.T) {
 	wif := "2BqadCTrAg7EgJbe8hs1TrBxysBK4p4ig8Xhwr3kzj4pMJDhhde8"
-	ok, err := spocs.CheckWIFReEncoding(wif)
+	ok, err := remy.CheckWIFReEncoding(wif)
 	if ok == true {
 		t.Fatalf("check should fail")
 	}
@@ -19,7 +19,7 @@ func TestCheckWIFReEncoding(t *testing.T) {
 
 func TestDecodeWIF(t *testing.T) {
 	wif := "L2Aoi3Zk9oQhiEBwH9tcqnTTRErh7J3bVWoxLDzYa8nw2bWktG6M"
-	k, err := spocs.DecodeWIF(wif)
+	k, err := remy.DecodeWIF(wif)
 	if err != nil {
 		t.Fatalf("WIF decoding failed: %v", err)
 	}
@@ -30,7 +30,7 @@ func TestDecodeWIF(t *testing.T) {
 
 func TestKeyFromHex(t *testing.T) {
 	hex := "6452f68642cbdd900f50d4d41db159d2ccc27396d2e8c9bc2413b90e31319070"
-	k, err := spocs.PrivKeyFromHex(hex)
+	k, err := remy.PrivKeyFromHex(hex)
 	if err != nil {
 		t.Fatalf("key decoding failed: %v", err)
 	}
@@ -53,7 +53,7 @@ func TestAddressOf(t *testing.T) {
 		"1BRiuijd9zSsybGdQqoC5G67oXQLgMTojg": "KxGcDN28hBLfEDF6wPfB9c4ftVFm4nddMB2AoSDFVwz4sTw9CMmQ"}
 
 	for add, key := range keys {
-		a, err := spocs.AddressOf(key)
+		a, err := remy.AddressOf(key)
 		if err != nil {
 			t.Error(err)
 		}

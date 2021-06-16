@@ -1,4 +1,4 @@
-package spocs
+package remy
 
 import (
 	"bytes"

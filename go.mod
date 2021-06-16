@@ -1,4 +1,4 @@
-module github.com/ejfhp/spocs
+module github.com/ejfhp/remy
 
 go 1.15
 
