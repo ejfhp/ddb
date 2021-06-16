@@ -79,17 +79,3 @@ func TestSubmitRealTX(t *testing.T) {
 		t.Fatalf("failed to submit TX: %v", err)
 	}
 }
-
-func TestRealSweep(t *testing.T) {
-	log.SetWriter(os.Stdout)
-	toAddress := "1AmHgmXUoBjW2NLymaNzQTwQCCob5VazUT"
-	fromKey := "L5DrVc3Czbwv4azbXmjZt4QEEhmW3PnLJn9Y57hcyZGMV7ALgiZ1"
-	id, err := remy.Sweep(fromKey, toAddress)
-	if err != nil {
-		t.Fatalf("failed to sweep address: %v", err)
-	}
-	if len(id) < 20 {
-		t.Fatalf("returned TXID is too short %s", id)
-
-	}
-}
