@@ -1,13 +1,13 @@
-package remy_test
+package ddb_test
 
 import (
 	"testing"
 
-	"github.com/ejfhp/remy"
+	"github.com/ejfhp/ddb"
 )
 
 func TestBitcoinToSatoshi(t *testing.T) {
-	utxos := map[uint64]*remy.UTXO{
+	utxos := map[uint64]*ddb.UTXO{
 		1:         {Value: 0.00000001},
 		211337:    {Value: 0.00211337},
 		211338:    {Value: 0.00211338},

@@ -1,4 +1,4 @@
-package remy
+package ddb
 
 import "math"
 
@@ -7,6 +7,44 @@ type UTXO struct {
 	TXHash       string
 	Value        float64
 	ScriptPubKey *ScriptPubKey
+}
+
+type TX struct {
+	ID       string  `json:"txidv"`
+	Hash     string  `json:"hash"`
+	Hex      string  `json:"hex"`
+	Version  int     `json:"version"`
+	Size     uint32  `json:"size"`
+	Locktime uint32  `json:"locktime"`
+	In       []*Vin  `json:"vin"`
+	Out      []*Vout `json:"vout"`
+}
+
+type Vin struct {
+	Coinbase  string     `json:"coinbase"`
+	TXID      string     `json:"txid"`
+	Vout      int        `json:"vout"`
+	ScriptSig *ScriptSig `json:"scriptSig>"`
+	Sequence  int        `json:"sequence"`
+}
+
+type Vout struct {
+	Value        float64       `json:"value"`
+	N            uint32        `json:"n"`
+	ScriptPubKey *ScriptPubKey `json:"scriptPubKey"`
+}
+
+type ScriptSig struct {
+	Asm string `json:"asm"`
+	Hex string `json:"hex"`
+}
+
+type ScriptPubKey struct {
+	Asm      string   `json:"asm"`
+	Hex      string   `json:"hex"`
+	ReqSigs  int      `json:"reqSigs"`
+	Type     string   `json:"type"`
+	Adresses []string `json:"addresses"`
 }
 
 func (u *UTXO) Satoshis() uint64 {
@@ -19,7 +57,7 @@ func (v *Vout) Satoshis() uint64 {
 }
 
 type Explorer interface {
-	GetUTXOs(net string, address string) ([]*UTXO, error)
-	GetTX(net string, txHash string) (*TX, error)
-	GetTXIDs(net string, address string) (*TX, error)
+	GetUTXOs(address string) ([]*UTXO, error)
+	GetTX(txHash string) (*TX, error)
+	GetTXIDs(address string) (*TX, error)
 }

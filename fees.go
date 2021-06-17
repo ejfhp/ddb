@@ -1,4 +1,4 @@
-package remy
+package ddb
 
 import (
 	"fmt"
@@ -43,7 +43,7 @@ func (f Fees) GetDataFee() (*Fee, error) {
 }
 
 //CalculateFee return the amount of satoshi to set as fee for the given TX
-func CalculateFee(tx []byte, fees Fees) (uint64, error) {
+func (f *Fee) CalculateFee(tx []byte, fees Fees) (uint64, error) {
 	t := trace.New().Source("transaction.go", "", "CalculateFee")
 	size := len(tx)
 	log.Println(trace.Info("TX size").UTC().Add("bytes len", fmt.Sprintf("%d", size)).Append(t))

@@ -1,4 +1,4 @@
-package remy
+package ddb
 
 import (
 	"fmt"

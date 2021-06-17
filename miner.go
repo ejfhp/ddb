@@ -1,4 +1,4 @@
-package remy
+package ddb
 
 type Miner interface {
 	GetFees() (Fees, error)

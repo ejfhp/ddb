@@ -1,4 +1,4 @@
-package remy
+package ddb
 
 import (
 	"bytes"
@@ -6,34 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
-
-type MapiPayload struct {
-	ApiVersion                string    `json:"apiVersion"`
-	Timestamp                 time.Time `json:"timestamp"`
-	ExpiryTime                time.Time `json:"expiryTime"`
-	TXID                      string    `json:"txid"`
-	ReturnResult              string    `json:"returnResult"`
-	ResultDescription         string    `json:"resultDescription"`
-	MinerID                   string    `json:"minerId"`
-	CurrentHighestBlockHash   string    `json:"currentHighestBlockHash"`
-	CurrentHighestBlockHeight int       `json:"currentHighestBlockHeight"`
-	Fees                      Fees      `json:"fees"`
-}
-
-type MapiSubmitTX struct {
-	Rawtx              string `json:"rawtx"`
-	CallBackUrl        string `json:"callBackUrl"`
-	CallBackToken      string `json:"callBackToken"`
-	MerkleProof        bool   `json:"merkleProof"`
-	MerkleFormat       string `json:"merkleFormat"`
-	DsCheck            bool   `json:"dsCheck"`
-	CallBackEncryption string `json:"callBackEncryption"`
-}
 
 type TAAL struct {
 	BaseURL string
