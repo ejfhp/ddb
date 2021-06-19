@@ -35,12 +35,13 @@ func TestCalculateFee(t *testing.T) {
 			},
 		},
 	}
-	fee, err := ddb.CalculateFee(tx, fees)
+	stdFee, err := fees.GetStandardFee()
 	if err != nil {
 		t.Fatalf("failed to calculate fee: %v", err)
 	}
-	expected := 339
-	if fee != uint64(expected) {
-		t.Fatalf("fee should be %d but is %d", expected, fee)
+	fee := stdFee.CalculateFee(tx)
+	expected := uint64(339)
+	if fee.Satoshis() != expected {
+		t.Fatalf("fee should be %d but is %d", expected, fee.Satoshis())
 	}
 }

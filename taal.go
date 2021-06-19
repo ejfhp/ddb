@@ -19,6 +19,10 @@ func NewTAAL() *TAAL {
 	return &TAAL{BaseURL: "https://mapi.taal.com/mapi"}
 }
 
+func (l *TAAL) GetName() string {
+	return "TAAL"
+}
+
 func (l *TAAL) GetFee() (Fees, error) {
 	t := trace.New().Source("taal.go", "TAAL", "GetFee")
 	url := fmt.Sprintf("%s/feeQuote", l.BaseURL)
@@ -50,6 +54,38 @@ func (l *TAAL) GetFee() (Fees, error) {
 		return nil, fmt.Errorf("error while unmarshalling mapi payload: %w", err)
 	}
 	return mapiPayload.Fees, nil
+}
+
+func (l *TAAL) GetDataFee() (*Fee, error) {
+	t := trace.New().Source("taal.go", "TAAL", "GetDataFee")
+	log.Println(trace.Debug("get data fee").UTC().Append(t))
+	fees, err := l.GetFee()
+	if err != nil {
+		log.Println(trace.Alert("cannot get fees").UTC().Error(err).Append(t))
+		return nil, fmt.Errorf("cannot get fees: %w", err)
+	}
+	dataFee, err := fees.GetDataFee()
+	if err != nil {
+		log.Println(trace.Alert("cannot get data fee").UTC().Error(err).Append(t))
+		return nil, fmt.Errorf("cannot get data fee: %w", err)
+	}
+	return dataFee, nil
+}
+
+func (l *TAAL) GetStandardFee() (*Fee, error) {
+	t := trace.New().Source("taal.go", "TAAL", "GetStandardFee")
+	log.Println(trace.Debug("get data fee").UTC().Append(t))
+	fees, err := l.GetFee()
+	if err != nil {
+		log.Println(trace.Alert("cannot get fees").UTC().Error(err).Append(t))
+		return nil, fmt.Errorf("cannot get fees: %w", err)
+	}
+	stdFee, err := fees.GetStandardFee()
+	if err != nil {
+		log.Println(trace.Alert("cannot get standard fee").UTC().Error(err).Append(t))
+		return nil, fmt.Errorf("cannot get standard fee: %w", err)
+	}
+	return stdFee, nil
 }
 
 //SubmitTX submit the given raw tx to Tall MAPI and if succeed return TXID

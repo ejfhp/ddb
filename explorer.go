@@ -1,11 +1,9 @@
 package ddb
 
-import "math"
-
 type UTXO struct {
 	TXPos        uint32
 	TXHash       string
-	Value        float64
+	Value        Bitcoin
 	ScriptPubKey *ScriptPubKey
 }
 
@@ -29,7 +27,7 @@ type Vin struct {
 }
 
 type Vout struct {
-	Value        float64       `json:"value"`
+	Value        Bitcoin       `json:"value"`
 	N            uint32        `json:"n"`
 	ScriptPubKey *ScriptPubKey `json:"scriptPubKey"`
 }
@@ -45,15 +43,6 @@ type ScriptPubKey struct {
 	ReqSigs  int      `json:"reqSigs"`
 	Type     string   `json:"type"`
 	Adresses []string `json:"addresses"`
-}
-
-func (u *UTXO) Satoshis() uint64 {
-	sat := uint64(math.Round(u.Value * 100000000))
-	return sat
-}
-func (v *Vout) Satoshis() uint64 {
-	sat := uint64(math.Round(v.Value * 100000000))
-	return sat
 }
 
 type Explorer interface {
