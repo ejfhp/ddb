@@ -14,9 +14,19 @@ func TestGetUTXOs(t *testing.T) {
 	woc := ddb.NewWOC()
 	unsTx, err := woc.GetUTXOs("1K2HC5AQQniJ2zcWSyjjtkKZgKMkZ1CGNr")
 	if err != nil {
-		t.Fatalf("error: %v", err)
+		t.Logf("error: %v", err)
+		t.Fail()
 	}
-	fmt.Printf("Unspent: \n%v\n", unsTx[0].Value)
+	if unsTx[0].Value.Value() != 135.70301 {
+		t.Logf("wrong value in bitcoin")
+		t.Fail()
+	}
+	if unsTx[0].Value.Satoshis() != 13570301000 {
+		t.Logf("wrong value in bitcoin")
+		t.Fail()
+	}
+	t.Logf("Unspent bitcoin: %v\n", unsTx[0].Value.Value())
+	t.Logf("Unspent satoshi: %v\n", unsTx[0].Value.Satoshis())
 }
 
 func TestGetTX(t *testing.T) {

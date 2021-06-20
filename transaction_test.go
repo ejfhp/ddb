@@ -24,7 +24,7 @@ func TestUTXOToAddress(t *testing.T) {
 			Adresses: []string{"15JcYsiTbhFXxU7RimJRyEgKWnUfbwttb3"},
 		},
 	}
-	tx, err := ddb.BuildOPReturnTX(utxo, key, ddb.FromSatoshis(170), payload)
+	tx, err := ddb.BuildOPReturnBytesTX(utxo, key, ddb.FromSatoshis(170), payload)
 	if err != nil {
 		t.Fatalf("failed to create tx: %v", err)
 	}

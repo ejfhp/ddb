@@ -15,22 +15,22 @@ func TestCalculateFee(t *testing.T) {
 		{
 			FeeType: "standard",
 			MiningFee: ddb.FeeUnit{
-				Satoshis: 500,
+				Satoshis: ddb.FromSatoshis(500),
 				Bytes:    1000,
 			},
 			RelayFee: ddb.FeeUnit{
-				Satoshis: 250,
+				Satoshis: ddb.FromSatoshis(250),
 				Bytes:    1000,
 			},
 		},
 		{
 			FeeType: "data",
 			MiningFee: ddb.FeeUnit{
-				Satoshis: 500,
+				Satoshis: ddb.FromSatoshis(500),
 				Bytes:    1000,
 			},
 			RelayFee: ddb.FeeUnit{
-				Satoshis: 250,
+				Satoshis: ddb.FromSatoshis(250),
 				Bytes:    1000,
 			},
 		},

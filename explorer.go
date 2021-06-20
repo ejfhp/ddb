@@ -3,7 +3,7 @@ package ddb
 type UTXO struct {
 	TXPos        uint32
 	TXHash       string
-	Value        Bitcoin
+	Value        *Bitcoin
 	ScriptPubKey *ScriptPubKey
 }
 
@@ -27,7 +27,7 @@ type Vin struct {
 }
 
 type Vout struct {
-	Value        Bitcoin       `json:"value"`
+	Value        *Bitcoin      `json:"value"`
 	N            uint32        `json:"n"`
 	ScriptPubKey *ScriptPubKey `json:"scriptPubKey"`
 }
@@ -48,5 +48,5 @@ type ScriptPubKey struct {
 type Explorer interface {
 	GetUTXOs(address string) ([]*UTXO, error)
 	GetTX(txHash string) (*TX, error)
-	GetTXIDs(address string) (*TX, error)
+	// GetTXIDs(address string) (*TX, error)
 }

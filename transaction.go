@@ -9,37 +9,7 @@ import (
 	"github.com/libsv/go-bt"
 )
 
-type Bitcoin struct {
-	value uint64
-}
-
-func FromSatoshis(satoshi uint64) Bitcoin {
-	return Bitcoin{value: satoshi}
-}
-func FromBitcoin(bitcoin float64) Bitcoin {
-	sat := uint64(math.Round(bitcoin * 100000000))
-	return Bitcoin{value: sat}
-}
-
-func (b Bitcoin) Satoshis() uint64 {
-	// sat := uint64(math.Round(float64(b) * 100000000))
-	return b.value
-}
-
-func (b Bitcoin) Value() float64 {
-	return float64(b.value) / 100000000
-}
-
-func (b Bitcoin) Sub(s Bitcoin) Bitcoin {
-	res := b.value - s.value
-	return Bitcoin{value: res}
-}
-func (b Bitcoin) Add(s Bitcoin) Bitcoin {
-	res := b.value + s.value
-	return Bitcoin{value: res}
-}
-
-func BuildOPReturnHexTX(utxo *UTXO, key string, fee Bitcoin, payload []byte) (string, error) {
+func BuildOPReturnHexTX(utxo *UTXO, key string, fee *Bitcoin, payload []byte) (string, error) {
 	t := trace.New().Source("transaction.go", "", "BuildOPReturnHexTX")
 	tx, err := buildOPReturnTX(utxo, key, fee, payload)
 	if err != nil {
@@ -48,7 +18,7 @@ func BuildOPReturnHexTX(utxo *UTXO, key string, fee Bitcoin, payload []byte) (st
 	}
 	return tx.ToString(), nil
 }
-func BuildOPReturnBytesTX(utxo *UTXO, key string, fee Bitcoin, payload []byte) ([]byte, error) {
+func BuildOPReturnBytesTX(utxo *UTXO, key string, fee *Bitcoin, payload []byte) ([]byte, error) {
 	t := trace.New().Source("transaction.go", "", "BuildOPReturnBytesTX")
 	tx, err := buildOPReturnTX(utxo, key, fee, payload)
 	if err != nil {
@@ -57,7 +27,7 @@ func BuildOPReturnBytesTX(utxo *UTXO, key string, fee Bitcoin, payload []byte) (
 	}
 	return tx.ToBytes(), nil
 }
-func buildOPReturnTX(utxo *UTXO, key string, fee Bitcoin, payload []byte) (*bt.Tx, error) {
+func buildOPReturnTX(utxo *UTXO, key string, fee *Bitcoin, payload []byte) (*bt.Tx, error) {
 	t := trace.New().Source("transaction.go", "", "buildOPReturnTX")
 	if utxo == nil {
 		return nil, fmt.Errorf("origin UTXO is nil")

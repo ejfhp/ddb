@@ -23,7 +23,7 @@ func (l *TAAL) GetName() string {
 	return "TAAL"
 }
 
-func (l *TAAL) GetFee() (Fees, error) {
+func (l *TAAL) GetFees() (Fees, error) {
 	t := trace.New().Source("taal.go", "TAAL", "GetFee")
 	url := fmt.Sprintf("%s/feeQuote", l.BaseURL)
 	log.Println(trace.Debug("get fee").UTC().Add("url", url).Append(t))
@@ -59,7 +59,7 @@ func (l *TAAL) GetFee() (Fees, error) {
 func (l *TAAL) GetDataFee() (*Fee, error) {
 	t := trace.New().Source("taal.go", "TAAL", "GetDataFee")
 	log.Println(trace.Debug("get data fee").UTC().Append(t))
-	fees, err := l.GetFee()
+	fees, err := l.GetFees()
 	if err != nil {
 		log.Println(trace.Alert("cannot get fees").UTC().Error(err).Append(t))
 		return nil, fmt.Errorf("cannot get fees: %w", err)
@@ -75,7 +75,7 @@ func (l *TAAL) GetDataFee() (*Fee, error) {
 func (l *TAAL) GetStandardFee() (*Fee, error) {
 	t := trace.New().Source("taal.go", "TAAL", "GetStandardFee")
 	log.Println(trace.Debug("get data fee").UTC().Append(t))
-	fees, err := l.GetFee()
+	fees, err := l.GetFees()
 	if err != nil {
 		log.Println(trace.Alert("cannot get fees").UTC().Error(err).Append(t))
 		return nil, fmt.Errorf("cannot get fees: %w", err)

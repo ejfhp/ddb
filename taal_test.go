@@ -10,10 +10,10 @@ import (
 	log "github.com/ejfhp/trail"
 )
 
-func TestGetFee(t *testing.T) {
+func TestGetFees(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	taal := ddb.NewTAAL()
-	fees, err := taal.GetFee()
+	fees, err := taal.GetFees()
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
