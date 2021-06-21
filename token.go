@@ -20,12 +20,12 @@ func (b Bitcoin) Bitcoin() Bitcoin {
 	return b
 }
 
-func (b Bitcoin) Sub(t Token) Bitcoin {
-	return Bitcoin(b - t.Bitcoin())
+func (b Bitcoin) Sub(t Token) Token {
+	return Satoshi(b.Satoshi() - t.Satoshi())
 }
 
-func (b Bitcoin) Add(t Token) Bitcoin {
-	return Bitcoin(b + t.Bitcoin())
+func (b Bitcoin) Add(t Token) Token {
+	return Satoshi(b.Satoshi() + t.Satoshi())
 }
 
 func (b *Bitcoin) UnmarshalJSON(bytes []byte) error {
@@ -34,7 +34,7 @@ func (b *Bitcoin) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 	bit := Bitcoin(val)
-	b = &bit
+	*b = bit
 	return nil
 }
 
@@ -65,7 +65,7 @@ func (s *Satoshi) UnmarshalJSON(bytes []byte) error {
 		return err
 	}
 	sat := Satoshi(val)
-	s = &sat
+	*s = sat
 	return nil
 }
 

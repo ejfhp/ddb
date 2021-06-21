@@ -8,9 +8,22 @@ import (
 )
 
 type Logbook struct {
-	Key      string
-	Miner    Miner
-	Explorer Explorer
+	key      string
+	address  string
+	miner    Miner
+	explorer Explorer
+}
+
+func NewLogbook(key string, miner Miner, explorer Explorer) (*Logbook, error) {
+	t := trace.New().Source("logbook.go", "Logbook", "NewLogbook")
+	log.Println(trace.Debug("new Logbook").UTC().Append(t))
+	address, err := AddressOf(key)
+	if err != nil {
+		log.Println(trace.Alert("cannot get address of key").UTC().Error(err).Append(t))
+		return nil, fmt.Errorf("cannot get address of key: %w", err)
+	}
+	return &Logbook{key: key, address: address, miner: miner, explorer: explorer}, nil
+
 }
 
 //LogText write a text on the blockchain
@@ -29,13 +42,14 @@ func (l *Logbook) LogText(text string) (string, error) {
 		return "", fmt.Errorf("cannot get data fee from miner: %W", err)
 	}
 
-	txBytes, err := BuildOPReturnBytesTX(u, l.Key, FromBitcoin(0), []byte(text))
+	txBytes, err := BuildOPReturnBytesTX(u, l.Key, Bitcoin(0), []byte(text))
 	if err != nil {
 		log.Println(trace.Alert("cannot build 0-fee TX").UTC().Error(err).Append(t))
 		return "", fmt.Errorf("cannot build 0-fee TX: %W", err)
 	}
 	fee := dataFee.CalculateFee(txBytes)
 	txHex, err := BuildOPReturnHexTX(u, l.Key, fee, []byte(text))
+	fmt.Printf("TX Hex: %s\n", txHex)
 	if err != nil {
 		log.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(t))
 		return "", fmt.Errorf("cannot build TX: %W", err)

@@ -17,16 +17,17 @@ func TestGetUTXOs(t *testing.T) {
 		t.Logf("error: %v", err)
 		t.Fail()
 	}
-	if unsTx[0].Value.Value() != 135.70301 {
+	t.Logf("UTXO count: %d", len(unsTx))
+	if float64(*unsTx[0].Value) != 135.70301 {
+		t.Logf("wrong value in bitcoin: %.8f", *unsTx[0].Value)
+		t.Fail()
+	}
+	if uint64(unsTx[0].Value.Satoshi()) != 13570301000 {
 		t.Logf("wrong value in bitcoin")
 		t.Fail()
 	}
-	if unsTx[0].Value.Satoshis() != 13570301000 {
-		t.Logf("wrong value in bitcoin")
-		t.Fail()
-	}
-	t.Logf("Unspent bitcoin: %v\n", unsTx[0].Value.Value())
-	t.Logf("Unspent satoshi: %v\n", unsTx[0].Value.Satoshis())
+	t.Logf("Unspent bitcoin: %.8f\n", unsTx[0].Value.Bitcoin())
+	t.Logf("Unspent satoshi: %d\n", unsTx[0].Value.Satoshi())
 }
 
 func TestGetTX(t *testing.T) {
