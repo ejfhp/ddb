@@ -8,7 +8,7 @@ import (
 )
 
 type FeeUnit struct {
-	Satoshis *Bitcoin `json:"satoshis"` // Fee in satoshis of the amount of Bytes
+	Satoshis *Satoshi `json:"satoshis"` // Fee in satoshis of the amount of Bytes
 	Bytes    int      `json:"bytes"`    // Number of bytes that the Fee covers
 }
 
@@ -43,14 +43,14 @@ func (f Fees) GetDataFee() (*Fee, error) {
 }
 
 //CalculateFee return the amount of satoshi to set as fee for the given TX
-func (f *Fee) CalculateFee(tx []byte) *Bitcoin {
+func (f *Fee) CalculateFee(tx []byte) Satoshi {
 	t := trace.New().Source("fees.go", "Fee", "CalculateFee")
 	size := len(tx)
 	log.Println(trace.Info("TX size").UTC().Add("bytes len", fmt.Sprintf("%d", size)).Append(t))
-	miningFeeSat := uint64((float64(size)/float64(f.MiningFee.Bytes))*float64(f.MiningFee.Satoshis.Satoshis())) + 1
+	miningFeeSat := Satoshi((float64(size) / float64(f.MiningFee.Bytes)) * float64(*f.MiningFee.Satoshis))
 	// relayFee := (float64(size) / float64(standardFee.RelayFee.Bytes)) * float64(standardFee.RelayFee.Satoshis)
-	relayFeeSat := uint64(0)
-	totalFeeSat := miningFeeSat + relayFeeSat
+	relayFeeSat := Satoshi(0)
+	totalFeeSat := miningFeeSat.Add(relayFeeSat)
 	log.Println(trace.Info("calculating fee").UTC().Add("size", fmt.Sprintf("%d", size)).Add("miningFeeSat", fmt.Sprintf("%d", miningFeeSat)).Add("relayFee", fmt.Sprintf("%d", relayFeeSat)).Add("totalFee", fmt.Sprintf("%d", totalFeeSat)).Append(t))
-	return FromSatoshis(totalFeeSat)
+	return totalFeeSat
 }
