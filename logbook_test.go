@@ -14,7 +14,11 @@ func TestLogText(t *testing.T) {
 	fromKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
-	logbook := ddb.Logbook{Key: fromKey, Miner: taal, Explorer: woc}
+	logbook, err := ddb.NewLogbook(fromKey, taal, woc)
+	if err != nil {
+		t.Logf("failed to create new Logbook: %v", err)
+		t.Fail()
+	}
 	txid, err := logbook.LogText("ddb - diario di bordo - logbook - test")
 	if err != nil {
 		t.Logf("failed to log text: %v", err)
