@@ -5,12 +5,8 @@ github.com/bitcoinsv/bsvutil v0.0.0-20181216182056-1d77cf353ea9/go.mod h1:p44KuN
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/ejfhp/bitonpaper v0.7.6 h1:hshEseEgfo5bEDW7cc0Tc7APEhLgGuLb8ZQvNvlCOIA=
-github.com/ejfhp/bitonpaper/go v0.0.0-20210222093134-586b13ed538e h1:+qr9CW5BdvqpEOvlVbSq8Taqha9xGpxLaUBuLFF0g+U=
 github.com/ejfhp/trail v0.0.3 h1:Rv4mC6tXTefIWJXRqBT8Fm9YSdbPrP0JTQW8ysEm4Nk=
 github.com/ejfhp/trail v0.0.3/go.mod h1:mlDh/gapLrykrcCxWeoOJo9S3rSIDfUS2UNUvUGzDDo=
-github.com/libsv/go-bk v0.1.1 h1:nBDbhWYRONIgUHNISQJ+t18G4vwcEjgthuSv8y7jpN0=
-github.com/libsv/go-bk v0.1.1/go.mod h1:xbDkeFFpP0uyFaPLnP6TwaLpAsHaslZ0LftTdWlB6HI=
 github.com/libsv/go-bt v0.0.11 h1:+FXtw4hC83Kg6VEdNAqD0Pk5scwjYAzsiScHWMarcls=
 github.com/libsv/go-bt v0.0.11/go.mod h1:AfXoLFYEbY/TvCq/84xTce2xGjPUuC5imokHmcykF2k=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
