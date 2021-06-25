@@ -1,7 +1,8 @@
 package ddb_test
 
 import (
-	"fmt"
+	"crypto/sha256"
+	"encoding/hex"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -20,8 +21,22 @@ func TestEntryOfFile(t *testing.T) {
 	if len(entries) < 4 {
 		t.Fatalf("Incomplete entries: %d", len(entries))
 	}
+	var data []byte
+	var entityHash string
 	for i, f := range entries {
-
-		fmt.Printf("%d size: %s  %d\n", i, f.FeeType, f.MiningFee.Satoshis)
+		if data == nil {
+			data = make([]byte, f.Size)
+		}
+		t.Logf("%d size: %s  %d   hash: %s\n", i, f.Mime, len(f.Data), f.Hash)
+		data = append(data, f.Data...)
+		entityHash = f.Hash
 	}
+	hash := make([]byte, 64)
+	sha := sha256.Sum256(data)
+	hex.Encode(hash, sha[:])
+	if entityHash != string(hash) {
+		t.Logf("the read file is wrong =>\n   %s\n!= %s", hash, entityHash)
+		t.Fail()
+	}
+	ioutil.WriteFile("readimage.png", data, 664)
 }
