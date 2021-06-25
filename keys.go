@@ -40,3 +40,12 @@ func AddressOf(wifkey string) (string, error) {
 	return add.EncodeAddress(), nil
 
 }
+
+func sha3(in []byte) string {
+	// A hash needs to be 64 bytes long to have 256-bit collision resistance.
+	h := make([]byte, 64)
+	// Compute a 64-byte hash of buf and put it in h.
+	ShakeSum256(h, buf)
+	fmt.Printf("%x\n", h)
+
+}
