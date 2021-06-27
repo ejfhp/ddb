@@ -6,7 +6,7 @@ import (
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
-	"github.com/libsv/go-bt"
+	bt "github.com/libsv/go-bt"
 )
 
 func BuildOPReturnHexTX(utxo *UTXO, key string, fee Token, payload []byte) (string, error) {

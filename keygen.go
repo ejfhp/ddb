@@ -1,23 +1,32 @@
 package ddb
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"golang.org/x/crypto/sha3"
+
+	"github.com/bitcoinsv/bsvd/bsvec"
+	"github.com/bitcoinsv/bsvd/chaincfg"
+	"github.com/bitcoinsv/bsvutil"
 )
 
 const (
 	MIN_NUM        = 1000
 	MIN_PHRASE_LEN = 15
-	NUM_CONF       = 4
+	NUM_CONFS      = 4
 	NUM_WORDS      = 3
 )
 
+var conf_numbers = []int{2, 3, 5, 7}
+
 var hasher map[int64]Hasher = map[int64]Hasher{
+	0: sha3_256_1,
 	1: sha3_256_1,
 	2: sha3_256_2,
-	3: sha3_384,
+	3: sha3_384_1,
+	4: sha3_384_2,
+	5: sha3_384_2,
+	6: sha3_384_2,
 }
 
 type Keygen struct {
@@ -29,21 +38,22 @@ type Keygen struct {
 
 func NewKeygen(num int, phrase string) (*Keygen, error) {
 	if num < MIN_NUM {
-		return nil, fmt.Errorf("Secret number should be greater than %d", MIN_NUM)
+		return nil, fmt.Errorf("secret number should be greater than %d", MIN_NUM)
 	}
 	if len(phrase) < MIN_PHRASE_LEN {
-		return nil, fmt.Errorf("Sectret phrase should be longer than %d chars", MIN_PHRASE_LEN)
+		return nil, fmt.Errorf("secret phrase should be longer than %d chars", MIN_PHRASE_LEN)
 	}
-	conf1 := num % 2
-	conf2 := num % 3
-	conf3 := num % 5
-	conf4 := num % 7
-
-	wordLen := len(phrase) / NUM_WORDS
-	word1 := []byte(phrase[:wordLen])
-	word2 := []byte(phrase[wordLen : wordLen*2])
-	word3 := []byte(phrase[wordLen*2:])
-	return &Keygen{num: num, phrase: phrase, confs: []int{conf1, conf2, conf3, conf4}, words: [][]byte{word1, word2, word3}}, nil
+	cns := []int{}
+	for i := 0; i < len(conf_numbers); i += 1 {
+		cns = append(cns, num%conf_numbers[i])
+	}
+	wLen := len(phrase) / NUM_WORDS
+	ws := [][]byte{}
+	for i := 0; i < NUM_WORDS; i += 1 {
+		ws = append(ws, []byte(phrase[i*wLen:(i+1)*wLen]))
+	}
+	ws[NUM_WORDS-1] = append(ws[NUM_WORDS-1], phrase[(NUM_WORDS)*wLen:]...)
+	return &Keygen{num: num, phrase: phrase, confs: cns, words: ws}, nil
 }
 
 func (k *Keygen) Words() [][]byte {
@@ -61,13 +71,18 @@ func (k *Keygen) Describe() {
 	fmt.Printf("WORDS, 1:'%s' 2:'%s' 3:'%s'\n", k.words[0], k.words[1], k.words[2])
 }
 
-func (k *Keygen) MakeWIF() string {
+func (k *Keygen) MakeWIF() (string, error) {
 	var hash []byte
-	for i := 0; i < NUM_CONF; i += 1 {
+	for i := 0; i < NUM_CONFS; i += 1 {
 		h := hasher[1] //k.confs[i]
 		hash = h(k.words, k.num, hash)
 	}
-	return hex.EncodeToString(hash)
+	priv, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), hash)
+	wif, err := bsvutil.NewWIF(priv, &chaincfg.MainNetParams, true)
+	if err != nil {
+		return "", fmt.Errorf("cannot generate WIF: %v", err)
+	}
+	return wif.String(), nil
 }
 
 type Hasher func(words [][]byte, repeat int, hash []byte) []byte
@@ -80,7 +95,6 @@ func sha3_256_1(words [][]byte, repeat int, hash []byte) []byte {
 			in = append(in, words[j]...)
 			out = sha3.Sum256(in)
 			copy(in, out[:])
-			fmt.Println(hex.EncodeToString(out[:]))
 		}
 	}
 	return out[:]
@@ -94,13 +108,12 @@ func sha3_256_2(words [][]byte, repeat int, hash []byte) []byte {
 			in = append(words[j], in...)
 			out = sha3.Sum256(in)
 			copy(in, out[:])
-			fmt.Println(hex.EncodeToString(out[:]))
 		}
 	}
 	return out[:]
 }
 
-func sha3_384(words [][]byte, repeat int, hash []byte) []byte {
+func sha3_384_1(words [][]byte, repeat int, hash []byte) []byte {
 	var out [48]byte
 	in := hash
 	for i := 0; i < repeat; i += 1 {
@@ -108,7 +121,19 @@ func sha3_384(words [][]byte, repeat int, hash []byte) []byte {
 			in = append(in, words[j]...)
 			out = sha3.Sum384(in)
 			copy(in, out[:])
-			fmt.Println(hex.EncodeToString(out[:]))
+		}
+	}
+	return out[:]
+}
+
+func sha3_384_2(words [][]byte, repeat int, hash []byte) []byte {
+	var out [48]byte
+	in := hash
+	for i := 0; i < repeat; i += 1 {
+		for j := 0; j < NUM_WORDS; j += 1 {
+			in = append(words[j], in...)
+			out = sha3.Sum384(in)
+			copy(in, out[:])
 		}
 	}
 	return out[:]
