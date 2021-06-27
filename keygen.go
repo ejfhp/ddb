@@ -3,6 +3,8 @@ package ddb
 import (
 	"fmt"
 
+	"crypto/sha256"
+
 	"golang.org/x/crypto/sha3"
 
 	"github.com/bitcoinsv/bsvd/bsvec"
@@ -11,8 +13,7 @@ import (
 )
 
 const (
-	MIN_NUM        = 1000
-	MIN_PHRASE_LEN = 15
+	MIN_PHRASE_LEN = 3
 	NUM_CONFS      = 4
 	NUM_WORDS      = 3
 )
@@ -21,12 +22,12 @@ var conf_numbers = []int{2, 3, 5, 7}
 
 var hasher map[int64]Hasher = map[int64]Hasher{
 	0: sha3_256_1,
-	1: sha3_256_1,
+	1: sha3_256_2,
 	2: sha3_256_2,
 	3: sha3_384_1,
-	4: sha3_384_2,
+	4: sha256_256_2,
 	5: sha3_384_2,
-	6: sha3_384_2,
+	6: sha256_256_1,
 }
 
 type Keygen struct {
@@ -37,9 +38,6 @@ type Keygen struct {
 }
 
 func NewKeygen(num int, phrase string) (*Keygen, error) {
-	if num < MIN_NUM {
-		return nil, fmt.Errorf("secret number should be greater than %d", MIN_NUM)
-	}
 	if len(phrase) < MIN_PHRASE_LEN {
 		return nil, fmt.Errorf("secret phrase should be longer than %d chars", MIN_PHRASE_LEN)
 	}
@@ -133,6 +131,32 @@ func sha3_384_2(words [][]byte, repeat int, hash []byte) []byte {
 		for j := 0; j < NUM_WORDS; j += 1 {
 			in = append(words[j], in...)
 			out = sha3.Sum384(in)
+			copy(in, out[:])
+		}
+	}
+	return out[:]
+}
+
+func sha256_256_1(words [][]byte, repeat int, hash []byte) []byte {
+	var out [32]byte
+	in := hash
+	for i := 0; i < repeat; i += 1 {
+		for j := 0; j < NUM_WORDS; j += 1 {
+			in = append(in, words[j]...)
+			out = sha256.Sum256(in)
+			copy(in, out[:])
+		}
+	}
+	return out[:]
+}
+
+func sha256_256_2(words [][]byte, repeat int, hash []byte) []byte {
+	var out [32]byte
+	in := hash
+	for i := 0; i < repeat; i += 1 {
+		for j := 0; j < NUM_WORDS; j += 1 {
+			in = append(words[j], in...)
+			out = sha256.Sum256(in)
 			copy(in, out[:])
 		}
 	}

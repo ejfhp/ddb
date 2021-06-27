@@ -9,7 +9,7 @@ import (
 
 func TestNewKeygen(t *testing.T) {
 	nums := []int{1567}
-	phrases := []string{"tanto va la gatta al lardo"}
+	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
 	for i, n := range nums {
 		k, err := ddb.NewKeygen(n, phrases[i])
 		if err != nil {
@@ -33,7 +33,7 @@ func TestNewKeygen(t *testing.T) {
 
 func TestMakeWIF(t *testing.T) {
 	nums := []int{3567}
-	phrases := []string{"tanto va la gatta al lardo"}
+	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
 	for i, n := range nums {
 		k, err := ddb.NewKeygen(n, phrases[i])
 		if err != nil {
