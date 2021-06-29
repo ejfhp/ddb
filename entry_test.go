@@ -108,8 +108,7 @@ func TestEncodeDecodeEntry(t *testing.T) {
 		t.Fail()
 	}
 	if de == nil {
-		t.Logf("Decoded entry is nil")
-		t.Fail()
+		t.Fatalf("Decoded entry is nil")
 	}
 	if de.Name != name || de.Hash != hash || de.Mime != mime || de.IdxPart != idxPart || de.NumPart != numPart || de.Size != size || de.Data == nil {
 		t.Logf("Entry decoding failed, some fields doesn't match.")
@@ -118,12 +117,60 @@ func TestEncodeDecodeEntry(t *testing.T) {
 	}
 }
 
-func TestEncryptDecryptText(t *testing.T) {
-	key := [32]byte(1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2)
+func TestEncryptDecrypt(t *testing.T) {
+	key := [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2}
 	tests := []string{
-		{"tanto va la gatta al lardo che ci lascia lo zampino"},
+		"tanto va la gatta al lardo che ci lascia lo zampino",
+		`Nel mezzo del cammin di nostra vita
+		mi ritrovai per una selva oscura,
+		ché la diritta via era smarrita.
+		
+		Ahi quanto a dir qual era è cosa dura
+		esta selva selvaggia e aspra e forte
+		che nel pensier rinova la paura!
+		
+		Tant’è amara che poco è più morte;
+		ma per trattar del ben ch’i’ vi trovai,
+		dirò de l’altre cose ch’i’ v’ ho scorte.
+		
+		Io non so ben ridir com’i’ v’intrai,
+		tant’era pien di sonno a quel punto
+		che la verace via abbandonai.
+		
+		Ma poi ch’i’ fui al piè d’un colle giunto,
+		là dove terminava quella valle
+		che m’avea di paura il cor compunto,
+		
+		guardai in alto e vidi le sue spalle
+		vestite già de’ raggi del pianeta
+		che mena dritto altrui per ogne calle.`,
 	}
-	for i, t := range tests {
-		encoded, err := ddb.AESEncrypt(key, t)
+	for i, txt := range tests {
+		crypted1, err := ddb.AESEncrypt(key, []byte(txt))
+		if err != nil {
+			t.Logf("first encryption has failed: %v", err)
+			t.Fail()
+		}
+		//Second encoding to encode random bytes and not text
+		crypted2, err := ddb.AESEncrypt(key, []byte(crypted1))
+		if err != nil {
+			t.Logf("second encryption has failed: %v", err)
+			t.Fail()
+		}
+		decrypted1, err := ddb.AESDecrypt(key, crypted2)
+		if err != nil {
+			t.Logf("first decryption has failed: %v", err)
+			t.Fail()
+		}
+		decrypted2, err := ddb.AESDecrypt(key, decrypted1)
+		if err != nil {
+			t.Logf("second decryption has failed: %v", err)
+			t.Fail()
+		}
+		if string(decrypted2) != txt {
+			t.Logf("%d: encryption/decription failed '%s' != '%s'", i, string(decrypted2), txt)
+			t.Fail()
+
+		}
 	}
 }
