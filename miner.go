@@ -28,6 +28,7 @@ type MapiSubmitTX struct {
 //Miner is an interface that describes miner interctions
 type Miner interface {
 	GetName() string
+	MaxOpReturn() int
 	GetFees() (Fees, error)
 	GetDataFee() (*Fee, error)
 	GetStandardFee() (*Fee, error)

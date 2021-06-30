@@ -9,23 +9,26 @@ import (
 	bt "github.com/libsv/go-bt"
 )
 
-func BuildOPReturnHexTX(utxo *UTXO, key string, fee Token, payload []byte) (string, error) {
+//BuildOPReturnHexTX returns the TXID and the hex encoded TX
+func BuildOPReturnHexTX(utxo *UTXO, key string, fee Token, payload []byte) (string, string, error) {
 	t := trace.New().Source("transaction.go", "", "BuildOPReturnHexTX")
 	tx, err := buildOPReturnTX(utxo, key, fee, payload)
 	if err != nil {
 		log.Println(trace.Alert("cannot build OP_RETURN TX").UTC().Error(err).Append(t))
-		return "", err
+		return "", "", err
 	}
-	return tx.ToString(), nil
+	return tx.GetTxID(), tx.ToString(), nil
 }
-func BuildOPReturnBytesTX(utxo *UTXO, key string, fee Token, payload []byte) ([]byte, error) {
+
+//BuildOPReturnHexTX returns the TXID and the []byte of the TX
+func BuildOPReturnBytesTX(utxo *UTXO, key string, fee Token, payload []byte) (string, []byte, error) {
 	t := trace.New().Source("transaction.go", "", "BuildOPReturnBytesTX")
 	tx, err := buildOPReturnTX(utxo, key, fee, payload)
 	if err != nil {
 		log.Println(trace.Alert("cannot build OP_RETURN TX").UTC().Error(err).Append(t))
-		return nil, err
+		return "", nil, err
 	}
-	return tx.ToBytes(), nil
+	return tx.GetTxID(), tx.ToBytes(), nil
 }
 func buildOPReturnTX(utxo *UTXO, key string, fee Token, payload []byte) (*bt.Tx, error) {
 	t := trace.New().Source("transaction.go", "", "buildOPReturnTX")

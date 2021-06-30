@@ -22,6 +22,9 @@ func NewTAAL() *TAAL {
 func (l *TAAL) GetName() string {
 	return "TAAL"
 }
+func (l *TAAL) MaxOpReturn() int {
+	return 100000
+}
 
 func (l *TAAL) GetFees() (Fees, error) {
 	t := trace.New().Source("taal.go", "TAAL", "GetFee")
