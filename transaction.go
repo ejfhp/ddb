@@ -1,21 +1,84 @@
 package ddb
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math"
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 	bt "github.com/libsv/go-bt"
+	"github.com/libsv/go-bt/bscript"
 )
 
+type Transaction struct {
+	Data []byte
+}
+
+func TransactionFromHex(h string) (*Transaction, error) {
+	tr := trace.New().Source("transaction.go", "Transaction", "TransactionFromHex")
+	b := make([]byte, hex.DecodedLen(len(h)))
+	_, err := hex.Decode(b, []byte(h))
+	if err != nil {
+		log.Println(trace.Alert("cannot build Transaction from HEX").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot build Transaction from HEX: %w", err)
+	}
+	return &Transaction{Data: b}, nil
+}
+
+func (t *Transaction) ID() string {
+	tr := trace.New().Source("transaction.go", "Transaction", "ID")
+	tx, err := bt.NewTxFromBytes(t.Data)
+	if err != nil {
+		log.Println(trace.Alert("cannot build bt.TX from bytes").UTC().Error(err).Append(tr))
+	}
+	return tx.GetTxID()
+}
+
+func (t *Transaction) HexData() string {
+	return hex.EncodeToString(t.Data)
+}
+
+func (t *Transaction) OpReturn() ([]byte, error) {
+	tr := trace.New().Source("transaction.go", "Transaction", "OpReturn")
+	tx, err := bt.NewTxFromBytes(t.Data)
+	if err != nil {
+		log.Println(trace.Alert("cannot build bt.TX from bytes").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot build bt.TX from bytes: %w", err)
+	}
+	var opRet []byte
+	for _, o := range tx.Outputs {
+		if o.LockingScript.IsData() {
+			// fmt.Println(o.ToBytes())
+			ops, err := bscript.DecodeStringParts(o.GetLockingScriptHexString())
+			if err != nil {
+				log.Println(trace.Alert("cannot decode output parts").UTC().Error(err).Append(tr))
+				return nil, fmt.Errorf("cannot decode output parts: %w", err)
+			}
+			for i, v := range ops {
+				if v[0] == bscript.OpFALSE {
+					fmt.Printf("%d OP_FALSE %d  %v %d\n", i, v[0], v, len(v))
+					continue
+				}
+				if v[0] == bscript.OpRETURN {
+					fmt.Printf("%d OP_RETURN %d  %v %d\n", i, v[0], v, len(v))
+					continue
+				}
+				// fmt.Printf("%d DATA %v  %v %d\n", i, v[0], string(v), len(v))
+				opRet = v
+			}
+		}
+	}
+	return opRet, nil
+}
+
 //BuildOPReturnHexTX returns the TXID and the hex encoded TX
-func BuildOPReturnHexTX(utxo *UTXO, key string, fee Token, payload []byte) (string, string, error) {
-	t := trace.New().Source("transaction.go", "", "BuildOPReturnHexTX")
+func BuildOpReturnHexTX(utxo *UTXO, key string, fee Token, payload []byte) (string, string, error) {
+	t := trace.New().Source("transaction.go", "", "BuildOpReturnHexTX")
 	tx, err := buildOPReturnTX(utxo, key, fee, payload)
 	if err != nil {
 		log.Println(trace.Alert("cannot build OP_RETURN TX").UTC().Error(err).Append(t))
-		return "", "", err
+		return "", "", fmt.Errorf("cannot build OP_RETURN TX: %w", err)
 	}
 	return tx.GetTxID(), tx.ToString(), nil
 }

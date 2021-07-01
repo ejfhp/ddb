@@ -98,7 +98,7 @@ func (l *Logbook) PrepareTX(version string, data []byte) (string, string, error)
 		return "", "", fmt.Errorf("cannot build 0-fee TX: %W", err)
 	}
 	fee := dataFee.CalculateFee(txBytes)
-	txID, txHex, err := BuildOPReturnHexTX(u, l.bitcoinWif, fee, data)
+	txID, txHex, err := BuildOpReturnHexTX(u, l.bitcoinWif, fee, data)
 	if err != nil {
 		log.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(t))
 		return "", "", fmt.Errorf("cannot build TX: %W", err)
