@@ -11,11 +11,9 @@ import (
 	"github.com/libsv/go-bt/bscript"
 )
 
-type Transaction struct {
-	Data []byte
-}
+type DataTX bt.Tx
 
-func TransactionFromHex(h string) (*Transaction, error) {
+func TransactionFromHex(h string) (*DataTX, error) {
 	tr := trace.New().Source("transaction.go", "Transaction", "TransactionFromHex")
 	b := make([]byte, hex.DecodedLen(len(h)))
 	_, err := hex.Decode(b, []byte(h))
@@ -23,31 +21,15 @@ func TransactionFromHex(h string) (*Transaction, error) {
 		log.Println(trace.Alert("cannot build Transaction from HEX").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot build Transaction from HEX: %w", err)
 	}
-	return &Transaction{Data: b}, nil
+	tx, err := bt.NewTxFromBytes(b)
+	dtx := DataTX(*tx)
+	return &dtx, nil
 }
 
-func (t *Transaction) ID() string {
-	tr := trace.New().Source("transaction.go", "Transaction", "ID")
-	tx, err := bt.NewTxFromBytes(t.Data)
-	if err != nil {
-		log.Println(trace.Alert("cannot build bt.TX from bytes").UTC().Error(err).Append(tr))
-	}
-	return tx.GetTxID()
-}
-
-func (t *Transaction) HexData() string {
-	return hex.EncodeToString(t.Data)
-}
-
-func (t *Transaction) OpReturn() ([]byte, error) {
+func (t *DataTX) OpReturn() ([]byte, error) {
 	tr := trace.New().Source("transaction.go", "Transaction", "OpReturn")
-	tx, err := bt.NewTxFromBytes(t.Data)
-	if err != nil {
-		log.Println(trace.Alert("cannot build bt.TX from bytes").UTC().Error(err).Append(tr))
-		return nil, fmt.Errorf("cannot build bt.TX from bytes: %w", err)
-	}
 	var opRet []byte
-	for _, o := range tx.Outputs {
+	for _, o := range t.Outputs {
 		if o.LockingScript.IsData() {
 			// fmt.Println(o.ToBytes())
 			ops, err := bscript.DecodeStringParts(o.GetLockingScriptHexString())
@@ -72,52 +54,50 @@ func (t *Transaction) OpReturn() ([]byte, error) {
 	return opRet, nil
 }
 
-//BuildOPReturnHexTX returns the TXID and the hex encoded TX
-func BuildOpReturnHexTX(utxo *UTXO, key string, fee Token, payload []byte) (string, string, error) {
-	t := trace.New().Source("transaction.go", "", "BuildOpReturnHexTX")
-	tx, err := buildOPReturnTX(utxo, key, fee, payload)
-	if err != nil {
-		log.Println(trace.Alert("cannot build OP_RETURN TX").UTC().Error(err).Append(t))
-		return "", "", fmt.Errorf("cannot build OP_RETURN TX: %w", err)
-	}
-	return tx.GetTxID(), tx.ToString(), nil
-}
+// //BuildOPReturnHexTX returns the TXID and the hex encoded TX
+// func BuildOpReturnHexTX(utxo *UTXO, key string, fee Token, payload []byte) (string, string, error) {
+// 	t := trace.New().Source("transaction.go", "", "BuildOpReturnHexTX")
+// 	tx, err := buildOPReturnTX(utxo, key, fee, payload)
+// 	if err != nil {
+// 		log.Println(trace.Alert("cannot build OP_RETURN TX").UTC().Error(err).Append(t))
+// 		return "", "", fmt.Errorf("cannot build OP_RETURN TX: %w", err)
+// 	}
+// 	return tx.GetTxID(), tx.ToString(), nil
+// }
+
+// //BuildOPReturnHexTX returns the TXID and the []byte of the TX
+// func BuildOPReturnBytesTX(utxo *UTXO, key string, fee Token, payload []byte) (string, []byte, error) {
+// 	t := trace.New().Source("transaction.go", "", "BuildOPReturnBytesTX")
+// 	tx, err := buildOPReturnTX(utxo, key, fee, payload)
+// 	if err != nil {
+// 		log.Println(trace.Alert("cannot build OP_RETURN TX").UTC().Error(err).Append(t))
+// 		return "", nil, err
+// 	}
+// 	return tx.GetTxID(), tx.ToBytes(), nil
+// }
 
 //BuildOPReturnHexTX returns the TXID and the []byte of the TX
-func BuildOPReturnBytesTX(utxo *UTXO, key string, fee Token, payload []byte) (string, []byte, error) {
-	t := trace.New().Source("transaction.go", "", "BuildOPReturnBytesTX")
-	tx, err := buildOPReturnTX(utxo, key, fee, payload)
-	if err != nil {
-		log.Println(trace.Alert("cannot build OP_RETURN TX").UTC().Error(err).Append(t))
-		return "", nil, err
-	}
-	return tx.GetTxID(), tx.ToBytes(), nil
-}
-func buildOPReturnTX(utxo *UTXO, key string, fee Token, payload []byte) (*bt.Tx, error) {
+func BuildOPReturnTX(address string, inTXID string, in Satoshi, inpos uint32, inScriptHex string, key string, fee Token, payload []byte) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "", "buildOPReturnTX")
-	if utxo == nil {
-		return nil, fmt.Errorf("origin UTXO is nil")
-	}
-	toAddress := utxo.ScriptPubKey.Adresses[0]
-	log.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("address", toAddress).Append(t))
+	log.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("address", address).Append(t))
 	tx := bt.NewTx()
-	input, err := bt.NewInputFromUTXO(utxo.TXHash, utxo.TXPos, uint64(utxo.Value.Satoshi()), utxo.ScriptPubKey.Hex, math.MaxUint32)
+	input, err := bt.NewInputFromUTXO(inTXID, inpos, uint64(in), inScriptHex, math.MaxUint32)
 	if err != nil {
-		log.Println(trace.Alert("cannot get UTXO input").UTC().Add("TxHash", utxo.TXHash).Add("TxPos", fmt.Sprintf("%d", utxo.TXPos)).Error(err).Append(t))
+		log.Println(trace.Alert("cannot get UTXO input").UTC().Add("TXID", inTXID).Add("inpos", fmt.Sprintf("%d", inpos)).Error(err).Append(t))
 		return nil, fmt.Errorf("cannot get UTXO input: %w", err)
 	}
-	satInput := utxo.Value
+	satInput := in
 	tx.AddInput(input)
 	satOutput := satInput.Sub(fee)
-	log.Println(trace.Info("calculating fee").UTC().Add("input", fmt.Sprintf("%0.8f", *satInput)).Add("output", fmt.Sprintf("%0.8f", satOutput)).Add("fee", fmt.Sprintf("%0.8f", fee)).Append(t))
-	outputS, err := bt.NewP2PKHOutputFromAddress(toAddress, uint64(satOutput.Satoshi()))
+	log.Println(trace.Info("calculating fee").UTC().Add("input", fmt.Sprintf("%0.8f", in.Bitcoin())).Add("output", fmt.Sprintf("%0.8f", satOutput)).Add("fee", fmt.Sprintf("%0.8f", fee)).Append(t))
+	outputS, err := bt.NewP2PKHOutputFromAddress(address, uint64(satOutput.Satoshi()))
 	if err != nil {
-		log.Println(trace.Alert("cannot create output").UTC().Add("toAddress", toAddress).Add("output", fmt.Sprintf("%0.8f", satOutput)).Error(err).Append(t))
-		return nil, fmt.Errorf("cannot create output, address %s amount %0.8f: %w", toAddress, satOutput, err)
+		log.Println(trace.Alert("cannot create output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput)).Error(err).Append(t))
+		return nil, fmt.Errorf("cannot create output, address %s amount %0.8f: %w", address, satOutput, err)
 	}
 	outputD, err := bt.NewOpReturnOutput(payload)
 	if err != nil {
-		log.Println(trace.Alert("cannot create OP_RETURN output").UTC().Add("toAddress", toAddress).Add("output", fmt.Sprintf("%0.8f", satOutput)).Error(err).Append(t))
+		log.Println(trace.Alert("cannot create OP_RETURN output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput)).Error(err).Append(t))
 		return nil, fmt.Errorf("cannot create OP_RETURN output: %w", err)
 	}
 	tx.AddOutput(outputS)
@@ -135,5 +115,6 @@ func buildOPReturnTX(utxo *UTXO, key string, fee Token, payload []byte) (*bt.Tx,
 			return nil, fmt.Errorf("cannot sign input %d: %w", i, err)
 		}
 	}
-	return tx, nil
+	dtx := DataTX(*tx)
+	return &dtx, nil
 }
