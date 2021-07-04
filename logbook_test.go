@@ -46,12 +46,13 @@ func TestRecordShortText(t *testing.T) {
 		guardai in alto e vidi le sue spalle
 		vestite già de’ raggi del pianeta
 		che mena dritto altrui per ogne calle.`
-	txs, err := logbook.RecordFile(filename, []byte(file))
+	entry := ddb.Entry{Name: filename, Data: []byte(file)}
+	txs, err := logbook.RecordEntry(&entry)
 	if err != nil {
 		t.Logf("failed to log text: %v", err)
 		t.Fail()
 	}
 	for i, tx := range txs {
-		fmt.Printf("%d - ID: %s  TXHEX: %s", i, tx.ID(), tx.HexData())
+		fmt.Printf("%d - ID: %s  TXHEX: %s", i, tx.GetTxID(), tx.ToString())
 	}
 }

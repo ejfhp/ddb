@@ -28,11 +28,7 @@ func AddressOf(wifkey string) (string, error) {
 		log.Println(trace.Alert("cannot decode WIF").UTC().Error(err).Append(t))
 		return "", fmt.Errorf("cannot decode WIF: %w", err)
 	}
-	fmt.Printf("compressed: %t\n", w.CompressPubKey)
 	add, err := bsvutil.NewAddressPubKey(w.SerializePubKey(), &chaincfg.MainNetParams)
-
-	// add, err := bscript.NewAddressFromPublicKeyHash(wif.SerialisePubKey(), true)
-
 	if err != nil {
 		log.Println(trace.Alert("cannot generate address from WIF").UTC().Error(err).Append(t))
 		return "", fmt.Errorf("cannot generate address from WIF: %w", err)

@@ -33,10 +33,10 @@ func NewLogbook(wif string, password [32]byte, blockchain *Blockchain) (*Logbook
 }
 
 //RecordFile store a file (binary or text) on the blockchain, returns the array of the {TXID, TX_HEX} generated.
-func (l *Logbook) RecordFile(name string, data []byte) ([]DataTX, error) {
+func (l *Logbook) RecordEntry(entry *Entry) ([]DataTX, error) {
 	t := trace.New().Source("logbook.go", "Logbook", "RecordFile")
-	log.Println(trace.Info("preparing file").Add("file", name).Add("size", fmt.Sprintf("%d", len(data))).UTC().Append(t))
-	parts, err := EntriesOfFile(name, data, l.maxDataSize())
+	log.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(t))
+	parts, err := entry.Parts(l.maxDataSize())
 	if err != nil {
 		log.Println(trace.Alert("error generating entries of file").UTC().Error(err).Append(t))
 		return nil, fmt.Errorf("error generating entries of file: %w", err)
@@ -55,6 +55,10 @@ func (l *Logbook) RecordFile(name string, data []byte) ([]DataTX, error) {
 		}
 		encryptedEntryParts = append(encryptedEntryParts, cryptedp)
 	}
+	return nil, nil
+}
+
+func (l *Logbook) ReadEntries(txs []DataTX) ([]Entry, error) {
 	return nil, nil
 }
 

@@ -31,7 +31,8 @@ func TestEntryOfFile(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%d: error reading test file: %v", in, err)
 		}
-		entries, err := ddb.EntriesOfFile(fil[0], bytes, partsizes[in][0])
+		entry := ddb.Entry{Name: fil[0], Data: bytes}
+		entries, err := entry.Parts(partsizes[in][0])
 		if err != nil {
 			t.Fatalf("%d: error making entries of test file: %v", in, err)
 		}

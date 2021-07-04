@@ -11,7 +11,7 @@ import (
 	"github.com/libsv/go-bt/bscript"
 )
 
-type DataTX bt.Tx
+type DataTX struct{ bt.Tx }
 
 func TransactionFromHex(h string) (*DataTX, error) {
 	tr := trace.New().Source("transaction.go", "Transaction", "TransactionFromHex")
@@ -22,7 +22,7 @@ func TransactionFromHex(h string) (*DataTX, error) {
 		return nil, fmt.Errorf("cannot build Transaction from HEX: %w", err)
 	}
 	tx, err := bt.NewTxFromBytes(b)
-	dtx := DataTX(*tx)
+	dtx := DataTX{*tx}
 	return &dtx, nil
 }
 
@@ -89,15 +89,15 @@ func BuildOPReturnTX(address string, inTXID string, in Satoshi, inpos uint32, in
 	satInput := in
 	tx.AddInput(input)
 	satOutput := satInput.Sub(fee)
-	log.Println(trace.Info("calculating fee").UTC().Add("input", fmt.Sprintf("%0.8f", in.Bitcoin())).Add("output", fmt.Sprintf("%0.8f", satOutput)).Add("fee", fmt.Sprintf("%0.8f", fee)).Append(t))
+	log.Println(trace.Info("calculating fee").UTC().Add("input", fmt.Sprintf("%0.8f", in.Bitcoin())).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Add("fee", fmt.Sprintf("%0.8f", fee)).Append(t))
 	outputS, err := bt.NewP2PKHOutputFromAddress(address, uint64(satOutput.Satoshi()))
 	if err != nil {
-		log.Println(trace.Alert("cannot create output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput)).Error(err).Append(t))
-		return nil, fmt.Errorf("cannot create output, address %s amount %0.8f: %w", address, satOutput, err)
+		log.Println(trace.Alert("cannot create output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))
+		return nil, fmt.Errorf("cannot create output, address %s amount %0.8f: %w", address, satOutput.Bitcoin(), err)
 	}
 	outputD, err := bt.NewOpReturnOutput(payload)
 	if err != nil {
-		log.Println(trace.Alert("cannot create OP_RETURN output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput)).Error(err).Append(t))
+		log.Println(trace.Alert("cannot create OP_RETURN output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))
 		return nil, fmt.Errorf("cannot create OP_RETURN output: %w", err)
 	}
 	tx.AddOutput(outputS)
@@ -115,6 +115,6 @@ func BuildOPReturnTX(address string, inTXID string, in Satoshi, inpos uint32, in
 			return nil, fmt.Errorf("cannot sign input %d: %w", i, err)
 		}
 	}
-	dtx := DataTX(*tx)
+	dtx := DataTX{*tx}
 	return &dtx, nil
 }

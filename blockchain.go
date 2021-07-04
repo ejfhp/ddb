@@ -16,74 +16,67 @@ func NewBlockchain(miner Miner, explorer Explorer) *Blockchain {
 	return &Blockchain{miner: miner, explorer: explorer}
 }
 
-//CastEncryptedEntriesPart writes the raw encrypted entry data on the blockchain, returns the TXID and the hex encoded TX
-func (b *Blockchain) CastEncryptedEntriesPart(version string, ownerKey string, encryptedPartsData [][]byte) (string, string, error) {
-	// id, hex, err := l.PrepareTX(VER_AES, cryptedp) //TODO da qui in poi il payload deve essere passato alla blockchain
-	// if err != nil {
-	// 	log.Println(trace.Alert("error preparing entry part TX").UTC().Error(err).Append(t))
-	// 	return nil, fmt.Errorf("error preparing entry part TX: %w", err)
-	// }
-	// txs = append(txs, []string{id, hex})
-	// for i, tx := range txs {
-	// 	id, err := l.Submit(tx[1])
-	// 	if err != nil {
-	// 		log.Println(trace.Alert("error submitting entry part TX").Add("num", fmt.Sprintf("%d", i)).UTC().Error(err).Append(t))
-	// 		return nil, fmt.Errorf("error submitting entry part TX num %d: %w", i, err)
-	// 	}
-	// 	if id != tx[0] {
-	// 		log.Println(trace.Alert("miner responded with a different TXID").Add("TXID", tx[0]).Add("miner_TXID", id).UTC().Error(err).Append(t))
-	// 	}
-	// 	txs[i][0] = id
-	// }
+//PackEncryptedEntriesPart writes the raw encrypted entry data on a chained serie of TX, returns the TXID and the hex encoded TX
+func (b *Blockchain) PackEncryptedEntriesPart(version string, ownerKey string, encryptedPartsData [][]byte) ([]*DataTX, error) {
 	t := trace.New().Source("blockchain.go", "Blockchain", "CastEncryptedEntriesPart")
 	log.Println(trace.Info("preparing TXs").UTC().Append(t))
 	address, err := AddressOf(ownerKey)
 	if err != nil {
 		log.Println(trace.Alert("cannot get owner address").UTC().Error(err).Append(t))
-		return "", "", fmt.Errorf("cannot get owner address: %w", err)
+		return nil, fmt.Errorf("cannot get owner address: %w", err)
 	}
 	u, err := b.GetLastUTXO(address)
 	if err != nil {
 		log.Println(trace.Alert("cannot get last UTXO").UTC().Error(err).Append(t))
-		return "", "", fmt.Errorf("cannot get last UTXO: %w", err)
+		return nil, fmt.Errorf("cannot get last UTXO: %w", err)
 	}
+	inTXID := u.TXHash
+	inSat := u.Value.Satoshi()
+	inPos := u.TXPos
+	inScr := u.ScriptPubKey.Hex
+
 	dataFee, err := b.miner.GetDataFee()
 	if err != nil {
 		log.Println(trace.Alert("cannot get data fee from miner").UTC().Add("miner", b.miner.GetName()).Error(err).Append(t))
-		return "", "", fmt.Errorf("cannot get data fee from miner: %W", err)
+		return nil, fmt.Errorf("cannot get data fee from miner: %W", err)
 	}
-
+	dataTXs := make([]*DataTX, len(encryptedPartsData))
 	for i, ep := range encryptedPartsData {
-		payload := addHeader(APP_NAME, VER_AES, ep)
-		_, txBytes, err := BuildOPReturnBytesTX(u, ownerKey, Bitcoin(0), payload)
-
+		payload := b.AddHeader(APP_NAME, VER_AES, ep)
+		dataTx, err := BuildOPReturnTX(address, inTXID, inSat, inPos, inScr, ownerKey, Bitcoin(0), payload)
+		if err != nil {
+			log.Println(trace.Alert("cannot build 0-fee TX").UTC().Error(err).Append(t))
+			return nil, fmt.Errorf("cannot build 0-fee TX: %W", err)
+		}
+		fee := dataFee.CalculateFee(dataTx.ToBytes())
+		dataTx, err = BuildOPReturnTX(address, inTXID, inSat, inPos, inScr, ownerKey, fee, payload)
+		if err != nil {
+			log.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(t))
+			return nil, fmt.Errorf("cannot build TX: %W", err)
+		}
+		inTXID = dataTx.GetTxID()
+		inSat = Satoshi(dataTx.Outputs[0].Satoshis)
+		inPos = 1
+		inScr = dataTx.Outputs[0].GetLockingScriptHexString()
+		dataTXs[i] = dataTx
 	}
-	if err != nil {
-		log.Println(trace.Alert("cannot build 0-fee TX").UTC().Error(err).Append(t))
-		return "", "", fmt.Errorf("cannot build 0-fee TX: %W", err)
-	}
-	fee := dataFee.CalculateFee(txBytes)
-	txID, txHex, err := BuildOpReturnHexTX(u, l.bitcoinWif, fee, data)
-	if err != nil {
-		log.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(t))
-		return "", "", fmt.Errorf("cannot build TX: %W", err)
-	}
-	return txID, txHex, nil
-
+	return dataTXs, nil
 }
 
-func (b *Blockchain) Submit(txsHex []string) ([]string, error) {
+func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 	t := trace.New().Source("blockchain.go", "Blockchain", "Submit")
 	log.Println(trace.Info("submit TX hex").UTC().Append(t))
-	ids := make([]string, len(txsHex))
-	for i, tx := range txsHex {
-		id, err := b.miner.SubmitTX(tx)
+	ids := make([]string, len(txs))
+	for i, tx := range txs {
+		id, err := b.miner.SubmitTX(tx.ToString())
 		if err != nil {
 			log.Println(trace.Alert("cannot submit TX to miner").UTC().Add("i", fmt.Sprintf("%d", i)).Add("miner", b.miner.GetName()).Error(err).Append(t))
 			return nil, fmt.Errorf("cannot submit TX to miner: %W", err)
 		}
+		if id != tx.GetTxID() {
+			log.Println(trace.Alert("miner returned a different TXID").UTC().Add("minerTXID", id).Add("TXID", tx.GetTxID()).Add("miner", b.miner.GetName()).Append(t))
+		}
 		ids[i] = id
-
 	}
 	return ids, nil
 
@@ -105,7 +98,7 @@ func (b *Blockchain) GetLastUTXO(address string) (*UTXO, error) {
 
 }
 
-func addHeader(appName string, version string, data []byte) []byte {
+func (b *Blockchain) AddHeader(appName string, version string, data []byte) []byte {
 	header := []byte(fmt.Sprintf("%s;%s;", appName, version))
 	payload := append(data, header...)
 	copy(payload[HEADER_SIZE:], payload)

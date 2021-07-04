@@ -20,6 +20,15 @@ const (
 	noncesize = 12
 )
 
+type Entry struct {
+	Name string
+	Data []byte
+}
+
+func EntryFromParts(parts []*EntryPart) (*Entry, error) {
+	return nil, nil
+}
+
 //EntryPart is the payload of a single transaction, it can contains an entire file or be a single part of a multi entry file.
 type EntryPart struct {
 	Name    string `json:"n"` //name of file
@@ -32,23 +41,23 @@ type EntryPart struct {
 }
 
 //EntriesOfFile returns an array of entries for the given file.
-func EntriesOfFile(filename string, data []byte, maxPartSize int) ([]*EntryPart, error) {
+func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
 	log.Println(trace.Debug("building entries").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
-	fm := mime.TypeByExtension(filepath.Ext(filename))
-	fmt.Printf("ext: %s   mime: %s\n", filepath.Ext(filename), fm)
+	fm := mime.TypeByExtension(filepath.Ext(e.Name))
+	fmt.Printf("ext: %s   mime: %s\n", filepath.Ext(e.Name), fm)
 	hash := make([]byte, 64)
-	sha := sha256.Sum256(data)
+	sha := sha256.Sum256(e.Data)
 	hex.Encode(hash, sha[:])
-	numPart := (len(data) / maxPartSize) + 1
+	numPart := (len(e.Data) / maxPartSize) + 1
 	entries := make([]*EntryPart, 0, numPart)
 	for i := 0; i < numPart; i++ {
 		start := i * maxPartSize
 		end := start + maxPartSize
-		if end > len(data)-1 {
-			end = len(data)
+		if end > len(e.Data)-1 {
+			end = len(e.Data)
 		}
-		e := EntryPart{Name: filename, Hash: string(hash), Mime: fm, IdxPart: i, NumPart: numPart, Size: (end - start), Data: data[start:end]}
+		e := EntryPart{Name: e.Name, Hash: string(hash), Mime: fm, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
 		entries = append(entries, &e)
 	}
 	return entries, nil
