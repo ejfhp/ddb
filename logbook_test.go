@@ -1,8 +1,13 @@
 package ddb_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"mime"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ejfhp/ddb"
@@ -54,5 +59,27 @@ func TestRecordShortText(t *testing.T) {
 	}
 	for i, tx := range txs {
 		fmt.Printf("%d - ID: %s  TXHEX: %s", i, tx.GetTxID(), tx.ToString())
+	}
+}
+
+func TestEntryFullCycle(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	fromKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
+	blockchain := ddb.NewBlockchain(taal, woc)
+	logbook, err := ddb.NewLogbook(fromKey, password, blockchain)
+	name := "test.txt"
+	file := "testdata/test.txt"
+	fm := mime.TypeByExtension(filepath.Ext(file))
+	bytes, err := ioutil.ReadFile(file)
+	sha := sha256.Sum256(bytes)
+	hash := hex.EncodeToString(sha[:])
+	entry := ddb.Entry{Name: name, Mime: fm, Hash: hash, Data: bytes}
+	txs, err := logbook.Prepare(entry)
+	if err != nil {
+		t.Logf("txs preparation failed")
+		t.Fail()
 	}
 }

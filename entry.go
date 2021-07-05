@@ -18,8 +18,6 @@ const (
 	noncesize = 12
 )
 
-// fm := mime.TypeByExtension(filepath.Ext(e.Name))
-// fmt.Printf("ext: %s   mime: %s\n", filepath.Ext(e.Name), fm)
 type Entry struct {
 	Name string
 	Mime string
@@ -77,14 +75,19 @@ type EntryPart struct {
 	Data    []byte `json:"d"` //data part of the file
 }
 
-func EntryPartsFromEncryptedData(encs [][]byte) ([]*EntryPart, error) {
-	t := trace.New().Source("entry.go", "EntryPart", "EntryPartsFromEncryptedData")
-	log.Println(trace.Debug("decrypting and decoding").UTC().Append(t))
+func EntryPartsFromEncodedData(encs [][]byte) ([]*EntryPart, error) {
+	tr := trace.New().Source("entry.go", "EntryPart", "EntryPartsFromEncryptedData")
+	log.Println(trace.Debug("decrypting and decoding").UTC().Append(tr))
+	entryParts := make([]*EntryPart, 0, len(encs))
 	for _, ep := range encs {
-		AESDecrypt(ep)
-
+		entryPart, err := Decode(ep)
+		if err != nil {
+			log.Println(trace.Alert("EntryPart decode failed").UTC().Error(err).Append(tr))
+			return nil, fmt.Errorf("EntryPart decode failed: %w", err)
+		}
+		entryParts = append(entryParts, entryPart)
 	}
-
+	return entryParts, nil
 }
 
 //EntriesOfFile returns an array of entries for the given file.

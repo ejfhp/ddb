@@ -32,8 +32,8 @@ func NewLogbook(wif string, password [32]byte, blockchain *Blockchain) (*Logbook
 
 }
 
-//RecordFile store a file (binary or text) on the blockchain, returns the array of the {TXID, TX_HEX} generated.
-func (l *Logbook) RecordEntry(entry *Entry) ([]DataTX, error) {
+//Prepare prepares all the TXs required to store the entry on the blockchain
+func (l *Logbook) Prepare(entry *Entry) ([]DataTX, error) {
 	t := trace.New().Source("logbook.go", "Logbook", "RecordFile")
 	log.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(t))
 	parts, err := entry.Parts(l.maxDataSize())
@@ -58,7 +58,7 @@ func (l *Logbook) RecordEntry(entry *Entry) ([]DataTX, error) {
 	return nil, nil
 }
 
-func (l *Logbook) ReadEntries(txs []DataTX) ([]Entry, error) {
+func (l *Logbook) ExtractEntries(txs []DataTX) ([]Entry, error) {
 	return nil, nil
 }
 
