@@ -18,10 +18,25 @@ func TransactionFromHex(h string) (*DataTX, error) {
 	b := make([]byte, hex.DecodedLen(len(h)))
 	_, err := hex.Decode(b, []byte(h))
 	if err != nil {
+		log.Println(trace.Alert("cannot decode hex").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot decode hex: %w", err)
+	}
+	tx, err := bt.NewTxFromBytes(b)
+	if err != nil {
 		log.Println(trace.Alert("cannot build Transaction from HEX").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot build Transaction from HEX: %w", err)
 	}
+	dtx := DataTX{*tx}
+	return &dtx, nil
+}
+
+func TransactionFromBytes(b []byte) (*DataTX, error) {
+	tr := trace.New().Source("transaction.go", "Transaction", "TransactionFromBytes")
 	tx, err := bt.NewTxFromBytes(b)
+	if err != nil {
+		log.Println(trace.Alert("cannot build Transaction from bytes").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot build Transaction from bytes: %w", err)
+	}
 	dtx := DataTX{*tx}
 	return &dtx, nil
 }

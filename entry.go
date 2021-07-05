@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime"
-	"path/filepath"
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -20,13 +18,52 @@ const (
 	noncesize = 12
 )
 
+// fm := mime.TypeByExtension(filepath.Ext(e.Name))
+// fmt.Printf("ext: %s   mime: %s\n", filepath.Ext(e.Name), fm)
 type Entry struct {
 	Name string
+	Mime string
+	Hash string
 	Data []byte
 }
 
-func EntryFromParts(parts []*EntryPart) (*Entry, error) {
-	return nil, nil
+func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
+	t := trace.New().Source("entry.go", "Entry", "EntriesFromPart")
+	log.Println(trace.Debug("getting entries from parts").UTC().Append(t))
+	entries := make([]*Entry, 0)
+	partsDict := make(map[string][]*EntryPart)
+	for _, p := range parts {
+		if _, ok := partsDict[p.Name+p.Hash]; ok == false {
+			partsDict[p.Name+p.Hash] = make([]*EntryPart, p.NumPart)
+		}
+		// fmt.Printf("filling %s %d/%d\n", p.Name, p.IdxPart+1, p.NumPart)
+		partsDict[p.Name+p.Hash][p.IdxPart] = p
+	}
+	for _, pa := range partsDict {
+		if pa[0] == nil {
+			log.Println(trace.Warning("missing part").UTC().Add("part", "0").Append(t))
+			continue
+		}
+		numPart := pa[0].NumPart
+		entry := Entry{Name: pa[0].Name, Mime: pa[0].Mime, Hash: pa[0].Hash}
+		data := make([]byte, 0)
+		for i := 0; i < numPart; i++ {
+			if pa[i] == nil {
+				log.Println(trace.Warning("missing part").UTC().Add("part", fmt.Sprintf("%d", i)).Append(t))
+				continue
+			}
+			data = append(data, pa[i].Data...)
+		}
+		nh := sha256.Sum256(data)
+		nhash := hex.EncodeToString(nh[:])
+		if nhash != entry.Hash {
+			log.Println(trace.Alert("hash of decoded entry doesn't match").UTC().Add("new hash", nhash).Add("hash", entry.Hash))
+			return nil, fmt.Errorf("hash of decoded entry doesn't match stored:%s  new:%s", entry.Hash, nhash)
+		}
+		entry.Data = data
+		entries = append(entries, &entry)
+	}
+	return entries, nil
 }
 
 //EntryPart is the payload of a single transaction, it can contains an entire file or be a single part of a multi entry file.
@@ -40,12 +77,20 @@ type EntryPart struct {
 	Data    []byte `json:"d"` //data part of the file
 }
 
+func EntryPartsFromEncryptedData(encs [][]byte) ([]*EntryPart, error) {
+	t := trace.New().Source("entry.go", "EntryPart", "EntryPartsFromEncryptedData")
+	log.Println(trace.Debug("decrypting and decoding").UTC().Append(t))
+	for _, ep := range encs {
+		AESDecrypt(ep)
+
+	}
+
+}
+
 //EntriesOfFile returns an array of entries for the given file.
 func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
 	log.Println(trace.Debug("building entries").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
-	fm := mime.TypeByExtension(filepath.Ext(e.Name))
-	fmt.Printf("ext: %s   mime: %s\n", filepath.Ext(e.Name), fm)
 	hash := make([]byte, 64)
 	sha := sha256.Sum256(e.Data)
 	hex.Encode(hash, sha[:])
@@ -57,7 +102,7 @@ func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 		if end > len(e.Data)-1 {
 			end = len(e.Data)
 		}
-		e := EntryPart{Name: e.Name, Hash: string(hash), Mime: fm, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
+		e := EntryPart{Name: e.Name, Hash: string(hash), Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
 		entries = append(entries, &e)
 	}
 	return entries, nil

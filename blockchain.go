@@ -12,13 +12,14 @@ type Blockchain struct {
 	explorer Explorer
 }
 
+//NewBlockchain builds a new Blockchain. This is the access point to write and read from a blockchain.
 func NewBlockchain(miner Miner, explorer Explorer) *Blockchain {
 	return &Blockchain{miner: miner, explorer: explorer}
 }
 
 //PackEncryptedEntriesPart writes the raw encrypted entry data on a chained serie of TX, returns the TXID and the hex encoded TX
 func (b *Blockchain) PackEncryptedEntriesPart(version string, ownerKey string, encryptedPartsData [][]byte) ([]*DataTX, error) {
-	t := trace.New().Source("blockchain.go", "Blockchain", "CastEncryptedEntriesPart")
+	t := trace.New().Source("blockchain.go", "Blockchain", "PackEncryptedEntriesPart")
 	log.Println(trace.Info("preparing TXs").UTC().Append(t))
 	address, err := AddressOf(ownerKey)
 	if err != nil {
@@ -61,6 +62,27 @@ func (b *Blockchain) PackEncryptedEntriesPart(version string, ownerKey string, e
 		dataTXs[i] = dataTx
 	}
 	return dataTXs, nil
+}
+
+//UnpackEncriptedEntriesPart extract the OP_RETURN data from the given transaxtions byte arrays
+func (b *Blockchain) UnpackEncriptedEntriesPart(txs [][]byte) ([][]byte, error) {
+	t := trace.New().Source("blockchain.go", "Blockchain", "UnpackEncryptedEntriesPart")
+	log.Println(trace.Info("opening TXs").UTC().Append(t))
+	cryptedData := make([][]byte, 0, len(txs))
+	for i, tx := range txs {
+		dataTX, err := TransactionFromBytes(tx)
+		if err != nil {
+			log.Println(trace.Alert("error while building DataTX from bytes").UTC().Error(err).Append(t))
+			return nil, fmt.Errorf("error while building DataTX from bytes: %W", err)
+		}
+		opr, err := dataTX.OpReturn()
+		if err != nil {
+			log.Println(trace.Alert("error while getting OpReturn data from DataTX").UTC().Error(err).Append(t))
+			return nil, fmt.Errorf("error while getting OpReturn data from DataTX: %W", err)
+		}
+		cryptedData = append(cryptedData, opr)
+	}
+	return cryptedData, nil
 }
 
 func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {

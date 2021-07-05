@@ -32,15 +32,15 @@ func TestEntryOfFile(t *testing.T) {
 			t.Fatalf("%d: error reading test file: %v", in, err)
 		}
 		entry := ddb.Entry{Name: fil[0], Data: bytes}
-		entries, err := entry.Parts(partsizes[in][0])
+		parts, err := entry.Parts(partsizes[in][0])
 		if err != nil {
 			t.Fatalf("%d: error making entries of test file: %v", in, err)
 		}
-		if len(entries) != partsizes[in][1] {
-			t.Fatalf("%d: wrong num of entries: %d != %d", in, len(entries), partsizes[in][1])
+		if len(parts) != partsizes[in][1] {
+			t.Fatalf("%d: wrong num of entries: %d != %d", in, len(parts), partsizes[in][1])
 		}
 		var data []byte
-		for i, f := range entries {
+		for i, f := range parts {
 			if data == nil {
 				data = make([]byte, 0)
 			}
@@ -65,6 +65,7 @@ func TestEntryOfFile(t *testing.T) {
 				t.Fail()
 
 			}
+			// fmt.Printf("'%s'\n", hex.EncodeToString(f.Data))
 			t.Logf("%d name:%s mime:%s part:%d/%d size:%d len(data):%d hash:%s\n", i, f.Name, f.Mime, f.IdxPart, f.NumPart, f.Size, len(f.Data), f.Hash)
 			data = append(data, f.Data...)
 		}
@@ -82,6 +83,62 @@ func TestEntryOfFile(t *testing.T) {
 			t.Fail()
 		}
 		ioutil.WriteFile(fmt.Sprintf("/tmp/%d.%s", in, fil[1]), data, 0664)
+	}
+}
+
+func TestEntriesFromParts(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	inputs := []string{
+		"testdata/test.txt",
+		"testdata/image.png",
+	}
+	partLen := 133
+	parts := make([]*ddb.EntryPart, 0)
+	for in, fil := range inputs {
+		bytes, err := ioutil.ReadFile(fil)
+		if err != nil {
+			t.Fatalf("%d: error reading test file: %v", in, err)
+		}
+		ent := ddb.Entry{Name: fil, Data: bytes}
+		pts, err := ent.Parts(partLen)
+		if err != nil {
+			t.Logf("cannot get entry parts: %v", err)
+			t.Fail()
+		}
+		parts = append(parts, pts...)
+	}
+	//Normal case
+	entries1, err := ddb.EntriesFromParts(parts)
+	if err != nil {
+		t.Logf("cannot rebuild entries: %v", err)
+		t.Fail()
+	}
+	if len(entries1) != 2 {
+		t.Logf("wrong num of entries: %d", len(entries1))
+		t.Fail()
+	}
+
+	//Incomplete case
+	entries2, err := ddb.EntriesFromParts(parts[1:])
+	if err != nil {
+		t.Logf("cannot rebuild entries: %v", err)
+		t.Fail()
+	}
+	if len(entries2) != 1 {
+		t.Logf("wrong num of entries: %d", len(entries2))
+		t.Fail()
+	}
+
+	//Mixed case
+	parts3 := append(parts[4:13], append(parts[:23], parts[18:]...)...)
+	entries3, err := ddb.EntriesFromParts(parts3)
+	if err != nil {
+		t.Logf("cannot rebuild entries: %v", err)
+		t.Fail()
+	}
+	if len(entries3) != 2 {
+		t.Logf("wrong num of entries: %d", len(entries3))
+		t.Fail()
 	}
 }
 
