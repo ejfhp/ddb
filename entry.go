@@ -1,14 +1,10 @@
 package ddb
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -34,7 +30,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 		if _, ok := partsDict[p.Name+p.Hash]; ok == false {
 			partsDict[p.Name+p.Hash] = make([]*EntryPart, p.NumPart)
 		}
-		// fmt.Printf("filling %s %d/%d\n", p.Name, p.IdxPart+1, p.NumPart)
+		fmt.Printf("entriesFromPart filling '%s' %d/%d\n", p.Name, p.IdxPart+1, p.NumPart)
 		partsDict[p.Name+p.Hash][p.IdxPart] = p
 	}
 	for _, pa := range partsDict {
@@ -64,32 +60,6 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 	return entries, nil
 }
 
-//EntryPart is the payload of a single transaction, it can contains an entire file or be a single part of a multi entry file.
-type EntryPart struct {
-	Name    string `json:"n"` //name of file
-	Hash    string `json:"h"` //hash of file
-	Mime    string `json:"m"` //mime type of file
-	IdxPart int    `json:"i"` //index of part idx of numpart
-	NumPart int    `json:"t"` //total number of parts that compose the entire file
-	Size    int    `json:"s"` //size of data
-	Data    []byte `json:"d"` //data part of the file
-}
-
-func EntryPartsFromEncodedData(encs [][]byte) ([]*EntryPart, error) {
-	tr := trace.New().Source("entry.go", "EntryPart", "EntryPartsFromEncryptedData")
-	log.Println(trace.Debug("decrypting and decoding").UTC().Append(tr))
-	entryParts := make([]*EntryPart, 0, len(encs))
-	for _, ep := range encs {
-		entryPart, err := Decode(ep)
-		if err != nil {
-			log.Println(trace.Alert("EntryPart decode failed").UTC().Error(err).Append(tr))
-			return nil, fmt.Errorf("EntryPart decode failed: %w", err)
-		}
-		entryParts = append(entryParts, entryPart)
-	}
-	return entryParts, nil
-}
-
 //EntriesOfFile returns an array of entries for the given file.
 func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
@@ -111,6 +81,41 @@ func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 	return entries, nil
 }
 
+//EntryPart is the payload of a single transaction, it can contains an entire file or be a single part of a multi entry file.
+type EntryPart struct {
+	Name    string `json:"n"` //name of file
+	Hash    string `json:"h"` //hash of file
+	Mime    string `json:"m"` //mime type of file
+	IdxPart int    `json:"i"` //index of part idx of numpart
+	NumPart int    `json:"t"` //total number of parts that compose the entire file
+	Size    int    `json:"s"` //size of data
+	Data    []byte `json:"d"` //data part of the file
+}
+
+//EntryPartFromEncodedData return the EntryPart decoded from the given json
+func EntryPartFromEncodedData(encoded []byte) (*EntryPart, error) {
+	var entry EntryPart
+	fmt.Printf("encoded data: %s\n", string(encoded))
+	err := json.Unmarshal(encoded, &entry)
+	fmt.Printf("entry  entryPart name: %s\n", entry.Name)
+	return &entry, err
+}
+
+// func EntryPartsFromEncodedData(encs [][]byte) ([]*EntryPart, error) {
+// 	tr := trace.New().Source("entry.go", "EntryPart", "EntryPartsFromEncryptedData")
+// 	log.Println(trace.Debug("decrypting and decoding").UTC().Append(tr))
+// 	entryParts := make([]*EntryPart, 0, len(encs))
+// 	for _, ep := range encs {
+// 		entryPart, err := EntryPartFromEncodedData(ep)
+// 		if err != nil {
+// 			log.Println(trace.Alert("EntryPart decode failed").UTC().Error(err).Append(tr))
+// 			return nil, fmt.Errorf("EntryPart decode failed: %w", err)
+// 		}
+// 		entryParts = append(entryParts, entryPart)
+// 	}
+// 	return entryParts, nil
+// }
+
 //Encode return the json encoded form of rhe EntryPart
 func (e *EntryPart) Encode() ([]byte, error) {
 	data, err := json.Marshal(e)
@@ -118,58 +123,4 @@ func (e *EntryPart) Encode() ([]byte, error) {
 		return nil, fmt.Errorf("cannot encode to json: %w", err)
 	}
 	return data, nil
-}
-
-//Decode return the EntryPart decoded from the given json
-func Decode(encoded []byte) (*EntryPart, error) {
-	var entry EntryPart
-	err := json.Unmarshal(encoded, &entry)
-	return &entry, err
-}
-
-// Key should be 32 bytes (AES-256).
-func AESEncrypt(key [32]byte, data []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key[:])
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize key: %w", err)
-	}
-
-	// Never use more than 2^32 random nonces with a given key because of the risk of a repeat.
-	nonce := make([]byte, noncesize)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("cannot generate nonce: %w", err)
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize encryption: %w", err)
-	}
-
-	encoded := make([]byte, 0)
-	encoded = append(encoded, nonce...)
-	encoded = append(encoded, aesgcm.Seal(nil, nonce, data, nil)...)
-	return encoded, nil
-}
-
-// Key should be 32 bytes (AES-256).
-func AESDecrypt(key [32]byte, encrypted []byte) ([]byte, error) {
-	nonce := encrypted[:noncesize]
-	cipherdata := encrypted[noncesize:]
-
-	block, err := aes.NewCipher(key[:])
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize key: %w", err)
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize encryption: %w", err)
-	}
-
-	plaindata, err := aesgcm.Open(nil, nonce, cipherdata, nil)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decrypt: %w", err)
-	}
-
-	return plaindata, err
 }

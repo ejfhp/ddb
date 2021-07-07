@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ejfhp/ddb"
@@ -142,7 +144,8 @@ func TestEntriesFromParts(t *testing.T) {
 	}
 }
 
-func TestEncodeDecodeEntry(t *testing.T) {
+func TestEncodeDecodeEntryPart(t *testing.T) {
+	log.SetWriter(os.Stdout)
 	name := "test.txt"
 	hash := "hhhhhhhhhhhhhhhh"
 	mime := "text/plain"
@@ -160,7 +163,7 @@ func TestEncodeDecodeEntry(t *testing.T) {
 		t.Logf("Encoded entry too short: %s", string(encoded))
 		t.Fail()
 	}
-	de, err := ddb.Decode(encoded)
+	de, err := ddb.EntryPartFromEncodedData(encoded)
 	if err != nil {
 		t.Logf("Entry decoding failed: %v", err)
 		t.Fail()
@@ -175,60 +178,56 @@ func TestEncodeDecodeEntry(t *testing.T) {
 	}
 }
 
-func TestEncryptDecrypt(t *testing.T) {
-	key := [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2}
-	tests := []string{
-		"tanto va la gatta al lardo che ci lascia lo zampino",
-		`Nel mezzo del cammin di nostra vita
-		mi ritrovai per una selva oscura,
-		ché la diritta via era smarrita.
-		
-		Ahi quanto a dir qual era è cosa dura
-		esta selva selvaggia e aspra e forte
-		che nel pensier rinova la paura!
-		
-		Tant’è amara che poco è più morte;
-		ma per trattar del ben ch’i’ vi trovai,
-		dirò de l’altre cose ch’i’ v’ ho scorte.
-		
-		Io non so ben ridir com’i’ v’intrai,
-		tant’era pien di sonno a quel punto
-		che la verace via abbandonai.
-		
-		Ma poi ch’i’ fui al piè d’un colle giunto,
-		là dove terminava quella valle
-		che m’avea di paura il cor compunto,
-		
-		guardai in alto e vidi le sue spalle
-		vestite già de’ raggi del pianeta
-		che mena dritto altrui per ogne calle.`,
+func TestEncodeDecodeSingleEntry(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	name := "image.png"
+	file := "testdata/image.png"
+	image, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("error reading test file %s: %v", file, err)
 	}
-	for i, txt := range tests {
-		crypted1, err := ddb.AESEncrypt(key, []byte(txt))
+	imageSha := sha256.Sum256(image)
+	imageHash := hex.EncodeToString(imageSha[:])
+	mime := mime.TypeByExtension(filepath.Ext(name))
+	e := ddb.Entry{Name: name, Hash: imageHash, Mime: mime, Data: image}
+	parts, err := e.Parts(1000)
+	if err != nil {
+		t.Logf("Entry to parts failed: %v", err)
+		t.Fail()
+	}
+	encParts := make([][]byte, 0, len(parts))
+	for _, p := range parts {
+		ep, err := p.Encode()
 		if err != nil {
-			t.Logf("first encryption has failed: %v", err)
+			t.Logf("EntryPart encoding failed: %v", err)
 			t.Fail()
 		}
-		//Second encoding to encode random bytes and not text
-		crypted2, err := ddb.AESEncrypt(key, []byte(crypted1))
+		encParts = append(encParts, ep)
+	}
+	decEntryParts := make([]*ddb.EntryPart, 0, len(encParts))
+	for _, encp := range encParts {
+		de, err := ddb.EntryPartFromEncodedData(encp)
 		if err != nil {
-			t.Logf("second encryption has failed: %v", err)
+			t.Logf("Entry decoding failed: %v", err)
 			t.Fail()
 		}
-		decrypted1, err := ddb.AESDecrypt(key, crypted2)
-		if err != nil {
-			t.Logf("first decryption has failed: %v", err)
-			t.Fail()
-		}
-		decrypted2, err := ddb.AESDecrypt(key, decrypted1)
-		if err != nil {
-			t.Logf("second decryption has failed: %v", err)
-			t.Fail()
-		}
-		if string(decrypted2) != txt {
-			t.Logf("%d: encryption/decription failed '%s' != '%s'", i, string(decrypted2), txt)
-			t.Fail()
+		decEntryParts = append(decEntryParts, de)
+	}
+	out, err := ddb.EntriesFromParts(decEntryParts)
+	if err != nil {
+		t.Logf("Entry composition failed: %v", err)
+		t.Fail()
+	}
+	if len(out) != 1 {
+		t.Logf("Entry decoded should be 1: %d", len(out))
+		t.Fail()
+	}
+	outSha := sha256.Sum256(out[0].Data)
+	outHash := hex.EncodeToString(outSha[:])
+	if outHash != imageHash {
+		t.Logf("Entry decoded hash different")
+		t.Fail()
 
-		}
 	}
+
 }
