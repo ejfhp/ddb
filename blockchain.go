@@ -101,7 +101,7 @@ func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 }
 
 func (b *Blockchain) GetLastUTXO(address string) (*UTXO, error) {
-	tr := trace.New().Source("blockchain.go", "Blockchain", "getLastUTXO")
+	tr := trace.New().Source("blockchain.go", "Blockchain", "GetLastUTXO")
 	log.Println(trace.Debug("get last UTXO").UTC().Append(tr))
 	utxos, err := b.explorer.GetUTXOs(address)
 	if err != nil {
@@ -114,4 +114,20 @@ func (b *Blockchain) GetLastUTXO(address string) (*UTXO, error) {
 	}
 	return utxos[0], nil
 
+}
+
+func (b *Blockchain) GeTX(id string) (*DataTX, error) {
+	tr := trace.New().Source("blockchain.go", "Blockchain", "GetTX")
+	log.Println(trace.Debug("get TX").UTC().Append(tr))
+	hex, err := b.explorer.GetRAWTXHEX(id)
+	if err != nil {
+		log.Println(trace.Alert("cannot get TX").UTC().Add("id", id).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot get TX: %w", err)
+	}
+	dataTX, err := DataTXFromHex(string(hex))
+	if err != nil {
+		log.Println(trace.Alert("cannot build DataTX").UTC().Add("id", id).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot build DataTX: %w", err)
+	}
+	return dataTX, nil
 }

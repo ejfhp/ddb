@@ -76,6 +76,11 @@ func (l *Logbook) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 }
 
 //ExtractEntries rebuild all the Entries contained in the given TXs array.
+func (l *Logbook) RetrieveEntries(txids []string) ([]*Entry, error) {
+	return nil, nil
+}
+
+//ExtractEntries rebuild all the Entries contained in the given TXs array.
 func (l *Logbook) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ExtractEntries")
 	log.Println(trace.Info("reading entries from TXs").Add("len txs", fmt.Sprintf("%d", len(txs))).UTC().Append(tr))

@@ -30,12 +30,35 @@ func TestGetUTXOs(t *testing.T) {
 	t.Logf("Unspent satoshi: %d\n", unsTx[0].Value.Satoshi())
 }
 
-func TestGetTX(t *testing.T) {
+func TestWOCGetTX(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	tx, err := woc.GetTX("d715807cf35de1663d9413b0b0863aae83876c81a78206cedf4fd60bb0a986b7")
+	// txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
+	txid := "d715807cf35de1663d9413b0b0863aae83876c81a78206cedf4fd60bb0a986b7"
+	tx, err := woc.GetTX(txid)
 	if err != nil {
-		t.Fatalf("error: %v", err)
+		t.Logf("error: %v", err)
+		t.Fail()
 	}
-	fmt.Printf("TX ID: \n%v\n", tx.ID)
+	fmt.Println(tx)
+	if tx.ID != txid {
+		t.Logf("unexpected ID: '%s'", tx.ID)
+		t.Fail()
+	}
+}
+
+func TestWOCGetRAWTXHEX(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	woc := ddb.NewWOC()
+	// txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
+	txid := "d715807cf35de1663d9413b0b0863aae83876c81a78206cedf4fd60bb0a986b7"
+	tx, err := woc.GetRAWTXHEX(txid)
+	if err != nil {
+		t.Logf("error: %v", err)
+		t.Fail()
+	}
+	if len(tx) < 100 {
+		t.Logf("raw hex too short: %d", len(tx))
+		t.Fail()
+	}
 }

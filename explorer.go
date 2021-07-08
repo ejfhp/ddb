@@ -8,7 +8,7 @@ type UTXO struct {
 }
 
 type TX struct {
-	ID       string  `json:"txidv"`
+	ID       string  `json:"txid"`
 	Hash     string  `json:"hash"`
 	Hex      string  `json:"hex"`
 	Version  int     `json:"version"`
@@ -48,5 +48,6 @@ type ScriptPubKey struct {
 type Explorer interface {
 	GetUTXOs(address string) ([]*UTXO, error)
 	GetTX(txHash string) (*TX, error)
+	GetRAWTXHEX(txHash string) ([]byte, error)
 	// GetTXIDs(address string) (*TX, error)
 }

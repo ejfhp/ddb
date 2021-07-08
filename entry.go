@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime"
+	"path/filepath"
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -22,21 +24,21 @@ type Entry struct {
 	Data []byte
 }
 
-func NewEntry(name string, file string) {
-
-	name := "image.png"
-	file := "testdata/image.png"
-	image, err := ioutil.ReadFile(file)
+func NewEntryFromFile(name string, file string) (*Entry, error) {
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		t.Fatalf("error reading test file %s: %v", file, err)
+		return nil, fmt.Errorf("error while reading file %s: %w", file, err)
 	}
-	imageSha := sha256.Sum256(image)
-	imageHash := hex.EncodeToString(imageSha[:])
+	fm := mime.TypeByExtension(filepath.Ext(file))
+	return NewEntryFromData(name, fm, data), nil
 }
 
-func NewEntry(name string, mime string, data []byte) {
+func NewEntryFromData(name string, mime string, data []byte) *Entry {
 	sha := sha256.Sum256(data)
 	hash := hex.EncodeToString(sha[:])
+	ent := Entry{Name: name, Mime: mime, Hash: hash, Data: data}
+	return &ent
+
 }
 
 func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {

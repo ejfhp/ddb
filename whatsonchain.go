@@ -97,3 +97,22 @@ func (w *WOC) GetTX(txHash string) (*TX, error) {
 	}
 	return &tx, nil
 }
+
+func (w *WOC) GetRAWTXHEX(txHash string) ([]byte, error) {
+	t := trace.New().Source("whatsonchain.go", "WOC", "GetTX")
+	template := "%s/tx/%s/hex"
+	url := fmt.Sprintf(template, w.BaseURL, txHash)
+	log.Println(trace.Debug("get tx").UTC().Add("hash", txHash).Add("url", url).Append(t))
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println(trace.Alert("error while getting TX").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
+		return nil, fmt.Errorf("error while getting TX: %w", err)
+	}
+	defer resp.Body.Close()
+	hex, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(trace.Alert("error while reading response").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
+		return nil, fmt.Errorf("error while reading response: %w", err)
+	}
+	return hex, nil
+}
