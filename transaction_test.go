@@ -11,8 +11,6 @@ import (
 
 func TestBuildDataTX(t *testing.T) {
 	log.SetWriter(os.Stdout)
-	key := "L2Aoi3Zk9oQhiEBwH9tcqnTTRErh7J3bVWoxLDzYa8nw2bWktG6M"
-	address := "15JcYsiTbhFXxU7RimJRyEgKWnUfbwttb3"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")

@@ -33,7 +33,6 @@ func TestSubmit(t *testing.T) {
 }
 
 func TestPackEntities(t *testing.T) {
-	key := "L2Aoi3Zk9oQhiEBwH9tcqnTTRErh7J3bVWoxLDzYa8nw2bWktG6M"
 	testData := [][]byte{
 		[]byte("not encrypted"),
 		[]byte("really not encrypted"),
@@ -84,10 +83,12 @@ func TestPackEntities(t *testing.T) {
 	}
 }
 
-func TestPackUnpackEntities(t *testing.T) {
-	key := "L2Aoi3Zk9oQhiEBwH9tcqnTTRErh7J3bVWoxLDzYa8nw2bWktG6M"
+func TestPackUnpackText(t *testing.T) {
 	testData := [][]byte{
-		[]byte("I just want to write something a bit longer, even if I know it doesn't matter"),
+		[]byte("I just want to write something a bit longer, even if I know it doesn't matter 1"),
+		[]byte("I just want to write something a bit longer, even if I know it doesn't matter 2"),
+		[]byte("I just want to write something a bit longer, even if I know it doesn't matter 3"),
+		[]byte("I just want to write something a bit longer, even if I know it doesn't matter 4"),
 	}
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
@@ -118,7 +119,6 @@ func TestPackUnpackEntities(t *testing.T) {
 }
 
 func TestPackUnpackFile(t *testing.T) {
-	key := "L2Aoi3Zk9oQhiEBwH9tcqnTTRErh7J3bVWoxLDzYa8nw2bWktG6M"
 	file := "testdata/image.png"
 	image, err := ioutil.ReadFile(file)
 	if err != nil {

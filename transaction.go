@@ -108,13 +108,13 @@ func (t *DataTX) Data() ([]byte, string, error) {
 				log.Println(trace.Alert("cannot decode output parts").UTC().Error(err).Append(tr))
 				return nil, version, fmt.Errorf("cannot decode output parts: %w", err)
 			}
-			for i, v := range ops {
+			for _, v := range ops {
 				if v[0] == bscript.OpFALSE {
-					fmt.Printf("%d OP_FALSE %d  %v %d\n", i, v[0], v, len(v))
+					// fmt.Printf("%d OP_FALSE %d  %v %d\n", i, v[0], v, len(v))
 					continue
 				}
 				if v[0] == bscript.OpRETURN {
-					fmt.Printf("%d OP_RETURN %d  %v %d\n", i, v[0], v, len(v))
+					// fmt.Printf("%d OP_RETURN %d  %v %d\n", i, v[0], v, len(v))
 					continue
 				}
 				// fmt.Printf("%d DATA %v  %v %d\n", i, v[0], string(v), len(v))
@@ -140,8 +140,8 @@ func addHeader(version string, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("header len must be 9")
 
 	}
-	payload := append(data, header...)
-	copy(payload[9:], payload)
+	payload := make([]byte, len(data)+9)
+	copy(payload[9:], data)
 	copy(payload, header)
 	return payload, nil
 }

@@ -178,8 +178,9 @@ func TestEncodeDecodeEntryPart(t *testing.T) {
 	}
 }
 
-func TestEncodeDecodeSingleEntry(t *testing.T) {
+func TestEncodeDecodeSingleEntry1(t *testing.T) {
 	log.SetWriter(os.Stdout)
+	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	name := "image.png"
 	file := "testdata/image.png"
 	image, err := ioutil.ReadFile(file)
@@ -195,6 +196,7 @@ func TestEncodeDecodeSingleEntry(t *testing.T) {
 		t.Logf("Entry to parts failed: %v", err)
 		t.Fail()
 	}
+	//JSON encode
 	encParts := make([][]byte, 0, len(parts))
 	for _, p := range parts {
 		ep, err := p.Encode()
@@ -204,9 +206,220 @@ func TestEncodeDecodeSingleEntry(t *testing.T) {
 		}
 		encParts = append(encParts, ep)
 	}
-	decEntryParts := make([]*ddb.EntryPart, 0, len(encParts))
-	for _, encp := range encParts {
-		de, err := ddb.EntryPartFromEncodedData(encp)
+	//encrypting
+	cryParts := make([][]byte, 0, len(parts))
+	for _, p := range encParts {
+		ep, err := ddb.AESEncrypt(password, p)
+		if err != nil {
+			t.Logf("EntryPart encrypting failed: %v", err)
+			t.Fail()
+		}
+		cryParts = append(cryParts, ep)
+	}
+	//pack
+	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
+	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
+	txs := make([]*ddb.DataTX, 0, len(cryParts))
+	for _, p := range cryParts {
+		tx, err := ddb.BuildDataTX(address, txid, ddb.Satoshi(10), 1, scriptHex, key, ddb.Satoshi(10), p, "test")
+		if err != nil {
+			t.Logf("EntryPart packing failed: %v", err)
+			t.Fail()
+		}
+		txs = append(txs, tx)
+	}
+	//tx to hex
+	hextxs := make([]string, 0, len(txs))
+	for _, p := range txs {
+		ep := p.ToString()
+		hextxs = append(hextxs, ep)
+	}
+
+	/////////////////////////////////////////////////////////
+	//hex to tx
+	datatxs := make([]*ddb.DataTX, 0, len(hextxs))
+	for _, p := range hextxs {
+		ep, err := ddb.DataTXFromHex(p)
+		if err != nil {
+			t.Logf("DataTX from hex failed: %v", err)
+			t.Fail()
+		}
+		datatxs = append(datatxs, ep)
+	}
+	//unpacking
+	oprets := make([][]byte, 0, len(datatxs))
+	for _, tx := range datatxs {
+		de, ver, err := tx.Data()
+		if err != nil {
+			t.Logf("OP_RETURN retrieval failed: %v", err)
+			t.Fail()
+		}
+		if ver != "test" {
+			t.Logf("Wrong version: %s", ver)
+			t.Fail()
+		}
+		oprets = append(oprets, de)
+	}
+	//decrypting
+	decryParts := make([][]byte, 0, len(oprets))
+	for _, p := range oprets {
+		de, err := ddb.AESDecrypt(password, p)
+		if err != nil {
+			t.Logf("Entry decoding failed: %v", err)
+			t.Fail()
+		}
+		decryParts = append(decryParts, de)
+	}
+	//decoding JSON
+	decEntryParts := make([]*ddb.EntryPart, 0, len(decryParts))
+	for _, p := range decryParts {
+		de, err := ddb.EntryPartFromEncodedData(p)
+		if err != nil {
+			t.Logf("Entry decoding failed: %v", err)
+			t.Fail()
+		}
+		decEntryParts = append(decEntryParts, de)
+	}
+	out, err := ddb.EntriesFromParts(decEntryParts)
+	if err != nil {
+		t.Logf("Entry composition failed: %v", err)
+		t.Fail()
+	}
+	if len(out) != 1 {
+		t.Logf("Entry decoded should be 1: %d", len(out))
+		t.Fail()
+	}
+	outSha := sha256.Sum256(out[0].Data)
+	outHash := hex.EncodeToString(outSha[:])
+	if outHash != imageHash {
+		t.Logf("Entry decoded hash different")
+		t.Fail()
+
+	}
+
+}
+
+func TestEncodeDecodeSingleEntry2(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
+	name := "image.png"
+	file := "testdata/image.png"
+	image, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("error reading test file %s: %v", file, err)
+	}
+	imageSha := sha256.Sum256(image)
+	imageHash := hex.EncodeToString(imageSha[:])
+	mime := mime.TypeByExtension(filepath.Ext(name))
+	e := ddb.Entry{Name: name, Hash: imageHash, Mime: mime, Data: image}
+	parts, err := e.Parts(1000)
+	if err != nil {
+		t.Logf("Entry to parts failed: %v", err)
+		t.Fail()
+	}
+	//JSON encode
+	encParts := make([][]byte, 0, len(parts))
+	for _, p := range parts {
+		ep, err := p.Encode()
+		if err != nil {
+			t.Logf("EntryPart encoding failed: %v", err)
+			t.Fail()
+		}
+		encParts = append(encParts, ep)
+	}
+	//encrypting
+	cryParts := make([][]byte, 0, len(parts))
+	for _, p := range encParts {
+		ep, err := ddb.AESEncrypt(password, p)
+		if err != nil {
+			t.Logf("EntryPart encrypting failed: %v", err)
+			t.Fail()
+		}
+		cryParts = append(cryParts, ep)
+	}
+	//pack
+	miner := ddb.NewTAAL()
+	expl := ddb.NewWOC()
+	blk := ddb.NewBlockchain(miner, expl)
+	txs, err := blk.PackData("test", key, cryParts)
+	if err != nil {
+		t.Logf("failed to prepare TXs: %v", err)
+		t.Fail()
+	}
+	//pack 2
+	// address := "15JcYsiTbhFXxU7RimJRyEgKWnUfbwttb3"
+	// txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
+	// scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
+	// txs2 := make([]*ddb.DataTX, 0, len(cryParts))
+	// for _, p := range cryParts {
+	// 	ddb.BuildDataTX(address, txid, ddb.Satoshi(10), 1, scriptHex, key, ddb.Satoshi(10), p, "test")
+	// 	ddb.BuildDataTX(address, txid, ddb.Satoshi(10), 1, scriptHex, key, ddb.Satoshi(10), p, "test")
+	// 	tx, err := ddb.BuildDataTX(address, txid, ddb.Satoshi(10), 1, scriptHex, key, ddb.Satoshi(10), p, "test")
+	// 	if err != nil {
+	// 		t.Logf("EntryPart packing failed: %v", err)
+	// 		t.Fail()
+	// 	}
+	// 	txs2 = append(txs2, tx)
+	// }
+	//Check data
+	// for i, tx := range txs {
+	// 	data1, ver1, _ := tx.Data()
+	// 	data2, ver2, _ := txs2[i].Data()
+	// 	fmt.Printf("len   1:%d  2:%d  v1:%s  v2:%s\n", len(data1), len(data2), ver1, ver2)
+	// }
+
+	//tx to hex
+	hextxs := make([]string, 0, len(txs))
+	for _, p := range txs {
+		ep := p.ToString()
+		hextxs = append(hextxs, ep)
+	}
+
+	/////////////////////////////////////////////////////////
+	//hex to tx
+	datatxs := make([]*ddb.DataTX, 0, len(hextxs))
+	for _, p := range hextxs {
+		ep, err := ddb.DataTXFromHex(p)
+		if err != nil {
+			t.Logf("DataTX from hex failed: %v", err)
+			t.Fail()
+		}
+		datatxs = append(datatxs, ep)
+	}
+	//unpacking
+	oprets, err := blk.UnpackData(datatxs)
+	if err != nil {
+		t.Logf("unpacking failed: %v", err)
+		t.Fail()
+	}
+	//unpacking 2
+	// oprets := make([][]byte, 0, len(datatxs))
+	// for _, tx := range datatxs {
+	// 	de, ver, err := tx.Data()
+	// 	if err != nil {
+	// 		t.Logf("OP_RETURN retrieval failed: %v", err)
+	// 		t.Fail()
+	// 	}
+	// 	if ver != "test" {
+	// 		t.Logf("Wrong version: %s", ver)
+	// 		t.Fail()
+	// 	}
+	// 	oprets = append(oprets, de)
+	// }
+	//decrypting
+	decryParts := make([][]byte, 0, len(oprets))
+	for _, p := range oprets {
+		de, err := ddb.AESDecrypt(password, p)
+		if err != nil {
+			t.Logf("Entry decoding failed: %v", err)
+			t.Fail()
+		}
+		decryParts = append(decryParts, de)
+	}
+	//decoding JSON
+	decEntryParts := make([]*ddb.EntryPart, 0, len(decryParts))
+	for _, p := range decryParts {
+		de, err := ddb.EntryPartFromEncodedData(p)
 		if err != nil {
 			t.Logf("Entry decoding failed: %v", err)
 			t.Fail()

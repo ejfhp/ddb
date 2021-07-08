@@ -1,12 +1,7 @@
 package ddb
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
-	"io"
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -28,6 +23,24 @@ func NewLogbook(wif string, password [32]byte, blockchain *Blockchain) (*Logbook
 		return nil, fmt.Errorf("cannot get address of key: %w", err)
 	}
 	return &Logbook{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, blockchain: blockchain}, nil
+
+}
+
+//CastEntry store the entry on the blockchain, returns the TXID of the transactions generated.
+func (l *Logbook) CastEntry(entry *Entry) ([]string, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "CastEntry")
+	log.Println(trace.Info("casting entry to the blockcchain").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
+	txs, err := l.ProcessEntry(entry)
+	if err != nil {
+		log.Println(trace.Alert("error during TXs preparation").UTC().Add("file", entry.Name).Error(err).Append(tr))
+		return nil, fmt.Errorf("error during TXs preparation: %w", err)
+	}
+	ids, err := l.blockchain.Submit(txs)
+	if err != nil {
+		log.Println(trace.Alert("error while sending transactions").UTC().Add("file", entry.Name).Error(err).Append(tr))
+		return nil, fmt.Errorf("error while sending transactions: %w", err)
+	}
+	return ids, nil
 
 }
 
@@ -98,53 +111,4 @@ func (l *Logbook) MaxDataSize() int {
 	cryptFactor := 0.5
 	disp := float64(avai) * cryptFactor
 	return int(disp)
-}
-
-// Key should be 32 bytes (AES-256).
-func AESEncrypt(key [32]byte, data []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key[:])
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize key: %w", err)
-	}
-
-	// Never use more than 2^32 random nonces with a given key because of the risk of a repeat.
-	nonce := make([]byte, noncesize)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("cannot generate nonce: %w", err)
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize encryption: %w", err)
-	}
-
-	crypted := make([]byte, 0)
-	crypted = append(crypted, nonce...)
-	cipherdata := aesgcm.Seal(nil, nonce, data, nil)
-	fmt.Printf("Encrypt CRYTPTED: %s\n", hex.EncodeToString(cipherdata))
-	crypted = append(crypted, cipherdata...)
-	return crypted, nil
-}
-
-// Key should be 32 bytes (AES-256).
-func AESDecrypt(key [32]byte, encrypted []byte) ([]byte, error) {
-	nonce := encrypted[:noncesize]
-	cipherdata := encrypted[noncesize:]
-
-	fmt.Printf("Decrypt CRYTPTED: %s\n", hex.EncodeToString(cipherdata))
-	block, err := aes.NewCipher(key[:])
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize key: %w", err)
-	}
-
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize encryption: %w", err)
-	}
-
-	plaindata, err := aesgcm.Open(nil, nonce, cipherdata, nil)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decrypt: %w", err)
-	}
-	return plaindata, err
 }
