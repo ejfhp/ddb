@@ -219,9 +219,10 @@ func TestEncodeDecodeSingleEntry1(t *testing.T) {
 	//pack
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
+	utxos := []*ddb.UTXO{{TXPos: 1, TXHash: txid, Value: ddb.Bitcoin(1), ScriptPubKeyHex: scriptHex}}
 	txs := make([]*ddb.DataTX, 0, len(cryParts))
 	for _, p := range cryParts {
-		tx, err := ddb.BuildDataTX(address, txid, ddb.Satoshi(10), 1, scriptHex, key, ddb.Satoshi(10), p, "test")
+		tx, err := ddb.BuildDataTX(address, utxos, key, ddb.Satoshi(10), p, "test")
 		if err != nil {
 			t.Logf("EntryPart packing failed: %v", err)
 			t.Fail()

@@ -14,10 +14,11 @@ func TestBuildDataTX(t *testing.T) {
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
-	bsv := ddb.Bitcoin(0.000402740).Satoshi()
+	bsv := ddb.Bitcoin(0.000402740)
 	fee := ddb.Satoshi(170)
 	version := "test"
-	datatx, err := ddb.BuildDataTX(address, txid, bsv, 1, scriptHex, key, fee, payload, version)
+	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
+	datatx, err := ddb.BuildDataTX(address, utxos, key, fee, payload, version)
 	if err != nil {
 		t.Fatalf("failed to create tx: %v", err)
 	}

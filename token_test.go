@@ -57,3 +57,18 @@ func TestSumBitcoin(t *testing.T) {
 		}
 	}
 }
+
+func TestSumBitcoinSatoshi(t *testing.T) {
+	bitsat := [][]float64{
+		{1, 0.00000001, 0.00000002},
+		{21000000, 0.00000001, 0.21000001},
+		{10, 0.00000001, 0.00000011},
+	}
+	for i, v := range bitsat {
+		res := ddb.Satoshi(v[0]).Add(ddb.Bitcoin(v[1]))
+		if float64(res.Bitcoin()) != v[2] {
+			t.Logf("%d: sum is not correct! %0.8f + %0.8f = %0.30f != %0.30f", i, v[0], v[1], res.Bitcoin(), v[2])
+			t.Fail()
+		}
+	}
+}

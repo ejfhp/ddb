@@ -42,7 +42,7 @@ func (l *TAAL) GetFees() (Fees, error) {
 		log.Println(trace.Alert("error while reading response").UTC().Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while reading response: %w", err)
 	}
-	fmt.Printf("taal body: %s\n", string(body))
+	log.Println(trace.Info("miner response").UTC().Add("response", string(body)).Error(err).Append(t))
 
 	mapiResponse := make(map[string]interface{})
 	err = json.Unmarshal(body, &mapiResponse)
@@ -97,7 +97,7 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	t := trace.New().Source("taal.go", "TAAL", "SubmitTX")
 	url := fmt.Sprintf("%s/tx", l.BaseURL)
 	log.Println(trace.Debug("submit tx").UTC().Add("url", url).Append(t))
-	fmt.Printf("\n\n %s \n\n", rawTX)
+	// fmt.Printf("\n\n %s \n\n", rawTX)
 	mapiSubmitTX := MapiSubmitTX{
 		Rawtx:       rawTX,
 		MerkleProof: false,

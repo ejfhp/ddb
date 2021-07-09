@@ -18,25 +18,28 @@ const (
 
 type DataTX struct{ bt.Tx }
 
-//BuildDataTX builds a DataTX with the given params. UTX0 is in position 0.
-func BuildDataTX(address string, inTXID string, in Satoshi, inpos uint32, inScriptHex string, key string, fee Token, data []byte, version string) (*DataTX, error) {
+//BuildDataTX builds a DataTX with the given params. The values in the arrays must be correlated. Generated TX UTXO is in position 0.
+func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []byte, version string) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "DataTX", "BuildDataTX")
-	log.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("address", address).Append(t))
+	log.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("address", address).Add("num UTXO", fmt.Sprintf("%d", len(inutxo))).Append(t))
 	payload, err := addHeader(version, data)
 	if err != nil {
 		log.Println(trace.Alert("cannot add header").UTC().Add("version", version).Error(err).Append(t))
 		return nil, fmt.Errorf("cannot add header: %w", err)
 	}
 	tx := bt.NewTx()
-	input, err := bt.NewInputFromUTXO(inTXID, inpos, uint64(in), inScriptHex, math.MaxUint32)
-	if err != nil {
-		log.Println(trace.Alert("cannot get UTXO input").UTC().Add("TXID", inTXID).Add("inpos", fmt.Sprintf("%d", inpos)).Error(err).Append(t))
-		return nil, fmt.Errorf("cannot get UTXO input: %w", err)
+	satInput := Satoshi(0)
+	for i, utx := range inutxo {
+		input, err := bt.NewInputFromUTXO(utx.TXHash, utx.TXPos, uint64(utx.Value.Satoshi()), utx.ScriptPubKeyHex, math.MaxUint32)
+		if err != nil {
+			log.Println(trace.Alert("cannot get UTXO input").UTC().Add("i", fmt.Sprintf("%d", i)).Add("TXID", utx.TXHash).Add("inpos", fmt.Sprintf("%d", utx.TXPos)).Error(err).Append(t))
+			return nil, fmt.Errorf("cannot get UTXO input: %w", err)
+		}
+		satInput = satInput.Add(utx.Value)
+		tx.AddInput(input)
 	}
-	satInput := in
-	tx.AddInput(input)
 	satOutput := satInput.Sub(fee)
-	log.Println(trace.Info("calculating output values").UTC().Add("input", fmt.Sprintf("%0.8f", in.Bitcoin())).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Append(t))
+	log.Println(trace.Info("calculating output values").UTC().Add("input", fmt.Sprintf("%0.8f", satInput.Bitcoin())).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Append(t))
 	outputS, err := bt.NewP2PKHOutputFromAddress(address, uint64(satOutput.Satoshi()))
 	if err != nil {
 		log.Println(trace.Alert("cannot create output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))

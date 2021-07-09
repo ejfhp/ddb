@@ -70,7 +70,7 @@ func TestProcessEntry(t *testing.T) {
 	}
 }
 
-func XTestCastEntry(t *testing.T) {
+func NO_TestCastEntry(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -134,7 +134,6 @@ func TestCastImageEntry(t *testing.T) {
 	for _, id := range ids {
 		fmt.Printf("TX ID: %s\n", id)
 	}
-	t.Fail()
 }
 
 func TestRetrieveAndExtractEntries(t *testing.T) {

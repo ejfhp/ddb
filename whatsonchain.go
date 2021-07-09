@@ -62,10 +62,10 @@ func (w *WOC) GetUTXOs(address string) ([]*UTXO, error) {
 		for _, to := range tx.Out {
 			if to.N == u.TXPos {
 				u := UTXO{
-					TXHash:       u.TXHash,
-					TXPos:        to.N,
-					Value:        to.Value,
-					ScriptPubKey: to.ScriptPubKey,
+					TXHash:          u.TXHash,
+					TXPos:           to.N,
+					Value:           to.Value,
+					ScriptPubKeyHex: to.ScriptPubKey.Hex,
 				}
 				outs = append(outs, &u)
 			}

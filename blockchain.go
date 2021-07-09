@@ -26,16 +26,11 @@ func (b *Blockchain) PackData(version string, ownerKey string, data [][]byte) ([
 		log.Println(trace.Alert("cannot get owner address").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get owner address: %w", err)
 	}
-	u, err := b.GetLastUTXO(address)
+	utxos, err := b.GetLastUTXO(address)
 	if err != nil {
 		log.Println(trace.Alert("cannot get last UTXO").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get last UTXO: %w", err)
 	}
-	inTXID := u.TXHash
-	inSat := u.Value.Satoshi()
-	inPos := u.TXPos
-	inScr := u.ScriptPubKey.Hex
-
 	dataFee, err := b.miner.GetDataFee()
 	if err != nil {
 		log.Println(trace.Alert("cannot get data fee from miner").UTC().Add("miner", b.miner.GetName()).Error(err).Append(tr))
@@ -43,23 +38,21 @@ func (b *Blockchain) PackData(version string, ownerKey string, data [][]byte) ([
 	}
 	dataTXs := make([]*DataTX, len(data))
 	for i, ep := range data {
-		tempTx, err := BuildDataTX(address, inTXID, inSat, inPos, inScr, ownerKey, Bitcoin(0), ep, version)
+		tempTx, err := BuildDataTX(address, utxos, ownerKey, Bitcoin(0), ep, version)
 		if err != nil {
 			log.Println(trace.Alert("cannot build 0-fee TX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build 0-fee TX: %w", err)
 		}
 		fee := dataFee.CalculateFee(tempTx.ToBytes())
-		dataTx, err := BuildDataTX(address, inTXID, inSat, inPos, inScr, ownerKey, fee, ep, version)
+		dataTx, err := BuildDataTX(address, utxos, ownerKey, fee, ep, version)
 		if err != nil {
 			log.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build TX: %w", err)
 		}
 		log.Println(trace.Info("estimated fee").UTC().Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Add("txid", dataTx.GetTxID()).Append(tr))
-		inTXID = dataTx.GetTxID()
 		//UTXO in TX built by BuildDataTX is in position 0
-		inPos = 0
-		inSat = Satoshi(dataTx.Outputs[inPos].Satoshis)
-		inScr = dataTx.Outputs[inPos].GetLockingScriptHexString()
+		inPos := 0
+		utxos = []*UTXO{{TXPos: 0, TXHash: dataTx.GetTxID(), Value: Satoshi(dataTx.Outputs[inPos].Satoshis).Bitcoin(), ScriptPubKeyHex: dataTx.Outputs[inPos].GetLockingScriptHexString()}}
 		dataTXs[i] = dataTx
 	}
 	return dataTXs, nil
@@ -103,7 +96,7 @@ func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 
 }
 
-func (b *Blockchain) GetLastUTXO(address string) (*UTXO, error) {
+func (b *Blockchain) GetLastUTXO(address string) ([]*UTXO, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "GetLastUTXO")
 	log.Println(trace.Debug("get last UTXO").UTC().Append(tr))
 	utxos, err := b.explorer.GetUTXOs(address)
@@ -111,11 +104,11 @@ func (b *Blockchain) GetLastUTXO(address string) (*UTXO, error) {
 		log.Println(trace.Alert("cannot get UTXOs").UTC().Add("address", address).Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get UTXOs: %w", err)
 	}
-	if len(utxos) != 1 {
-		log.Println(trace.Alert("found multiple or no UTXO").UTC().Add("address", address).Append(tr))
-		return nil, fmt.Errorf("found multiple or no UTXO")
+	if len(utxos) < 1 {
+		log.Println(trace.Alert("found no UTXO").UTC().Add("address", address).Append(tr))
+		return nil, fmt.Errorf("found no UTXO")
 	}
-	return utxos[0], nil
+	return utxos, nil
 
 }
 

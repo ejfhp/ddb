@@ -18,8 +18,8 @@ func TestGetUTXOs(t *testing.T) {
 		t.Fail()
 	}
 	t.Logf("UTXO count: %d", len(unsTx))
-	if float64(*unsTx[0].Value) != 135.70301 {
-		t.Logf("wrong value in bitcoin: %.8f", *unsTx[0].Value)
+	if float64(unsTx[0].Value) != 135.70301 {
+		t.Logf("wrong value in bitcoin: %.8f", unsTx[0].Value)
 		t.Fail()
 	}
 	if uint64(unsTx[0].Value.Satoshi()) != 13570301000 {

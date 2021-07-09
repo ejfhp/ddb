@@ -1,10 +1,10 @@
 package ddb
 
 type UTXO struct {
-	TXPos        uint32
-	TXHash       string
-	Value        *Bitcoin
-	ScriptPubKey *ScriptPubKey
+	TXPos           uint32
+	TXHash          string
+	Value           Bitcoin
+	ScriptPubKeyHex string
 }
 
 type TX struct {
@@ -27,7 +27,7 @@ type Vin struct {
 }
 
 type Vout struct {
-	Value        *Bitcoin      `json:"value"`
+	Value        Bitcoin       `json:"value"`
 	N            uint32        `json:"n"`
 	ScriptPubKey *ScriptPubKey `json:"scriptPubKey"`
 }
