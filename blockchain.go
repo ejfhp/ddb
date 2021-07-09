@@ -5,6 +5,7 @@ import (
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
+	"github.com/libsv/go-bt/bscript"
 )
 
 type Blockchain struct {
@@ -126,4 +127,36 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 		return nil, fmt.Errorf("cannot build DataTX: %w", err)
 	}
 	return dataTX, nil
+}
+
+//ListTXHistoryBackward returns all the TXID of the TX history that ends to lastTXID.
+//The search follows the address of the first (and there should be only one) P2PKH output of last TX.
+//List length is limited to limit if limit > 0.
+func (b *Blockchain) ListTXHistoryBackward(lastTXID string, limit int) ([]string, error) {
+	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXHistoryBackwards")
+	log.Println(trace.Debug("get TX").UTC().Append(tr))
+	tx, err := b.GetTX(lastTXID)
+	if err != nil {
+		log.Println(trace.Alert("cannot get last TX").UTC().Add("lastTXID", lastTXID).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot get last TX: %w", err)
+	}
+	firstAddr := ""
+	for _, o := range tx.Outputs {
+		if o.LockingScript.IsP2PKH() {
+			pkhash, err := o.LockingScript.GetPublicKeyHash()
+			if err != nil {
+				log.Println(trace.Alert("cannot get PubKeyHash from output").UTC().Error(err).Append(tr))
+				return nil, fmt.Errorf("cannot get PubKeyHash from output: %w", err)
+			}
+			addr, err := bscript.NewAddressFromPublicKeyHash(pkhash, true)
+			if err != nil {
+				log.Println(trace.Alert("cannot get address from PubKeyHash").UTC().Add("pubKeyHash", string(pkhash)).Error(err).Append(tr))
+				return nil, fmt.Errorf("cannot get address from PubKeyHash: %w", err)
+			}
+			firstAddr = addr.AddressString
+		}
+	}
+	//Scan and search the inputs
+	return nil, nil
+
 }
