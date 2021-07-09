@@ -23,8 +23,8 @@ func (l *TAAL) GetName() string {
 	return "TAAL"
 }
 func (l *TAAL) MaxOpReturn() int {
-	// return 100000
-	return 1000
+	return 100000
+	// return 1000
 }
 
 func (l *TAAL) GetFees() (Fees, error) {
