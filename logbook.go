@@ -75,12 +75,40 @@ func (l *Logbook) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 	return txs, nil
 }
 
-//ExtractEntries rebuild all the Entries contained in the given TXs array.
-func (l *Logbook) RetrieveEntries(txids []string) ([]*Entry, error) {
-	return nil, nil
+//RetrieveTXs retrieves the TXs with the given IDs.
+func (l *Logbook) RetrieveTXs(txids []string) ([]*DataTX, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "RetrieveTXs")
+	log.Println(trace.Info("retrieving TXs from the blockchain").Add("len txids", fmt.Sprintf("%d", len(txids))).UTC().Append(tr))
+	txs := make([]*DataTX, 0, len(txids))
+	for _, txid := range txids {
+		tx, err := l.blockchain.GetTX(txid)
+		if err != nil {
+			log.Println(trace.Alert("error getting DataTX").UTC().Error(err).Append(tr))
+			return nil, fmt.Errorf("error getting DataTX: %w", err)
+		}
+		txs = append(txs, tx)
+	}
+	return txs, nil
 }
 
-//ExtractEntries rebuild all the Entries contained in the given TXs array.
+//RetrieveAndExtractEntries retrieve the TX with the given IDs and extracts all the Entries fully contained.
+func (l *Logbook) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "RetrievingEntries")
+	log.Println(trace.Info("retrieving TXs from the blockchain and extracting entries").Add("len txids", fmt.Sprintf("%d", len(txids))).UTC().Append(tr))
+	txs, err := l.RetrieveTXs(txids)
+	if err != nil {
+		log.Println(trace.Alert("error retrieving DataTXs").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("error retrieving DataTXs: %w", err)
+	}
+	entries, err := l.ExtractEntries(txs)
+	if err != nil {
+		log.Println(trace.Alert("error extracting Entries").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("errorextracting Entries: %w", err)
+	}
+	return entries, nil
+}
+
+//ExtractEntries rebuild all the Entries fully contained in the given TXs array.
 func (l *Logbook) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ExtractEntries")
 	log.Println(trace.Info("reading entries from TXs").Add("len txs", fmt.Sprintf("%d", len(txs))).UTC().Append(tr))

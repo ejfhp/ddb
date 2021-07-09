@@ -18,7 +18,7 @@ const (
 
 type DataTX struct{ bt.Tx }
 
-//BuildDataTX builds a DataTX with the given params
+//BuildDataTX builds a DataTX with the given params. UTX0 is in position 0.
 func BuildDataTX(address string, inTXID string, in Satoshi, inpos uint32, inScriptHex string, key string, fee Token, data []byte, version string) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "DataTX", "BuildDataTX")
 	log.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("address", address).Append(t))
@@ -36,7 +36,7 @@ func BuildDataTX(address string, inTXID string, in Satoshi, inpos uint32, inScri
 	satInput := in
 	tx.AddInput(input)
 	satOutput := satInput.Sub(fee)
-	log.Println(trace.Info("calculating fee").UTC().Add("input", fmt.Sprintf("%0.8f", in.Bitcoin())).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Add("fee", fmt.Sprintf("%0.8f", fee)).Append(t))
+	log.Println(trace.Info("calculating output values").UTC().Add("input", fmt.Sprintf("%0.8f", in.Bitcoin())).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Append(t))
 	outputS, err := bt.NewP2PKHOutputFromAddress(address, uint64(satOutput.Satoshi()))
 	if err != nil {
 		log.Println(trace.Alert("cannot create output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))

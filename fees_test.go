@@ -42,7 +42,47 @@ func TestCalculateFee(t *testing.T) {
 		t.Fatalf("failed to calculate fee: %v", err)
 	}
 	fee := stdFee.CalculateFee(tx)
-	expected := ddb.Satoshi(339)
+	expected := ddb.Satoshi(340)
+	if fee != expected {
+		t.Fatalf("fee should be %d but is %d", expected, fee)
+	}
+}
+
+func TestCalculateFee1035(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	tx := make([]byte, 1035)
+	sat500 := ddb.Satoshi(500)
+	sat250 := ddb.Satoshi(250)
+	fees := ddb.Fees{
+		{
+			FeeType: "standard",
+			MiningFee: ddb.FeeUnit{
+				Satoshis: &sat500,
+				Bytes:    1000,
+			},
+			RelayFee: ddb.FeeUnit{
+				Satoshis: &sat250,
+				Bytes:    1000,
+			},
+		},
+		{
+			FeeType: "data",
+			MiningFee: ddb.FeeUnit{
+				Satoshis: &sat500,
+				Bytes:    1000,
+			},
+			RelayFee: ddb.FeeUnit{
+				Satoshis: &sat500,
+				Bytes:    1000,
+			},
+		},
+	}
+	stdFee, err := fees.GetStandardFee()
+	if err != nil {
+		t.Fatalf("failed to calculate fee: %v", err)
+	}
+	fee := stdFee.CalculateFee(tx)
+	expected := ddb.Satoshi(519)
 	if fee != expected {
 		t.Fatalf("fee should be %d but is %d", expected, fee)
 	}

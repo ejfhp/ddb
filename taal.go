@@ -23,7 +23,8 @@ func (l *TAAL) GetName() string {
 	return "TAAL"
 }
 func (l *TAAL) MaxOpReturn() int {
-	return 100000
+	// return 100000
+	return 1000
 }
 
 func (l *TAAL) GetFees() (Fees, error) {
@@ -96,6 +97,7 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	t := trace.New().Source("taal.go", "TAAL", "SubmitTX")
 	url := fmt.Sprintf("%s/tx", l.BaseURL)
 	log.Println(trace.Debug("submit tx").UTC().Add("url", url).Append(t))
+	fmt.Printf("\n\n %s \n\n", rawTX)
 	mapiSubmitTX := MapiSubmitTX{
 		Rawtx:       rawTX,
 		MerkleProof: false,
@@ -114,8 +116,8 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	body, _ := ioutil.ReadAll(resp.Body)
 	log.Println(trace.Info("miner response").UTC().Add("url", url).Add("response", string(body)).Append(t))
 	if resp.StatusCode != 200 {
-		log.Println(trace.Alert("miner replied bit bad status").UTC().Add("url", url).Add("status", resp.Status).Append(t))
-		return "", fmt.Errorf("miner replied bit bad status: %s", resp.Status)
+		log.Println(trace.Alert("miner replied with bad status").UTC().Add("url", url).Add("status", resp.Status).Append(t))
+		return "", fmt.Errorf("miner replied with bad status: %s", resp.Status)
 
 	}
 	mapiResponse := make(map[string]interface{})

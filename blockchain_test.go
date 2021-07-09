@@ -170,7 +170,7 @@ func TestGetTX(t *testing.T) {
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl)
-	dataTx, err := blk.GeTX(txid)
+	dataTx, err := blk.GetTX(txid)
 	if err != nil {
 		t.Logf("failed to get data TXs: %v", err)
 		t.Fail()

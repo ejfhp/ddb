@@ -45,7 +45,8 @@ func (f Fees) GetDataFee() (*Fee, error) {
 //CalculateFee return the amount of satoshi to set as fee for the given TX
 func (f *Fee) CalculateFee(tx []byte) Satoshi {
 	t := trace.New().Source("fees.go", "Fee", "CalculateFee")
-	size := len(tx)
+	feebuffer := 3
+	size := len(tx) + feebuffer
 	log.Println(trace.Info("TX size").UTC().Add("bytes len", fmt.Sprintf("%d", size)).Append(t))
 	miningFeeSat := Satoshi((float64(size) / float64(f.MiningFee.Bytes)) * float64(*f.MiningFee.Satoshis))
 	// relayFee := (float64(size) / float64(standardFee.RelayFee.Bytes)) * float64(standardFee.RelayFee.Satoshis)
