@@ -62,3 +62,17 @@ func TestWOCGetRAWTXHEX(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestWOCGetTXIDs(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	woc := ddb.NewWOC()
+	txids, err := woc.GetTXIDs(address)
+	if err != nil {
+		t.Logf("error: %v", err)
+		t.Fail()
+	}
+	if len(txids) < 23 {
+		t.Logf("tx history too short: %d", len(txids))
+		t.Fail()
+	}
+}

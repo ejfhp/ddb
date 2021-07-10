@@ -378,5 +378,29 @@ func TestRetrieveTXs(t *testing.T) {
 		t.Logf("unexpected number of txs: %d", len(txs))
 		t.Fail()
 	}
+}
+
+func TestDownloadAll(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
+	blockchain := ddb.NewBlockchain(taal, woc)
+	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	if err != nil {
+		t.Logf("error building Logbook: %v", err)
+		t.FailNow()
+	}
+	output := "download"
+	n, err := logbook.DowloadAll(output)
+	if err != nil {
+		t.Logf("failed to download all: %v", err)
+		t.FailNow()
+	}
+	if n < 2 {
+		t.Logf("unexpected value for n: %d", n)
+		t.FailNow()
+	}
+	t.Logf("downloaded entries: %d", n)
 
 }

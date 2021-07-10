@@ -116,3 +116,30 @@ func (w *WOC) GetRAWTXHEX(txHash string) ([]byte, error) {
 	}
 	return hex, nil
 }
+
+func (w *WOC) GetTXIDs(address string) ([]string, error) {
+	t := trace.New().Source("whatsonchain.go", "WOC", "GetTXIDs")
+	url := fmt.Sprintf("%s/address/%s/history", w.BaseURL, address)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println(trace.Alert("error while getting unspent").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		return nil, fmt.Errorf("error while getting unspent: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(trace.Alert("error while reading response").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		return nil, fmt.Errorf("error while reading response: %w", err)
+	}
+	txs := []*wocu{}
+	err = json.Unmarshal(body, &txs)
+	if err != nil {
+		log.Println(trace.Alert("error while unmarshalling").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		return nil, fmt.Errorf("error while unmarshalling: %w", err)
+	}
+	txids := make([]string, len(txs))
+	for i, t := range txs {
+		txids[i] = t.TXHash
+	}
+	return txids, nil
+}

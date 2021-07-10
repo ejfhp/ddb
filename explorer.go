@@ -49,5 +49,5 @@ type Explorer interface {
 	GetUTXOs(address string) ([]*UTXO, error)
 	GetTX(txHash string) (*TX, error)
 	GetRAWTXHEX(txHash string) ([]byte, error)
-	// GetTXIDs(address string) (*TX, error)
+	GetTXIDs(address string) ([]string, error)
 }

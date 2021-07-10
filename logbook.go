@@ -2,6 +2,8 @@ package ddb
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 
 	log "github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -103,9 +105,30 @@ func (l *Logbook) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
 	entries, err := l.ExtractEntries(txs)
 	if err != nil {
 		log.Println(trace.Alert("error extracting Entries").UTC().Error(err).Append(tr))
-		return nil, fmt.Errorf("errorextracting Entries: %w", err)
+		return nil, fmt.Errorf("error extracting Entries: %w", err)
 	}
 	return entries, nil
+}
+
+//DownloadAll saves locally all the files connected to the address. Return the number of entries saved.
+func (l *Logbook) DowloadAll(outPath string) (int, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "DownloadAll")
+	log.Println(trace.Info("download all entries locally").Add("outpath", outPath).UTC().Append(tr))
+	history, err := l.blockchain.explorer.GetTXIDs(l.bitcoinAdd)
+	if err != nil {
+		log.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
+		return 0, fmt.Errorf("error getting address history: %w", err)
+	}
+	entries, err := l.RetrieveAndExtractEntries(history)
+	if err != nil {
+		log.Println(trace.Alert("error retrieving entries").UTC().Error(err).Append(tr))
+		return 0, fmt.Errorf("error retrieving entries: %w", err)
+	}
+	for _, e := range entries {
+		ioutil.WriteFile(filepath.Join(outPath, e.Name), e.Data, 0444)
+	}
+	return len(entries), nil
+
 }
 
 //ExtractEntries rebuild all the Entries fully contained in the given TXs array.
@@ -122,7 +145,8 @@ func (l *Logbook) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 		enco, err := AESDecrypt(l.cryptoKey, cry)
 		if err != nil {
 			log.Println(trace.Warning("error decrypting OP_RETURN data").UTC().Error(err).Append(tr))
-			return nil, fmt.Errorf("error decrypting OP_RETURN data: %w", err)
+			// return nil, fmt.Errorf("error decrypting OP_RETURN data: %w", err)
+			continue
 		}
 		part, err := EntryPartFromEncodedData(enco)
 		if err != nil {

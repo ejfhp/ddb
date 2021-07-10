@@ -129,7 +129,7 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 	return dataTX, nil
 }
 
-//ListTXHistoryBackward returns all the TXID of the TX history that ends to lastTXID.
+//ListTXHistoryBackward returns all the TXID of the TX history that ends to txid.
 //The search follows the given address.
 //List length is limited to limit.
 func (b *Blockchain) ListTXHistoryBackward(txid string, folllowAddress string, limit int) ([]string, error) {

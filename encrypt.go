@@ -32,6 +32,9 @@ func AESEncrypt(key [32]byte, data []byte) ([]byte, error) {
 
 // Key should be 32 bytes (AES-256).
 func AESDecrypt(key [32]byte, encrypted []byte) ([]byte, error) {
+	if len(encrypted) < 12 {
+		return []byte{}, fmt.Errorf("encrypted too short")
+	}
 	nonce := encrypted[:noncesize]
 	cipherdata := encrypted[noncesize:]
 	block, err := aes.NewCipher(key[:])

@@ -124,7 +124,8 @@ func (t *DataTX) Data() ([]byte, string, error) {
 				version, data, err = stripHeader(v)
 				if err != nil {
 					log.Println(trace.Alert("cannot decode header").UTC().Error(err).Append(tr))
-					return nil, version, fmt.Errorf("cannot decode header: %w", err)
+					continue
+					// return nil, version, fmt.Errorf("cannot decode header: %w", err)
 				}
 			}
 		}
