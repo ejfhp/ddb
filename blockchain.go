@@ -130,33 +130,78 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 }
 
 //ListTXHistoryBackward returns all the TXID of the TX history that ends to lastTXID.
-//The search follows the address of the first (and there should be only one) P2PKH output of last TX.
-//List length is limited to limit if limit > 0.
-func (b *Blockchain) ListTXHistoryBackward(lastTXID string, limit int) ([]string, error) {
+//The search follows the given address.
+//List length is limited to limit.
+func (b *Blockchain) ListTXHistoryBackward(txid string, folllowAddress string, limit int) ([]string, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXHistoryBackwards")
 	log.Println(trace.Debug("get TX").UTC().Append(tr))
-	tx, err := b.GetTX(lastTXID)
+	if txid == "" {
+		log.Println(trace.Alert("TXID cannot be empty").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Append(tr))
+		return nil, fmt.Errorf("TXID cannot be empty, a starting TXID is mandatory")
+	}
+	tx, err := b.GetTX(txid)
 	if err != nil {
-		log.Println(trace.Alert("cannot get last TX").UTC().Add("lastTXID", lastTXID).Error(err).Append(tr))
-		return nil, fmt.Errorf("cannot get last TX: %w", err)
+		log.Println(trace.Alert("error getting lastTX").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Error(err).Append(tr))
+		return nil, fmt.Errorf("error getting lastTX: %w", err)
 	}
-	firstAddr := ""
-	for _, o := range tx.Outputs {
-		if o.LockingScript.IsP2PKH() {
-			pkhash, err := o.LockingScript.GetPublicKeyHash()
-			if err != nil {
-				log.Println(trace.Alert("cannot get PubKeyHash from output").UTC().Error(err).Append(tr))
-				return nil, fmt.Errorf("cannot get PubKeyHash from output: %w", err)
-			}
-			addr, err := bscript.NewAddressFromPublicKeyHash(pkhash, true)
-			if err != nil {
-				log.Println(trace.Alert("cannot get address from PubKeyHash").UTC().Add("pubKeyHash", string(pkhash)).Error(err).Append(tr))
-				return nil, fmt.Errorf("cannot get address from PubKeyHash: %w", err)
-			}
-			firstAddr = addr.AddressString
+	path := []string{txid}
+	for i, in := range tx.Inputs {
+		history, err := b.walkBackward(in.PreviousTxID, in.PreviousTxOutIndex, folllowAddress, 1, limit)
+		if err != nil {
+			log.Println(trace.Alert("error going back in history").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Error(err).Append(tr))
+			return nil, fmt.Errorf("error going back in history input:%d txid:%s", i, in.PreviousTxID)
 		}
+		path = append(path, history...)
 	}
-	//Scan and search the inputs
-	return nil, nil
+	return path, nil
+}
 
+//TODO This could be parallelized
+func (b *Blockchain) walkBackward(txid string, prevTXpos uint32, mainAddr string, depth int, maxpathlen int) ([]string, error) {
+	if txid == "" {
+		return nil, fmt.Errorf("previous tx cannot be empty, a starting TXID is mandatory")
+	}
+	depth++
+	if depth >= maxpathlen {
+		fmt.Printf("max pathlen\n")
+		return []string{}, nil
+	}
+	tx, err := b.GetTX(txid)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get last path TX: %w", err)
+	}
+	if len(tx.Outputs) <= int(prevTXpos) {
+		return nil, fmt.Errorf("prev output index out of range: %d with %d outputs", prevTXpos, len(tx.Outputs))
+	}
+	output := tx.Outputs[prevTXpos]
+	if output.LockingScript.IsP2PKH() == true {
+		fmt.Printf("found P2PKH in tx %s\n", txid)
+		pkhash, err := output.LockingScript.GetPublicKeyHash()
+		if err != nil {
+			return nil, fmt.Errorf("cannot get PubKeyHash from output: %w", err)
+		}
+		addr, err := bscript.NewAddressFromPublicKeyHash(pkhash, true)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get address from PubKeyHash: %w", err)
+		}
+		destAddr := addr.AddressString
+		if destAddr == mainAddr {
+			path := []string{txid}
+			for i, in := range tx.Inputs {
+				history, err := b.walkBackward(in.PreviousTxID, in.PreviousTxOutIndex, mainAddr, depth, maxpathlen)
+				if err != nil {
+					return nil, fmt.Errorf("cannot get history from input %d of tx %s", i, in.PreviousTxID)
+				}
+				path = append(path, history...)
+			}
+			return path, nil
+
+		} else {
+			fmt.Printf("output destination address is NOT main address: %s\n", destAddr)
+			return []string{}, nil
+		}
+	} else {
+		fmt.Printf("output is NOT a P2PK in tx %s\n", txid)
+		return []string{}, nil
+	}
 }

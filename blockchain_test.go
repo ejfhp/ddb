@@ -180,3 +180,26 @@ func TestGetTX(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestListTXHistoryBackward(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	txid := "8c4e50050f1a82e14765f4a79b2bdac700967e592486dcaa9eedb4f8bf441d16"
+	miner := ddb.NewTAAL()
+	expl := ddb.NewWOC()
+	blk := ddb.NewBlockchain(miner, expl)
+	limit := 30
+	path, err := blk.ListTXHistoryBackward(txid, address, limit)
+	if err != nil {
+		t.Logf("search backward failed: %v", err)
+		t.FailNow()
+	}
+	if len(path) != limit+1 {
+		t.Logf("Unexpected path len: %d", len(path))
+		t.Fail()
+	}
+	for i, p := range path {
+		t.Logf("%d: %s", i, p)
+	}
+	t.Logf("FAKEFAIL")
+	t.Fail()
+}
