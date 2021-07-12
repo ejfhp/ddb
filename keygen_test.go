@@ -45,6 +45,11 @@ func TestMakeWIF(t *testing.T) {
 			t.Logf("cannot generate WIF: %v", err)
 			t.Fail()
 		}
+		pass := k.Password()
+		if pass[0] != 't' || pass[31] != 'c' {
+			t.Logf("wrong password: %v", err)
+			t.Fail()
+		}
 		fmt.Printf("WIF: %s\n", wif)
 	}
 }

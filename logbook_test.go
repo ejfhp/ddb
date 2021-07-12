@@ -402,5 +402,26 @@ func TestDownloadAll(t *testing.T) {
 		t.FailNow()
 	}
 	t.Logf("downloaded entries: %d", n)
+}
 
+func TestListHistory(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
+	blockchain := ddb.NewBlockchain(taal, woc)
+	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	if err != nil {
+		t.Logf("error building Logbook: %v", err)
+		t.FailNow()
+	}
+	txids, err := logbook.ListHistory(address)
+	if err != nil {
+		t.Logf("error: %v", err)
+		t.Fail()
+	}
+	if len(txids) < 23 {
+		t.Logf("tx history too short: %d", len(txids))
+		t.Fail()
+	}
 }

@@ -83,6 +83,12 @@ func (k *Keygen) MakeWIF() (string, error) {
 	return wif.String(), nil
 }
 
+func (k *Keygen) Password() [32]byte {
+	var password [32]byte
+	copy(password[:], []byte(k.phrase)[:32])
+	return password
+}
+
 type Hasher func(words [][]byte, repeat int, hash []byte) []byte
 
 func sha3_256_1(words [][]byte, repeat int, hash []byte) []byte {

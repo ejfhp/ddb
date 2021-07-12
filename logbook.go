@@ -28,6 +28,18 @@ func NewLogbook(wif string, password [32]byte, blockchain *Blockchain) (*Logbook
 
 }
 
+func (l *Logbook) BitcoinPrivateKey() string {
+	return l.bitcoinWif
+}
+
+func (l *Logbook) BitcoinPublicAddress() string {
+	return l.bitcoinAdd
+}
+
+func (l *Logbook) EncodingPassword() string {
+	return string(l.cryptoKey[:])
+}
+
 //CastEntry store the entry on the blockchain, returns the TXID of the transactions generated.
 func (l *Logbook) CastEntry(entry *Entry) ([]string, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "CastEntry")
@@ -160,6 +172,17 @@ func (l *Logbook) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 		return nil, fmt.Errorf("error while reassembling Entries: %w", err)
 	}
 	return entries, nil
+}
+
+func (l *Logbook) ListHistory(address string) ([]string, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "ListHistory")
+	log.Println(trace.Info("listing TX history").UTC().Add("address", address).Append(tr))
+	txids, err := l.blockchain.explorer.GetTXIDs(address)
+	if err != nil {
+		log.Println(trace.Warning("error while listing TX history").UTC().Add("address", address).Error(err).Append(tr))
+		return nil, fmt.Errorf("error while listing TX history: %w", err)
+	}
+	return txids, nil
 }
 
 func (l *Logbook) MaxDataSize() int {
