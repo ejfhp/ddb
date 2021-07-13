@@ -14,6 +14,29 @@ import (
 	log "github.com/ejfhp/trail"
 )
 
+func TestNewEntryFromFile(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	inputs := [][]string{
+		{"testdata/test.txt", ""},
+		{"testdata/image.png", ""},
+		{"testdata", "error"},
+		{"testdata/", "error"},
+		{"/", "error"},
+	}
+	for i, f := range inputs {
+		e, err := ddb.NewEntryFromFile(filepath.Base(f[0]), f[0])
+		if err != nil && f[1] != "error" {
+			t.Logf("%d NewEntry failed: %s", i, f)
+		}
+		if err == nil && f[1] == "error" {
+			t.Logf("%d NewEntry failed: %s", i, f)
+		}
+		if e == nil {
+			t.Logf("%d NewEntry failed: %s", i, f)
+		}
+	}
+
+}
 func TestEntryOfFile(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	inputs := [][]string{

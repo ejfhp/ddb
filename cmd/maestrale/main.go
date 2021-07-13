@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -11,10 +12,12 @@ import (
 )
 
 const (
-	EXIT_NO_PASSPHRASE = 1
-	EXIT_NO_PASSNUM    = 2
-	DESCRIBE           = "describe"
-	STORE              = "store"
+	exitNoPassphrase = iota
+	exitNoPassnum
+	exitFileError
+	exitStoreError
+	commandDescribe = "describe"
+	commandStore    = "store"
 )
 
 func printHelp() {
@@ -25,7 +28,7 @@ func checkPassphrase(args []string) (string, int) {
 	if len(args) < 1 {
 		fmt.Printf("Missing passphrase\n")
 		printHelp()
-		os.Exit(EXIT_NO_PASSPHRASE)
+		os.Exit(exitNoPassphrase)
 	}
 	passphrase := strings.Join(args, " ")
 	passnum := 0
@@ -42,7 +45,7 @@ func checkPassphrase(args []string) (string, int) {
 	if passnum == 0 {
 		fmt.Printf("Passphrase must contain a number\n")
 		printHelp()
-		os.Exit(EXIT_NO_PASSNUM)
+		os.Exit(exitNoPassnum)
 	}
 	return passphrase, passnum
 }
@@ -71,7 +74,8 @@ func newLogbook(wif string, password [32]byte) (*ddb.Logbook, error) {
 	return logbook, nil
 }
 
-func describe(args []string) error {
+// maestrale describe <passphrase>
+func cmdDescribe(args []string) error {
 	passphrase, passnum := checkPassphrase(args)
 	wif, password, err := keyGen(passphrase, passnum)
 	if err != nil {
@@ -92,13 +96,43 @@ func describe(args []string) error {
 		return fmt.Errorf("error getting address history; %w", err)
 	}
 	fmt.Printf("Transaction History\n")
+	if len(history) == 0 {
+		fmt.Printf("this address has no history\n")
+	}
 	for i, tx := range history {
 		fmt.Printf("%d: %s\n", i, tx)
 	}
 	return nil
 }
 
-func store(args []string) error {
+// maestrale store <file> <passphrase>
+func cmdStore(args []string) error {
+	filename := args[0]
+	entry, err := ddb.NewEntryFromFile(filepath.Base(filename), filename)
+	if err != nil {
+		fmt.Printf("Error while opening file '%s': %v \n", filename, err)
+		printHelp()
+		os.Exit(exitFileError)
+	}
+	passphrase, passnum := checkPassphrase(args)
+	wif, password, err := keyGen(passphrase, passnum)
+	if err != nil {
+		return err
+	}
+	logbook, err := newLogbook(wif, password)
+	if err != nil {
+		return err
+	}
+	txids, err := logbook.CastEntry(entry)
+	if err != nil {
+		fmt.Printf("Error while storing file '%s' on-chain: %v \n", filename, err)
+		printHelp()
+		os.Exit(exitFileError)
+	}
+	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
+	for i, tx := range txids {
+		fmt.Printf("%d: %s\n", i, tx)
+	}
 	return nil
 }
 
@@ -115,10 +149,10 @@ func main() {
 	command := strings.ToLower(args[1])
 	var err error
 	switch command {
-	case DESCRIBE:
-		err = describe(args[2:])
-	case STORE:
-		err = store(args[2:])
+	case commandDescribe:
+		err = cmdDescribe(args[2:])
+	case commandStore:
+		err = cmdStore(args[2:])
 	}
 	if err != nil {
 		fmt.Printf("ERROR: %v", err)
