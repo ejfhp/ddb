@@ -21,7 +21,7 @@ func NewBlockchain(miner Miner, explorer Explorer) *Blockchain {
 //PackEncryptedEntriesPart writes each []data on a single TX chained with the others, returns the TXIDs and the hex encoded TXs
 func (b *Blockchain) PackData(version string, ownerKey string, data [][]byte) ([]*DataTX, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "PackEncryptedEntriesPart")
-	log.Println(trace.Info("preparing TXs").UTC().Append(tr))
+	log.Println(trace.Info("packing bytes in an array of DataTX").UTC().Append(tr))
 	address, err := AddressOf(ownerKey)
 	if err != nil {
 		log.Println(trace.Alert("cannot get owner address").UTC().Error(err).Append(tr))
@@ -29,7 +29,7 @@ func (b *Blockchain) PackData(version string, ownerKey string, data [][]byte) ([
 	}
 	utxos, err := b.GetLastUTXO(address)
 	if err != nil {
-		log.Println(trace.Alert("cannot get last UTXO").UTC().Error(err).Append(tr))
+		log.Println(trace.Alert("cannot get last UTXO").UTC().Add("address", address).Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get last UTXO: %w", err)
 	}
 	dataFee, err := b.miner.GetDataFee()

@@ -83,7 +83,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 //EntriesOfFile returns an array of entries for the given file.
 func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
-	log.Println(trace.Debug("building entries").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
+	log.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
 	hash := make([]byte, 64)
 	sha := sha256.Sum256(e.Data)
 	hex.Encode(hash, sha[:])
