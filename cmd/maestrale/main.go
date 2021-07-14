@@ -56,9 +56,9 @@ func checkPassphrase(args []string) (string, int) {
 	if passnum == 0 {
 		quit("because passphrase must contain a number", exitNoPassnum)
 	}
-	fmt.Printf("Secret configuration is:\n")
-	fmt.Printf("passnum: '%d'\n", passnum)
-	fmt.Printf("passphrase: '%s'\n", passphrase)
+	//fmt.Printf("Secret configuration is:\n")
+	//fmt.Printf("passnum: '%d'\n", passnum)
+	//fmt.Printf("passphrase: '%s'\n", passphrase)
 	return passphrase, passnum
 }
 
@@ -87,9 +87,9 @@ func newLogbook(passphrase string, passnum int) *ddb.Logbook {
 	if err != nil {
 		quit("while creating the Logbook", exitLogbookError)
 	}
-	fmt.Printf("Bitcoin configuration is:\n")
-	fmt.Printf("Bitcoin Key (WIF) is : '%s'\n", logbook.BitcoinPrivateKey())
-	fmt.Printf("Bitcoin Address is   : '%s'\n", logbook.BitcoinPublicAddress())
+	//fmt.Printf("Bitcoin configuration is:\n")
+	//fmt.Printf("Bitcoin Key (WIF) is : '%s'\n", logbook.BitcoinPrivateKey())
+	//fmt.Printf("Bitcoin Address is   : '%s'\n", logbook.BitcoinPublicAddress())
 	return logbook
 }
 
@@ -100,17 +100,17 @@ func logOn(on bool) {
 }
 
 func printHelp(flagset *flag.FlagSet) {
-	fmt.Printf("MAESTRALE\n")
+	//fmt.Printf("MAESTRALE\n")
 	if flagset != nil {
 		flagset.SetOutput(os.Stdout)
 		flagset.PrintDefaults()
 	}
-	fmt.Printf("Main command: describe, store, retrieve.\n")
+	//fmt.Printf("Main command: describe, store, retrieve.\n")
 	os.Exit(0)
 }
 
 func quit(message string, code int) {
-	fmt.Printf("An error has occurred %s.\n", message)
+	//fmt.Printf("An error has occurred %s.\n", message)
 	os.Exit(code)
 }
 
@@ -129,7 +129,7 @@ func flagset(cmd string, args []string) []string {
 	if flagHelp == true {
 		printHelp(flagset)
 	}
-	fmt.Printf("file: %s\n", flagFilename)
+	//fmt.Printf("file: %s\n", flagFilename)
 	logOn(flagLog)
 	return flagset.Args()
 }
@@ -145,12 +145,12 @@ func cmdDescribe(args []string) error {
 	if err != nil {
 		return fmt.Errorf("error getting address history; %w", err)
 	}
-	fmt.Printf("Transaction History\n")
+	//fmt.Printf("Transaction History\n")
 	if len(history) == 0 {
-		fmt.Printf("this address has no history\n")
+		//fmt.Printf("this address has no history\n")
 	}
 	for i, tx := range history {
-		fmt.Printf("%d: %s\n", i, tx)
+		//fmt.Printf("%d: %s\n", i, tx)
 	}
 	return nil
 }
@@ -171,9 +171,9 @@ func cmdStore(args []string) error {
 	if err != nil {
 		quit(fmt.Sprintf("while storing file '%s' onchain connected to address '%s'", flagFilename, logbook.BitcoinPublicAddress()), exitStoreError)
 	}
-	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
+	//fmt.Printf("The file has been stored in transactions with the followind IDs\n")
 	for i, tx := range txids {
-		fmt.Printf("%d: %s\n", i, tx)
+		//fmt.Printf("%d: %s\n", i, tx)
 	}
 	return nil
 }
@@ -188,18 +188,18 @@ func cmdRetrieve(args []string) error {
 	if err != nil {
 		quit(fmt.Sprintf("while retrieving files from address '%s' to floder '%s'", logbook.BitcoinPublicAddress(), flagOutputDir), exitFileError)
 	}
-	fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, logbook.BitcoinPublicAddress(), flagOutputDir)
+	//fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, logbook.BitcoinPublicAddress(), flagOutputDir)
 	return nil
 }
 
 //go run main.go describe quando arriva, il maestrale soffia almeno 3 giorni
 func main() {
-	fmt.Printf("args: %v\n", os.Args)
+	//fmt.Printf("args: %v\n", os.Args)
 	if len(os.Args) < 2 {
 		printHelp(nil)
 	}
 	command := strings.ToLower(os.Args[1])
-	fmt.Printf("Command is: %s\n", command)
+	//fmt.Printf("Command is: %s\n", command)
 	var err error
 	switch command {
 	case commandDescribe:
@@ -210,6 +210,6 @@ func main() {
 		err = cmdRetrieve(os.Args[2:])
 	}
 	if err != nil {
-		fmt.Printf("ERROR: %v", err)
+		//fmt.Printf("ERROR: %v", err)
 	}
 }

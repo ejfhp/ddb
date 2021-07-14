@@ -1,7 +1,6 @@
 package ddb_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ejfhp/ddb"
@@ -50,7 +49,7 @@ func TestMakeWIF(t *testing.T) {
 			t.Logf("wrong password: %v", err)
 			t.Fail()
 		}
-		fmt.Printf("WIF: %s\n", wif)
+		t.Logf("WIF: %s\n", wif)
 	}
 }
 

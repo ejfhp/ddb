@@ -1,7 +1,6 @@
 package ddb_test
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -21,7 +20,7 @@ func TestGetFees(t *testing.T) {
 		t.Fatalf("Incomplete fees array: %v", fees)
 	}
 	for i, f := range fees {
-		fmt.Printf("%d val: %s  %d\n", i, f.FeeType, f.MiningFee.Satoshis)
+		t.Logf("%d val: %s  %d\n", i, f.FeeType, f.MiningFee.Satoshis)
 	}
 }
 
@@ -35,5 +34,5 @@ func TestSubmitTX(t *testing.T) {
 			t.Fatalf("Miner should reply with an failure: %v", err)
 		}
 	}
-	fmt.Printf("txid: '%s'\n", txid)
+	//fmt.Printf("txid: '%s'\n", txid)
 }

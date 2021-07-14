@@ -90,7 +90,7 @@ func TestEntryOfFile(t *testing.T) {
 				t.Fail()
 
 			}
-			// fmt.Printf("'%s'\n", hex.EncodeToString(f.Data))
+			//fmt.Printf("'%s'\n", hex.EncodeToString(f.Data))
 			t.Logf("%d name:%s mime:%s part:%d/%d size:%d len(data):%d hash:%s\n", i, f.Name, f.Mime, f.IdxPart, f.NumPart, f.Size, len(f.Data), f.Hash)
 			data = append(data, f.Data...)
 		}
@@ -389,7 +389,7 @@ func TestEncodeDecodeSingleEntry2(t *testing.T) {
 	// for i, tx := range txs {
 	// 	data1, ver1, _ := tx.Data()
 	// 	data2, ver2, _ := txs2[i].Data()
-	// 	fmt.Printf("len   1:%d  2:%d  v1:%s  v2:%s\n", len(data1), len(data2), ver1, ver2)
+	// 	//fmt.Printf("len   1:%d  2:%d  v1:%s  v2:%s\n", len(data1), len(data2), ver1, ver2)
 	// }
 
 	//tx to hex

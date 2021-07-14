@@ -113,14 +113,14 @@ func (t *DataTX) Data() ([]byte, string, error) {
 			}
 			for _, v := range ops {
 				if v[0] == bscript.OpFALSE {
-					// fmt.Printf("%d OP_FALSE %d  %v %d\n", i, v[0], v, len(v))
+					//fmt.Printf("%d OP_FALSE %d  %v %d\n", i, v[0], v, len(v))
 					continue
 				}
 				if v[0] == bscript.OpRETURN {
-					// fmt.Printf("%d OP_RETURN %d  %v %d\n", i, v[0], v, len(v))
+					//fmt.Printf("%d OP_RETURN %d  %v %d\n", i, v[0], v, len(v))
 					continue
 				}
-				// fmt.Printf("%d DATA %v  %v %d\n", i, v[0], string(v), len(v))
+				//fmt.Printf("%d DATA %v  %v %d\n", i, v[0], string(v), len(v))
 				version, data, err = stripHeader(v)
 				if err != nil {
 					log.Println(trace.Alert("cannot decode header").UTC().Error(err).Append(tr))

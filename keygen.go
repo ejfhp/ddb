@@ -63,10 +63,10 @@ func (k *Keygen) Configs() []int {
 }
 
 func (k *Keygen) Describe() {
-	fmt.Printf("NUM: %d\n", k.num)
-	fmt.Printf("PHRASE: %s\n", k.phrase)
-	fmt.Printf("CONFS, 1:%d 2:%d 3:%d 4:%d\n", k.confs[0], k.confs[1], k.confs[2], k.confs[3])
-	fmt.Printf("WORDS, 1:'%s' 2:'%s' 3:'%s'\n", k.words[0], k.words[1], k.words[2])
+	//fmt.Printf("NUM: %d\n", k.num)
+	//fmt.Printf("PHRASE: %s\n", k.phrase)
+	//fmt.Printf("CONFS, 1:%d 2:%d 3:%d 4:%d\n", k.confs[0], k.confs[1], k.confs[2], k.confs[3])
+	//fmt.Printf("WORDS, 1:'%s' 2:'%s' 3:'%s'\n", k.words[0], k.words[1], k.words[2])
 }
 
 func (k *Keygen) MakeWIF() (string, error) {

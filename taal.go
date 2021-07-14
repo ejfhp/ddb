@@ -97,7 +97,7 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	t := trace.New().Source("taal.go", "TAAL", "SubmitTX")
 	url := fmt.Sprintf("%s/tx", l.BaseURL)
 	log.Println(trace.Debug("submit tx").UTC().Add("url", url).Append(t))
-	// fmt.Printf("\n\n %s \n\n", rawTX)
+	//fmt.Printf("\n\n %s \n\n", rawTX)
 	mapiSubmitTX := MapiSubmitTX{
 		Rawtx:       rawTX,
 		MerkleProof: false,

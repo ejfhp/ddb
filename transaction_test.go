@@ -1,7 +1,6 @@
 package ddb_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -23,7 +22,7 @@ func TestBuildDataTX(t *testing.T) {
 		t.Fatalf("failed to create tx: %v", err)
 	}
 	t.Logf("TX ID: %s len: %d", datatx.GetTxID(), len(datatx.ToString()))
-	fmt.Printf("DataTX hex: '%s'", datatx.ToString())
+	//fmt.Printf("DataTX hex: '%s'", datatx.ToString())
 	if txid == "" {
 		t.Logf("failed to create tx, ID is empty")
 		t.Fail()

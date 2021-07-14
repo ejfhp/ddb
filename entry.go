@@ -50,7 +50,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 		if _, ok := partsDict[p.Name+p.Hash]; ok == false {
 			partsDict[p.Name+p.Hash] = make([]*EntryPart, p.NumPart)
 		}
-		fmt.Printf("entriesFromPart filling '%s' %d/%d\n", p.Name, p.IdxPart+1, p.NumPart)
+		//fmt.Printf("entriesFromPart filling '%s' %d/%d\n", p.Name, p.IdxPart+1, p.NumPart)
 		partsDict[p.Name+p.Hash][p.IdxPart] = p
 	}
 	for _, pa := range partsDict {
@@ -115,9 +115,9 @@ type EntryPart struct {
 //EntryPartFromEncodedData return the EntryPart decoded from the given json
 func EntryPartFromEncodedData(encoded []byte) (*EntryPart, error) {
 	var entry EntryPart
-	// fmt.Printf("encoded data: %s\n", string(encoded))
+	//fmt.Printf("encoded data: %s\n", string(encoded))
 	err := json.Unmarshal(encoded, &entry)
-	// fmt.Printf("entry  entryPart name: %s\n", entry.Name)
+	// mt.Printf("entry  entryPart name: %s\n", entry.Name)
 	return &entry, err
 }
 

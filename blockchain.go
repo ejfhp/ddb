@@ -163,7 +163,7 @@ func (b *Blockchain) walkBackward(txid string, prevTXpos uint32, mainAddr string
 	}
 	depth++
 	if depth >= maxpathlen {
-		fmt.Printf("max pathlen\n")
+		//fmt.Printf("max pathlen\n")
 		return []string{}, nil
 	}
 	tx, err := b.GetTX(txid)
@@ -175,7 +175,7 @@ func (b *Blockchain) walkBackward(txid string, prevTXpos uint32, mainAddr string
 	}
 	output := tx.Outputs[prevTXpos]
 	if output.LockingScript.IsP2PKH() == true {
-		fmt.Printf("found P2PKH in tx %s\n", txid)
+		//fmt.Printf("found P2PKH in tx %s\n", txid)
 		pkhash, err := output.LockingScript.GetPublicKeyHash()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get PubKeyHash from output: %w", err)
@@ -197,11 +197,11 @@ func (b *Blockchain) walkBackward(txid string, prevTXpos uint32, mainAddr string
 			return path, nil
 
 		} else {
-			fmt.Printf("output destination address is NOT main address: %s\n", destAddr)
+			//fmt.Printf("output destination address is NOT main address: %s\n", destAddr)
 			return []string{}, nil
 		}
 	} else {
-		fmt.Printf("output is NOT a P2PK in tx %s\n", txid)
+		//fmt.Printf("output is NOT a P2PK in tx %s\n", txid)
 		return []string{}, nil
 	}
 }

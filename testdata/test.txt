@@ -6,7 +6,7 @@ func EntryOfFile(name string, data []byte, maxPartSize int) ([]*EntryPart, error
 	sha := sha256.Sum256(data)
 	hex.Encode(hash, sha[:])
 	numPart := (len(data) / maxPartSize) + 1
-	fmt.Printf("len: %d  maxPartSize: %d  numPart: %d\n", len(data), maxPartSize, numPart)
+	//fmt.Printf("len: %d  maxPartSize: %d  numPart: %d\n", len(data), maxPartSize, numPart)
 	entries := make([]*EntryPart, 0, numPart)
 	for i := 0; i < numPart; i++ {
 		start := i * maxPartSize
