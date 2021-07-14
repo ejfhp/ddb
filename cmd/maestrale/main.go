@@ -21,16 +21,20 @@ const (
 	exitStoreError
 	commandDescribe = "describe"
 	commandStore    = "store"
+	commandRetrieve = "retrieve"
 )
 
-func printHelp() {
-	fmt.Printf("MAESTRALE\n")
-}
+var (
+	flagLog       bool
+	flagHelp      bool
+	flagFilename  string
+	flagOutputDir string
+)
 
 func checkPassphrase(args []string) (string, int) {
 	startidx := -1
 	for i, t := range args {
-		if t == "=" {
+		if t == "+" {
 			startidx = i + 1
 		}
 	}
@@ -89,24 +93,52 @@ func newLogbook(passphrase string, passnum int) *ddb.Logbook {
 	return logbook
 }
 
+func logOn(on bool) {
+	if on == true {
+		log.SetWriter(os.Stderr)
+	}
+}
+
+func printHelp(flagset *flag.FlagSet) {
+	fmt.Printf("MAESTRALE\n")
+	if flagset != nil {
+		flagset.SetOutput(os.Stdout)
+		flagset.PrintDefaults()
+	}
+	fmt.Printf("Main command: describe, store, retrieve.\n")
+	os.Exit(0)
+}
+
 func quit(message string, code int) {
 	fmt.Printf("An error has occurred %s.\n", message)
-	printHelp()
 	os.Exit(code)
+}
+
+func flagset(cmd string, args []string) []string {
+	flagset := flag.NewFlagSet("describe", flag.ContinueOnError)
+	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
+	flagset.BoolVar(&flagHelp, "help", false, "print help")
+	flagset.BoolVar(&flagHelp, "h", false, "print help")
+	switch cmd {
+	case commandStore:
+		flagset.StringVar(&flagFilename, "file", "", "path of file to store onchain")
+	case commandRetrieve:
+		flagset.StringVar(&flagFilename, "outdir", "", "path of folder where to save retrived files")
+	}
+	flagset.Parse(args)
+	if flagHelp == true {
+		printHelp(flagset)
+	}
+	fmt.Printf("file: %s\n", flagFilename)
+	logOn(flagLog)
+	return flagset.Args()
 }
 
 // maestrale describe <passphrase>
 func cmdDescribe(args []string) error {
-	flagset := flag.NewFlagSet("describe", flag.ContinueOnError)
-	log := flagset.Bool("log", false, "true enables log output")
-	flagset.Parse(args)
-	logOn(*log)
+	argsLeft := flagset(commandDescribe, args)
 
-	phrase := flagset.Args()
-	fmt.Printf("log: %t\n", *log)
-	fmt.Printf("remained args: %v\n", phrase)
-
-	passphrase, passnum := checkPassphrase(phrase)
+	passphrase, passnum := checkPassphrase(argsLeft)
 	logbook := newLogbook(passphrase, passnum)
 
 	history, err := logbook.ListHistory(logbook.BitcoinPublicAddress())
@@ -123,25 +155,21 @@ func cmdDescribe(args []string) error {
 	return nil
 }
 
-func logOn(on bool) {
-	if on == true {
-		log.SetWriter(os.Stderr)
-	}
-}
-
-// maestrale store <file> <passphrase>
-//go run main.go store testo.txt # quando arriva, il maestrale soffia almeno 3 giorni
+// maestrale store -file <file> = <passphrase>
+//go run main.go store -file testo.txt + quando arriva, il maestrale soffia almeno 3 giorni
 func cmdStore(args []string) error {
-	passphrase, passnum := checkPassphrase(args)
+	argsLeft := flagset(commandStore, args)
+
+	passphrase, passnum := checkPassphrase(argsLeft)
 	logbook := newLogbook(passphrase, passnum)
-	filename := args[0]
-	entry, err := ddb.NewEntryFromFile(filepath.Base(filename), filename)
+
+	entry, err := ddb.NewEntryFromFile(filepath.Base(flagFilename), flagFilename)
 	if err != nil {
-		quit(fmt.Sprintf("while opening file '%s'", filename), exitFileError)
+		quit(fmt.Sprintf("while opening file '%s'", flagFilename), exitFileError)
 	}
 	txids, err := logbook.CastEntry(entry)
 	if err != nil {
-		quit(fmt.Sprintf("while storing file '%s' onchain", filename), exitStoreError)
+		quit(fmt.Sprintf("while storing file '%s' onchain connected to address '%s'", flagFilename, logbook.BitcoinPublicAddress()), exitStoreError)
 	}
 	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
 	for i, tx := range txids {
@@ -150,13 +178,25 @@ func cmdStore(args []string) error {
 	return nil
 }
 
-//go run main.go describe quando arriva, il maestrale soffia almeno 3 giorni
+func cmdRetrieve(args []string) error {
+	argsLeft := flagset(commandRetrieve, args)
 
+	passphrase, passnum := checkPassphrase(argsLeft)
+	logbook := newLogbook(passphrase, passnum)
+
+	n, err := logbook.DowloadAll(flagOutputDir)
+	if err != nil {
+		quit(fmt.Sprintf("while retrieving files from address '%s' to floder '%s'", logbook.BitcoinPublicAddress(), flagOutputDir), exitFileError)
+	}
+	fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, logbook.BitcoinPublicAddress(), flagOutputDir)
+	return nil
+}
+
+//go run main.go describe quando arriva, il maestrale soffia almeno 3 giorni
 func main() {
 	fmt.Printf("args: %v\n", os.Args)
 	if len(os.Args) < 2 {
-		printHelp()
-		os.Exit(0)
+		printHelp(nil)
 	}
 	command := strings.ToLower(os.Args[1])
 	fmt.Printf("Command is: %s\n", command)
@@ -166,6 +206,8 @@ func main() {
 		err = cmdDescribe(os.Args[2:])
 	case commandStore:
 		err = cmdStore(os.Args[2:])
+	case commandRetrieve:
+		err = cmdRetrieve(os.Args[2:])
 	}
 	if err != nil {
 		fmt.Printf("ERROR: %v", err)
