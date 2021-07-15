@@ -56,10 +56,13 @@ func TestEntryOfFile(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%d: error reading test file: %v", in, err)
 		}
-		entry := ddb.Entry{Name: fil[0], Data: bytes}
+		entry, err := ddb.NewEntryFromFile(fil[0], fil[0])
+		if err != nil {
+			t.Fatalf("%d: error making entry of test file: %v", in, err)
+		}
 		parts, err := entry.Parts(partsizes[in][0])
 		if err != nil {
-			t.Fatalf("%d: error making entries of test file: %v", in, err)
+			t.Fatalf("%d: error making entryParts of test file: %v", in, err)
 		}
 		if len(parts) != partsizes[in][1] {
 			t.Fatalf("%d: wrong num of entries: %d != %d", in, len(parts), partsizes[in][1])
@@ -389,7 +392,7 @@ func TestEncodeDecodeSingleEntry2(t *testing.T) {
 	// for i, tx := range txs {
 	// 	data1, ver1, _ := tx.Data()
 	// 	data2, ver2, _ := txs2[i].Data()
-	// 	//fmt.Printf("len   1:%d  2:%d  v1:%s  v2:%s\n", len(data1), len(data2), ver1, ver2)
+	// 	fmt.Printf("len   1:%d  2:%d  v1:%s  v2:%s\n", len(data1), len(data2), ver1, ver2)
 	// }
 
 	//tx to hex

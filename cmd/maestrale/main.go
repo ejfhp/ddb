@@ -56,9 +56,9 @@ func checkPassphrase(args []string) (string, int) {
 	if passnum == 0 {
 		quit("because passphrase must contain a number", exitNoPassnum)
 	}
-	//fmt.Printf("Secret configuration is:\n")
-	//fmt.Printf("passnum: '%d'\n", passnum)
-	//fmt.Printf("passphrase: '%s'\n", passphrase)
+	fmt.Printf("Secret configuration is:\n")
+	fmt.Printf("passnum: '%d'\n", passnum)
+	fmt.Printf("passphrase: '%s'\n", passphrase)
 	return passphrase, passnum
 }
 
@@ -87,9 +87,9 @@ func newLogbook(passphrase string, passnum int) *ddb.Logbook {
 	if err != nil {
 		quit("while creating the Logbook", exitLogbookError)
 	}
-	//fmt.Printf("Bitcoin configuration is:\n")
-	//fmt.Printf("Bitcoin Key (WIF) is : '%s'\n", logbook.BitcoinPrivateKey())
-	//fmt.Printf("Bitcoin Address is   : '%s'\n", logbook.BitcoinPublicAddress())
+	fmt.Printf("Bitcoin configuration is:\n")
+	fmt.Printf("Bitcoin Key (WIF) is : '%s'\n", logbook.BitcoinPrivateKey())
+	fmt.Printf("Bitcoin Address is   : '%s'\n", logbook.BitcoinPublicAddress())
 	return logbook
 }
 
@@ -99,13 +99,48 @@ func logOn(on bool) {
 	}
 }
 
+func printMainHelp() {
+	fmt.Printf(`
+MAESTRALE
+
+Maestrale is a tool that let you store and retrieve files from the Bitcoin BSV blockchain.
+
+To start you have to load the address that will be used to store your data onchain.
+The address is generated starting from the passphrase given in input.
+The passphrase has always to be put at the end of the command, after a plus (+) and can be 
+written with or without double quotes ("). Pay attention to write the passphrase exactly 
+every time that's the key to access the files onchain. The passphrase must contains a number.
+The time it takes the generation of the address is proportional to the value of the number, I
+suggest to not go over 9999999999.
+
+To see the address to load and the corrisponding private key do:
+
+>maestrale describe + this is the passphrase with a number 9999
+
+When the address has enough funds, you can store a file onchain. If the address has not enough 
+funds the store will fail but the money will be spent anyway. To have a raw estimation, fees
+are currently 500 satoshi/1000 bytes.
+
+To store a file do:
+
+>maestrale store -file <file path> + this is the passphrase with a number 9999 
+
+If all is fine, the transactions id of the generated transaction will be shown.
+
+To retrieve the file from the blockchain do:
+
+>maestrale retrieve -outdir <output folder> + this is the passphrase with a number 9999  
+
+
+`)
+}
+
 func printHelp(flagset *flag.FlagSet) {
-	//fmt.Printf("MAESTRALE\n")
 	if flagset != nil {
 		flagset.SetOutput(os.Stdout)
 		flagset.PrintDefaults()
 	}
-	//fmt.Printf("Main command: describe, store, retrieve.\n")
+	fmt.Printf("Main command: describe, store, retrieve.\n")
 	os.Exit(0)
 }
 
@@ -145,12 +180,12 @@ func cmdDescribe(args []string) error {
 	if err != nil {
 		return fmt.Errorf("error getting address history; %w", err)
 	}
-	//fmt.Printf("Transaction History\n")
+	fmt.Printf("Transaction History\n")
 	if len(history) == 0 {
-		//fmt.Printf("this address has no history\n")
+		fmt.Printf("this address has no history\n")
 	}
 	for i, tx := range history {
-		//fmt.Printf("%d: %s\n", i, tx)
+		fmt.Printf("%d: %s\n", i, tx)
 	}
 	return nil
 }
@@ -171,9 +206,9 @@ func cmdStore(args []string) error {
 	if err != nil {
 		quit(fmt.Sprintf("while storing file '%s' onchain connected to address '%s'", flagFilename, logbook.BitcoinPublicAddress()), exitStoreError)
 	}
-	//fmt.Printf("The file has been stored in transactions with the followind IDs\n")
+	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
 	for i, tx := range txids {
-		//fmt.Printf("%d: %s\n", i, tx)
+		fmt.Printf("%d: %s\n", i, tx)
 	}
 	return nil
 }
@@ -188,7 +223,7 @@ func cmdRetrieve(args []string) error {
 	if err != nil {
 		quit(fmt.Sprintf("while retrieving files from address '%s' to floder '%s'", logbook.BitcoinPublicAddress(), flagOutputDir), exitFileError)
 	}
-	//fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, logbook.BitcoinPublicAddress(), flagOutputDir)
+	fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, logbook.BitcoinPublicAddress(), flagOutputDir)
 	return nil
 }
 
@@ -196,7 +231,8 @@ func cmdRetrieve(args []string) error {
 func main() {
 	//fmt.Printf("args: %v\n", os.Args)
 	if len(os.Args) < 2 {
-		printHelp(nil)
+		printMainHelp()
+		os.Exit(0)
 	}
 	command := strings.ToLower(os.Args[1])
 	//fmt.Printf("Command is: %s\n", command)

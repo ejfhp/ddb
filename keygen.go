@@ -2,6 +2,7 @@ package ddb
 
 import (
 	"fmt"
+	"math"
 
 	"crypto/sha256"
 
@@ -13,9 +14,9 @@ import (
 )
 
 const (
-	MIN_PHRASE_LEN = 3
-	NUM_CONFS      = 4
-	NUM_WORDS      = 3
+	MinPhraseLen = 3
+	NumConfs     = 4
+	NumWords     = 3
 )
 
 var conf_numbers = []int{2, 3, 5, 7}
@@ -38,20 +39,22 @@ type Keygen struct {
 }
 
 func NewKeygen(num int, phrase string) (*Keygen, error) {
-	if len(phrase) < MIN_PHRASE_LEN {
-		return nil, fmt.Errorf("secret phrase should be longer than %d chars", MIN_PHRASE_LEN)
+	if len(phrase) < MinPhraseLen {
+		return nil, fmt.Errorf("secret phrase should be longer than %d chars", MinPhraseLen)
 	}
 	cns := []int{}
-	for i := 0; i < len(conf_numbers); i += 1 {
+	for i := 0; i < len(conf_numbers); i++ {
 		cns = append(cns, num%conf_numbers[i])
 	}
-	wLen := len(phrase) / NUM_WORDS
+	wLen := len(phrase) / NumWords
 	ws := [][]byte{}
-	for i := 0; i < NUM_WORDS; i += 1 {
+	for i := 0; i < NumWords; i++ {
 		ws = append(ws, []byte(phrase[i*wLen:(i+1)*wLen]))
 	}
-	ws[NUM_WORDS-1] = append(ws[NUM_WORDS-1], phrase[(NUM_WORDS)*wLen:]...)
-	return &Keygen{num: num, phrase: phrase, confs: cns, words: ws}, nil
+	ws[NumWords-1] = append(ws[NumWords-1], phrase[(NumWords)*wLen:]...)
+	n := int(math.Ceil((math.Log(float64(num)) * 100)))
+	fmt.Printf("n: %d\n", n)
+	return &Keygen{num: n, phrase: phrase, confs: cns, words: ws}, nil
 }
 
 func (k *Keygen) Words() [][]byte {
@@ -63,15 +66,15 @@ func (k *Keygen) Configs() []int {
 }
 
 func (k *Keygen) Describe() {
-	//fmt.Printf("NUM: %d\n", k.num)
-	//fmt.Printf("PHRASE: %s\n", k.phrase)
-	//fmt.Printf("CONFS, 1:%d 2:%d 3:%d 4:%d\n", k.confs[0], k.confs[1], k.confs[2], k.confs[3])
-	//fmt.Printf("WORDS, 1:'%s' 2:'%s' 3:'%s'\n", k.words[0], k.words[1], k.words[2])
+	fmt.Printf("NUM: %d\n", k.num)
+	fmt.Printf("PHRASE: %s\n", k.phrase)
+	fmt.Printf("CONFS, 1:%d 2:%d 3:%d 4:%d\n", k.confs[0], k.confs[1], k.confs[2], k.confs[3])
+	fmt.Printf("WORDS, 1:'%s' 2:'%s' 3:'%s'\n", k.words[0], k.words[1], k.words[2])
 }
 
 func (k *Keygen) MakeWIF() (string, error) {
 	var hash []byte
-	for i := 0; i < NUM_CONFS; i += 1 {
+	for i := 0; i < NumConfs; i++ {
 		h := hasher[1] //k.confs[i]
 		hash = h(k.words, k.num, hash)
 	}
@@ -94,8 +97,8 @@ type Hasher func(words [][]byte, repeat int, hash []byte) []byte
 func sha3_256_1(words [][]byte, repeat int, hash []byte) []byte {
 	var out [32]byte
 	in := hash
-	for i := 0; i < repeat; i += 1 {
-		for j := 0; j < NUM_WORDS; j += 1 {
+	for i := 0; i < repeat; i++ {
+		for j := 0; j < NumWords; j++ {
 			in = append(in, words[j]...)
 			out = sha3.Sum256(in)
 			copy(in, out[:])
@@ -107,8 +110,8 @@ func sha3_256_1(words [][]byte, repeat int, hash []byte) []byte {
 func sha3_256_2(words [][]byte, repeat int, hash []byte) []byte {
 	var out [32]byte
 	in := hash
-	for i := 0; i < repeat; i += 1 {
-		for j := 0; j < NUM_WORDS; j += 1 {
+	for i := 0; i < repeat; i++ {
+		for j := 0; j < NumWords; j++ {
 			in = append(words[j], in...)
 			out = sha3.Sum256(in)
 			copy(in, out[:])
@@ -120,8 +123,8 @@ func sha3_256_2(words [][]byte, repeat int, hash []byte) []byte {
 func sha3_384_1(words [][]byte, repeat int, hash []byte) []byte {
 	var out [48]byte
 	in := hash
-	for i := 0; i < repeat; i += 1 {
-		for j := 0; j < NUM_WORDS; j += 1 {
+	for i := 0; i < repeat; i++ {
+		for j := 0; j < NumWords; j++ {
 			in = append(in, words[j]...)
 			out = sha3.Sum384(in)
 			copy(in, out[:])
@@ -133,8 +136,8 @@ func sha3_384_1(words [][]byte, repeat int, hash []byte) []byte {
 func sha3_384_2(words [][]byte, repeat int, hash []byte) []byte {
 	var out [48]byte
 	in := hash
-	for i := 0; i < repeat; i += 1 {
-		for j := 0; j < NUM_WORDS; j += 1 {
+	for i := 0; i < repeat; i++ {
+		for j := 0; j < NumWords; j++ {
 			in = append(words[j], in...)
 			out = sha3.Sum384(in)
 			copy(in, out[:])
@@ -146,8 +149,8 @@ func sha3_384_2(words [][]byte, repeat int, hash []byte) []byte {
 func sha256_256_1(words [][]byte, repeat int, hash []byte) []byte {
 	var out [32]byte
 	in := hash
-	for i := 0; i < repeat; i += 1 {
-		for j := 0; j < NUM_WORDS; j += 1 {
+	for i := 0; i < repeat; i++ {
+		for j := 0; j < NumWords; j++ {
 			in = append(in, words[j]...)
 			out = sha256.Sum256(in)
 			copy(in, out[:])
@@ -159,8 +162,8 @@ func sha256_256_1(words [][]byte, repeat int, hash []byte) []byte {
 func sha256_256_2(words [][]byte, repeat int, hash []byte) []byte {
 	var out [32]byte
 	in := hash
-	for i := 0; i < repeat; i += 1 {
-		for j := 0; j < NUM_WORDS; j += 1 {
+	for i := 0; i < repeat; i++ {
+		for j := 0; j < NumWords; j++ {
 			in = append(words[j], in...)
 			out = sha256.Sum256(in)
 			copy(in, out[:])

@@ -239,7 +239,8 @@ func TestRetrieveAndExtractImageEntry(t *testing.T) {
 		t.Logf("retrieved entry hash doesn't match with data hash: %s", hash)
 		t.Fail()
 	}
-	err = ioutil.WriteFile("imagefromblockchain.png", entry.Data, 0444)
+
+	err = ioutil.WriteFile("imagefromblockchain.png", entry.Data, 0644)
 	if err != nil {
 		t.Logf("failed to create file: %v", err)
 		t.Fail()
