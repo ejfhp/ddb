@@ -9,4 +9,5 @@ require (
 	github.com/ejfhp/trail v0.0.3
 	github.com/libsv/go-bt v0.0.11
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	rsc.io/qr v0.2.0
 )

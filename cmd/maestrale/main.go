@@ -89,7 +89,9 @@ func newLogbook(passphrase string, passnum int) *ddb.Logbook {
 	}
 	fmt.Printf("Bitcoin configuration is:\n")
 	fmt.Printf("Bitcoin Key (WIF) is : '%s'\n", logbook.BitcoinPrivateKey())
+	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
 	fmt.Printf("Bitcoin Address is   : '%s'\n", logbook.BitcoinPublicAddress())
+	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
 	return logbook
 }
 
