@@ -138,6 +138,9 @@ Options:
 -log   true enables log output
 -help  print help
 
+Examples:
+
+
 `)
 }
 
@@ -175,7 +178,6 @@ func flagset(cmd string, args []string) []string {
 	return flagset.Args()
 }
 
-// maestrale describe <passphrase>
 func cmdDescribe(args []string) error {
 	argsLeft := flagset(commandDescribe, args)
 
@@ -196,8 +198,6 @@ func cmdDescribe(args []string) error {
 	return nil
 }
 
-// maestrale store -file <file> = <passphrase>
-//go run main.go store -file testo.txt + quando arriva, il maestrale soffia almeno 3 giorni
 func cmdStore(args []string) error {
 	argsLeft := flagset(commandStore, args)
 
@@ -233,7 +233,6 @@ func cmdRetrieve(args []string) error {
 	return nil
 }
 
-//go run main.go describe quando arriva, il maestrale soffia almeno 3 giorni
 func main() {
 	//fmt.Printf("args: %v\n", os.Args)
 	if len(os.Args) < 2 {
