@@ -57,7 +57,7 @@ func checkPassphrase(args []string) (string, int) {
 		quit("because passphrase must contain a number", exitNoPassnum)
 	}
 	fmt.Printf("\nSecret configuration:\n")
-	fmt.Printf("  passnum: '%d'\n", passnum)
+	fmt.Printf("  passnum:    '%d'\n", passnum)
 	fmt.Printf("  passphrase: '%s'\n", passphrase)
 	return passphrase, passnum
 }

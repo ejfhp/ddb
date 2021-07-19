@@ -54,13 +54,14 @@ func TestMakeWIF(t *testing.T) {
 }
 
 func TestConsitencyMakeWIF(t *testing.T) {
-	nums := []int{3567, 0, 12, 100, 1001}
+	nums := []int{3567, 0, 12, 100, 1001, 1}
 	phrases := []string{
 		"tanto va la gatta al lardo che ci lascia lo zampino",
 		"abc",
 		"cippirimerlo",
 		"un due tre stella",
 		"giro giro tondo gira tutto il mondo",
+		"this is 1 test to show how to use Maestrale",
 	}
 	wifs := []string{
 		"KwsrmwtfphXNGyQq9mo6GtTjMjajrzGQYuoCYWA7XMBRtrEDwgtD",
@@ -68,6 +69,7 @@ func TestConsitencyMakeWIF(t *testing.T) {
 		"L2oEpyKF89Mn7XJJuyN7hoY9vU4ugaDAeuLf2nHx6CpquBcNwYve",
 		"KyizRQyrAv4ErAgT76karoyBME2t497J7GfuAfrC96sSfENRrKdy",
 		"L5EXzcBe2EaTZWhjySZmm2A5m4RCN5Qp5wQqyHrbfGtCKfZBVf4y",
+		"KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73Nd2Mcv1",
 	}
 	for i, n := range nums {
 		k, err := ddb.NewKeygen(n, phrases[i])
@@ -78,6 +80,11 @@ func TestConsitencyMakeWIF(t *testing.T) {
 		wif, err := k.MakeWIF()
 		if err != nil {
 			t.Logf("cannot generate WIF: %v", err)
+			t.Fail()
+		}
+		_, err = ddb.DecodeWIF(wif)
+		if err != nil {
+			t.Logf("cannot get address of WIF: %v", err)
 			t.Fail()
 		}
 		if wif != wifs[i] {
