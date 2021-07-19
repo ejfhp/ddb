@@ -13,8 +13,9 @@ import (
 	log "github.com/ejfhp/trail"
 )
 
-var address = "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
-var key = "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+//TO BE SET IF REAL ONCHAIN TEST ARE GOING TO BE EXECUTED
+var address string
+var key string
 
 func TestProcessEntry(t *testing.T) {
 	log.SetWriter(os.Stdout)
