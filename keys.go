@@ -22,15 +22,22 @@ func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 }
 
 func AddressOf(wifkey string) (string, error) {
-	t := trace.New().Source("keys.go", "", "AddressOf")
+	tr := trace.New().Source("keys.go", "", "AddressOf")
 	w, err := bsvutil.DecodeWIF(wifkey)
 	if err != nil {
-		log.Println(trace.Alert("cannot decode WIF").UTC().Error(err).Append(t))
+		log.Println(trace.Alert("cannot decode WIF").UTC().Add("wif", wifkey).Error(err).Append(tr))
 		return "", fmt.Errorf("cannot decode WIF: %w", err)
 	}
+	_, err = bsvec.ParsePubKey(w.SerializePubKey(), bsvec.S256())
+	if err != nil {
+		log.Println(trace.Alert("cannot parse").UTC().Add("wif", wifkey).Error(err).Append(tr))
+		return "", err
+	}
+	// fmt.Printf("pubk: %s\n", string(pubk.SerializeCompressed()))
+	// fmt.Printf("pubk ser: %s\n", string(w.SerializePubKey()))
 	add, err := bsvutil.NewAddressPubKey(w.SerializePubKey(), &chaincfg.MainNetParams)
 	if err != nil {
-		log.Println(trace.Alert("cannot generate address from WIF").UTC().Error(err).Append(t))
+		log.Println(trace.Alert("cannot generate address from WIF").UTC().Add("wif", wifkey).Error(err).Append(tr))
 		return "", fmt.Errorf("cannot generate address from WIF: %w", err)
 	}
 	return add.EncodeAddress(), nil

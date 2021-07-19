@@ -1,6 +1,7 @@
 package ddb_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ejfhp/ddb"
@@ -50,6 +51,29 @@ func TestMakeWIF(t *testing.T) {
 			t.Fail()
 		}
 		t.Logf("WIF: %s\n", wif)
+	}
+}
+
+func TestManyWIF(t *testing.T) {
+	template := "this is the phrase number %d, let's hope"
+	for i := 0; i < 100; i++ {
+		ph := fmt.Sprintf(template, i)
+		k, err := ddb.NewKeygen(i, ph)
+		if err != nil {
+			t.Logf("cannot generate Keygen %s: %v", ph, err)
+			t.Fail()
+		}
+		wif, err := k.MakeWIF()
+		if err != nil {
+			t.Logf("cannot generate WIF %s: %v", ph, err)
+			t.FailNow()
+		}
+		address, err := ddb.AddressOf(wif)
+		if err != nil {
+			t.Logf("cannot get address %s %s: %v", wif, ph, err)
+			t.FailNow()
+		}
+		t.Logf("Phrase: %s  WIF: %s  Address: %s \n", ph, wif, address)
 	}
 }
 

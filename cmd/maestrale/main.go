@@ -140,6 +140,7 @@ Options:
 
 Examples:
 
+./maestrale describe -log + this 1 is the phrase to demo Maestrale
 
 `)
 }

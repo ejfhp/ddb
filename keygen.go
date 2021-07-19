@@ -40,7 +40,7 @@ type Keygen struct {
 	words  [][]byte
 }
 
-func NewKeygen(num int, phrase string) (*Keygen, error) {
+func NewKeygen(number int, phrase string) (*Keygen, error) {
 	tr := trace.New().Source("keygen.go", "Keygen", "NewKeygen")
 	log.Println(trace.Debug("new keygen").UTC().Append(tr))
 	if len(phrase) < MinPhraseLen {
@@ -48,7 +48,7 @@ func NewKeygen(num int, phrase string) (*Keygen, error) {
 	}
 	cns := []int{}
 	for i := 0; i < len(conf_numbers); i++ {
-		cns = append(cns, num%conf_numbers[i])
+		cns = append(cns, number%conf_numbers[i])
 	}
 	wLen := len(phrase) / NumWords
 	ws := [][]byte{}
@@ -56,6 +56,7 @@ func NewKeygen(num int, phrase string) (*Keygen, error) {
 		ws = append(ws, []byte(phrase[i*wLen:(i+1)*wLen]))
 	}
 	ws[NumWords-1] = append(ws[NumWords-1], phrase[(NumWords)*wLen:]...)
+	num := math.Abs(float64(number)) + 3
 	n := int(math.Ceil((math.Log(float64(num)) * 100)))
 	log.Println(trace.Debug("number of iteraction").UTC().Add("n", fmt.Sprintf("%d", n)).Append(tr))
 	return &Keygen{num: n, phrase: phrase, confs: cns, words: ws}, nil
