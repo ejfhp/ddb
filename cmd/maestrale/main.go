@@ -56,20 +56,20 @@ func checkPassphrase(args []string) (string, int) {
 	if passnum == 0 {
 		quit("because passphrase must contain a number", exitNoPassnum)
 	}
-	fmt.Printf("Secret configuration is:\n")
-	fmt.Printf("passnum: '%d'\n", passnum)
-	fmt.Printf("passphrase: '%s'\n", passphrase)
+	fmt.Printf("\nSecret configuration:\n")
+	fmt.Printf("  passnum: '%d'\n", passnum)
+	fmt.Printf("  passphrase: '%s'\n", passphrase)
 	return passphrase, passnum
 }
 
 func keyGen(passphrase string, passnum int) (string, [32]byte, error) {
 	keygen, err := ddb.NewKeygen(passnum, passphrase)
 	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("Error while building Keygen: %w", err)
+		return "", [32]byte{}, fmt.Errorf("error while building Keygen: %w", err)
 	}
 	wif, err := keygen.MakeWIF()
 	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("Error while generating bitcoin key: %w", err)
+		return "", [32]byte{}, fmt.Errorf("error while generating bitcoin key: %w", err)
 	}
 	password := keygen.Password()
 	return wif, password, nil
@@ -87,10 +87,10 @@ func newLogbook(passphrase string, passnum int) *ddb.Logbook {
 	if err != nil {
 		quit("while creating the Logbook", exitLogbookError)
 	}
-	fmt.Printf("Bitcoin configuration is:\n")
-	fmt.Printf("Bitcoin Key (WIF) is : '%s'\n", logbook.BitcoinPrivateKey())
+	fmt.Printf("\nBitcoin configuration:\n")
+	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
 	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
-	fmt.Printf("Bitcoin Address is   : '%s'\n", logbook.BitcoinPublicAddress())
+	fmt.Printf("  Bitcoin Address  : '%s'\n", logbook.BitcoinPublicAddress())
 	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
 	return logbook
 }
@@ -117,7 +117,7 @@ suggest to not go over 9999999999.
 
 To see the address to load and the corrisponding private key do:
 
->maestrale describe + this is the passphrase with a number 9999
+>maestrale describe + <passphrase with a number 9999>
 
 When the address has enough funds, you can store a file onchain. If the address has not enough 
 funds the store will fail but the money will be spent anyway. To have a raw estimation, fees
@@ -125,14 +125,18 @@ are currently 500 satoshi/1000 bytes.
 
 To store a file do:
 
->maestrale store -file <file path> + this is the passphrase with a number 9999 
+>maestrale store -file <file path> + <passphrase with a number 9999>
 
 If all is fine, the transactions id of the generated transaction will be shown.
 
 To retrieve the file from the blockchain do:
 
->maestrale retrieve -outdir <output folder> + this is the passphrase with a number 9999  
+>maestrale retrieve -outdir <output folder> + <passphrase with a number 9999>
 
+
+Options:
+-log   true enables log output
+-help  print help
 
 `)
 }
