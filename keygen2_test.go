@@ -7,13 +7,13 @@ import (
 	"github.com/ejfhp/ddb"
 )
 
-func TestNewKeygen1(t *testing.T) {
+func TestNewKeygen2(t *testing.T) {
 	nums := []int{1567}
 	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
 	for i, n := range nums {
-		k, err := ddb.NewKeygen1(n, phrases[i])
+		k, err := ddb.NewKeygen2(n, phrases[i])
 		if err != nil {
-			t.Logf("cannot generate Keygen: %v", err)
+			t.Logf("cannot generate Keygen2: %v", err)
 			t.Fail()
 		}
 		k.Describe()
@@ -21,13 +21,13 @@ func TestNewKeygen1(t *testing.T) {
 	}
 }
 
-func TestKeygen1WIF(t *testing.T) {
+func TestKeygen2WIF(t *testing.T) {
 	nums := []int{3567}
 	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
 	for i, n := range nums {
-		k, err := ddb.NewKeygen1(n, phrases[i])
+		k, err := ddb.NewKeygen2(n, phrases[i])
 		if err != nil {
-			t.Logf("cannot generate Keygen1: %v", err)
+			t.Logf("cannot generate Keygen2: %v", err)
 			t.Fail()
 		}
 		wif, err := k.WIF()
@@ -44,13 +44,13 @@ func TestKeygen1WIF(t *testing.T) {
 	}
 }
 
-func TestKeygen1ManyWIF(t *testing.T) {
+func TestKeygen2ManyWIF(t *testing.T) {
 	template := "this is the phrase number %d, let's hope"
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 200000; i += 1791 {
 		ph := fmt.Sprintf(template, i)
-		k, err := ddb.NewKeygen1(i, ph)
+		k, err := ddb.NewKeygen2(i, ph)
 		if err != nil {
-			t.Logf("cannot generate Keygen1 %s: %v", ph, err)
+			t.Logf("cannot generate Keygen2 %s: %v", ph, err)
 			t.Fail()
 		}
 		wif, err := k.WIF()
@@ -67,7 +67,7 @@ func TestKeygen1ManyWIF(t *testing.T) {
 	}
 }
 
-func TestKeygen1Keys(t *testing.T) {
+func TestKeygen2Keys(t *testing.T) {
 	nums := []int{3567, 0, 12, 100, 1001, 1}
 	phrases := []string{
 		"tanto va la gatta al lardo che ci lascia lo zampino",
@@ -78,15 +78,15 @@ func TestKeygen1Keys(t *testing.T) {
 		"this is 1 test to show how to use Maestrale",
 	}
 	wifs := []string{
-		"L48cWSssxbFnRuuJCVes9NEYP1W987kfpSgWG2RKSaZtcs6iCHpT",
-		"KzxKMJoJ13Ug2E8mBb9npbqavs9hbX3rZ3XPq3jBNUriQNk5rMUc",
-		"Kyypokm7KphGVa6QdqpWM4bkdTocQmD6f2waMBREcVq9UJKHow3o",
-		"KzLEePeTR2utHtBLfoPRjf7hJeDzBodnfApN8WFb4gaEkneCP7KP",
-		"L5n7n4ntJD3YyqUtcaekyqHZiv5nB71yhZE5SRzwWwtQocqEgwiv",
-		"L4JnikU8C8z8nJgipUEAbwQfqCRW19FhpXs8cWnw25mYjjVu32jC",
+		"Kwuo7yZQsmnAEkypjQcWSyLxGDQgd3M4pDiJc7e3TcP63A877iEo",
+		"KyBcTsTPAtSanCsEUcTWrsCS7uC7sdygmGYnDpy4VdhQPtJJTvo8",
+		"L1vFyhAVr2VquVQXnbExNZP1e58W9oKaNiUdNTTWCuTNLAQ2VYLy",
+		"L52iTUo9NLz9NjdfetCXCgufQpFJ5wE9M2dtXMREsDxKeYLd7JRf",
+		"KxemArUPA55L3RR8Tbnry5yWoPaobKq4JxBFJnVcuCkDtiMq6yed",
+		"KwVye3MjpGWM6o11swJJbaErapfVn3WP3JCiXZjEHWRAqsDTgDss",
 	}
 	for i, n := range nums {
-		k, err := ddb.NewKeygen1(n, phrases[i])
+		k, err := ddb.NewKeygen2(n, phrases[i])
 		if err != nil {
 			t.Logf("cannot generate Keygen: %v", err)
 			t.Fail()
