@@ -10,6 +10,11 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
+type Keygen interface {
+	WIF() (string, error)
+	Password() [32]byte
+}
+
 func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 	t := trace.New().Source("keys.go", "", "DecodeWIF")
 	wif, err := bsvutil.DecodeWIF(wifkey)

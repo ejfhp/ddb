@@ -11,19 +11,9 @@ func TestNewKeygen(t *testing.T) {
 	nums := []int{1567}
 	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
 	for i, n := range nums {
-		k, err := ddb.NewKeygen(n, phrases[i])
+		k, err := ddb.NewKeygen1(n, phrases[i])
 		if err != nil {
 			t.Logf("cannot generate Keygen: %v", err)
-			t.Fail()
-		}
-		if len(k.Words()) != ddb.NumWords {
-			t.Logf("wrong num of words: %d", len(k.Words()))
-			t.Fail()
-
-		}
-		ph := string(append(append(k.Words()[0], k.Words()[1]...), k.Words()[2]...))
-		if ph != phrases[i] {
-			t.Logf("words don't fit with phrase: '%s' != '%s'", ph, phrases[i])
 			t.Fail()
 		}
 		k.Describe()
@@ -35,12 +25,12 @@ func TestMakeWIF(t *testing.T) {
 	nums := []int{3567}
 	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
 	for i, n := range nums {
-		k, err := ddb.NewKeygen(n, phrases[i])
+		k, err := ddb.NewKeygen1(n, phrases[i])
 		if err != nil {
 			t.Logf("cannot generate Keygen: %v", err)
 			t.Fail()
 		}
-		wif, err := k.MakeWIF()
+		wif, err := k.WIF()
 		if err != nil {
 			t.Logf("cannot generate WIF: %v", err)
 			t.Fail()
@@ -58,12 +48,12 @@ func TestManyWIF(t *testing.T) {
 	template := "this is the phrase number %d, let's hope"
 	for i := 0; i < 100; i++ {
 		ph := fmt.Sprintf(template, i)
-		k, err := ddb.NewKeygen(i, ph)
+		k, err := ddb.NewKeygen1(i, ph)
 		if err != nil {
 			t.Logf("cannot generate Keygen %s: %v", ph, err)
 			t.Fail()
 		}
-		wif, err := k.MakeWIF()
+		wif, err := k.WIF()
 		if err != nil {
 			t.Logf("cannot generate WIF %s: %v", ph, err)
 			t.FailNow()
@@ -88,20 +78,20 @@ func TestConsitencyMakeWIF(t *testing.T) {
 		"this is 1 test to show how to use Maestrale",
 	}
 	wifs := []string{
-		"KwsrmwtfphXNGyQq9mo6GtTjMjajrzGQYuoCYWA7XMBRtrEDwgtD",
-		"KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73Nd2Mcv1",
-		"L2oEpyKF89Mn7XJJuyN7hoY9vU4ugaDAeuLf2nHx6CpquBcNwYve",
-		"KyizRQyrAv4ErAgT76karoyBME2t497J7GfuAfrC96sSfENRrKdy",
-		"L5EXzcBe2EaTZWhjySZmm2A5m4RCN5Qp5wQqyHrbfGtCKfZBVf4y",
-		"KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73Nd2Mcv1",
+		"L48cWSssxbFnRuuJCVes9NEYP1W987kfpSgWG2RKSaZtcs6iCHpT",
+		"KzxKMJoJ13Ug2E8mBb9npbqavs9hbX3rZ3XPq3jBNUriQNk5rMUc",
+		"Kyypokm7KphGVa6QdqpWM4bkdTocQmD6f2waMBREcVq9UJKHow3o",
+		"KzLEePeTR2utHtBLfoPRjf7hJeDzBodnfApN8WFb4gaEkneCP7KP",
+		"L5n7n4ntJD3YyqUtcaekyqHZiv5nB71yhZE5SRzwWwtQocqEgwiv",
+		"L4JnikU8C8z8nJgipUEAbwQfqCRW19FhpXs8cWnw25mYjjVu32jC",
 	}
 	for i, n := range nums {
-		k, err := ddb.NewKeygen(n, phrases[i])
+		k, err := ddb.NewKeygen1(n, phrases[i])
 		if err != nil {
 			t.Logf("cannot generate Keygen: %v", err)
 			t.Fail()
 		}
-		wif, err := k.MakeWIF()
+		wif, err := k.WIF()
 		if err != nil {
 			t.Logf("cannot generate WIF: %v", err)
 			t.Fail()
