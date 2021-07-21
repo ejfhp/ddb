@@ -56,9 +56,6 @@ func checkPassphrase(args []string) (string, int) {
 	if passnum == 0 {
 		quit("because passphrase must contain a number", exitNoPassnum)
 	}
-	fmt.Printf("\nSecret configuration:\n")
-	fmt.Printf("  passnum:    '%d'\n", passnum)
-	fmt.Printf("  passphrase: '%s'\n", passphrase)
 	return passphrase, passnum
 }
 
@@ -87,11 +84,6 @@ func newLogbook(passphrase string, passnum int) *ddb.Logbook {
 	if err != nil {
 		quit("while creating the Logbook", exitLogbookError)
 	}
-	fmt.Printf("\nBitcoin configuration:\n")
-	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
-	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
-	fmt.Printf("  Bitcoin Address  : '%s'\n", logbook.BitcoinPublicAddress())
-	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
 	return logbook
 }
 
@@ -141,7 +133,8 @@ Options:
 Examples:
 
 ./trh describe -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
-
+./trh store -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
+./trh retrieve -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 `)
 }
 
@@ -168,10 +161,10 @@ func flagset(cmd string, args []string) []string {
 	case commandStore:
 		flagset.StringVar(&flagFilename, "file", "", "path of file to store onchain")
 	case commandRetrieve:
-		flagset.StringVar(&flagFilename, "outdir", "", "path of folder where to save retrived files")
+		flagset.StringVar(&flagOutputDir, "outdir", "", "path of folder where to save retrived files")
 	}
 	flagset.Parse(args)
-	if flagHelp == true {
+	if flagHelp {
 		printHelp(flagset)
 	}
 	//fmt.Printf("file: %s\n", flagFilename)
@@ -183,7 +176,15 @@ func cmdDescribe(args []string) error {
 	argsLeft := flagset(commandDescribe, args)
 
 	passphrase, passnum := checkPassphrase(argsLeft)
+	fmt.Printf("\nSecret configuration:\n")
+	fmt.Printf("  passnum:    '%d'\n", passnum)
+	fmt.Printf("  passphrase: '%s'\n", passphrase)
 	logbook := newLogbook(passphrase, passnum)
+	fmt.Printf("\nBitcoin configuration:\n")
+	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
+	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
+	fmt.Printf("  Bitcoin Address  : '%s'\n", logbook.BitcoinPublicAddress())
+	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
 
 	history, err := logbook.ListHistory(logbook.BitcoinPublicAddress())
 	if err != nil {
@@ -223,6 +224,9 @@ func cmdStore(args []string) error {
 func cmdRetrieve(args []string) error {
 	argsLeft := flagset(commandRetrieve, args)
 
+	if flagOutputDir == "" {
+		fmt.Printf("Output dir not set, using local flolder.\n")
+	}
 	passphrase, passnum := checkPassphrase(argsLeft)
 	logbook := newLogbook(passphrase, passnum)
 
