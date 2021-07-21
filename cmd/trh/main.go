@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -182,9 +183,13 @@ func cmdDescribe(args []string) error {
 	logbook := newLogbook(passphrase, passnum)
 	fmt.Printf("\nBitcoin configuration:\n")
 	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
-	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
+	if runtime.GOOS != "windows" {
+		ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
+	}
 	fmt.Printf("  Bitcoin Address  : '%s'\n", logbook.BitcoinPublicAddress())
-	ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
+	if runtime.GOOS != "windows" {
+		ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
+	}
 
 	history, err := logbook.ListHistory(logbook.BitcoinPublicAddress())
 	if err != nil {
