@@ -32,7 +32,7 @@ var (
 	flagOutputDir string
 )
 
-func checkPassphrase(args []string) (string, int) {
+func checkPassphrase(args []string) (string, int, error) {
 	startidx := -1
 	for i, t := range args {
 		if t == "+" {
@@ -40,7 +40,7 @@ func checkPassphrase(args []string) (string, int) {
 		}
 	}
 	if startidx < 0 || startidx >= len(args) {
-		quit("because passphrase is missing", exitNoPassphrase)
+		return "", 0, fmt.Errorf("passphrase is missing")
 	}
 	passphrase := strings.Join(args[startidx:], " ")
 	passnum := 0
@@ -55,9 +55,9 @@ func checkPassphrase(args []string) (string, int) {
 		passnum = int(num)
 	}
 	if passnum == 0 {
-		quit("because passphrase must contain a number", exitNoPassnum)
+		return "", 0, fmt.Errorf("passphrase must contain a number")
 	}
-	return passphrase, passnum
+	return passphrase, passnum, nil
 }
 
 func keyGen(passphrase string, passnum int) (string, [32]byte, error) {
@@ -73,19 +73,19 @@ func keyGen(passphrase string, passnum int) (string, [32]byte, error) {
 	return wif, password, nil
 }
 
-func newLogbook(passphrase string, passnum int) *ddb.Logbook {
+func newLogbook(passphrase string, passnum int) (*ddb.Logbook, error) {
 	wif, password, err := keyGen(passphrase, passnum)
 	if err != nil {
-		quit("while generating Bitcoin private key", exitKeygenError)
+		return nil, fmt.Errorf("error while generating the Bitcoin private key: %w", err)
 	}
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc)
 	logbook, err := ddb.NewLogbook(wif, password, blockchain)
 	if err != nil {
-		quit("while creating the Logbook", exitLogbookError)
+		return nil, fmt.Errorf("error while creating a new Logbook: %w", err)
 	}
-	return logbook
+	return logbook, nil
 }
 
 func logOn(on bool) {
@@ -148,11 +148,6 @@ func printHelp(flagset *flag.FlagSet) {
 	os.Exit(0)
 }
 
-func quit(message string, code int) {
-	fmt.Printf("An error has occurred %s.\n", message)
-	os.Exit(code)
-}
-
 func flagset(cmd string, args []string) []string {
 	flagset := flag.NewFlagSet("describe", flag.ContinueOnError)
 	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
@@ -176,11 +171,17 @@ func flagset(cmd string, args []string) []string {
 func cmdDescribe(args []string) error {
 	argsLeft := flagset(commandDescribe, args)
 
-	passphrase, passnum := checkPassphrase(argsLeft)
+	passphrase, passnum, err := checkPassphrase(argsLeft)
+	if err != nil {
+		return fmt.Errorf("error checking passphrase: %w", err)
+	}
 	fmt.Printf("\nSecret configuration:\n")
 	fmt.Printf("  passnum:    '%d'\n", passnum)
 	fmt.Printf("  passphrase: '%s'\n", passphrase)
-	logbook := newLogbook(passphrase, passnum)
+	logbook, err := newLogbook(passphrase, passnum)
+	if err != nil {
+		return fmt.Errorf("error creating Logbook: %w", err)
+	}
 	fmt.Printf("\nBitcoin configuration:\n")
 	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
 	if runtime.GOOS != "windows" {
@@ -208,16 +209,21 @@ func cmdDescribe(args []string) error {
 func cmdStore(args []string) error {
 	argsLeft := flagset(commandStore, args)
 
-	passphrase, passnum := checkPassphrase(argsLeft)
-	logbook := newLogbook(passphrase, passnum)
-
+	passphrase, passnum, err := checkPassphrase(argsLeft)
+	if err != nil {
+		return fmt.Errorf("error checking passphrase: %w", err)
+	}
+	logbook, err := newLogbook(passphrase, passnum)
+	if err != nil {
+		return fmt.Errorf("error creating Logbook: %w", err)
+	}
 	entry, err := ddb.NewEntryFromFile(filepath.Base(flagFilename), flagFilename)
 	if err != nil {
-		quit(fmt.Sprintf("while opening file '%s'", flagFilename), exitFileError)
+		return fmt.Errorf("error opening file '%s': %v", flagFilename, err)
 	}
 	txids, err := logbook.CastEntry(entry)
 	if err != nil {
-		quit(fmt.Sprintf("while storing file '%s' onchain connected to address '%s'", flagFilename, logbook.BitcoinPublicAddress()), exitStoreError)
+		return fmt.Errorf("error while storing file '%s' onchain connected to address '%s': %w", flagFilename, logbook.BitcoinPublicAddress(), err)
 	}
 	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
 	for i, tx := range txids {
@@ -232,12 +238,18 @@ func cmdRetrieve(args []string) error {
 	if flagOutputDir == "" {
 		fmt.Printf("Output dir not set, using local flolder.\n")
 	}
-	passphrase, passnum := checkPassphrase(argsLeft)
-	logbook := newLogbook(passphrase, passnum)
+	passphrase, passnum, err := checkPassphrase(argsLeft)
+	if err != nil {
+		return fmt.Errorf("error checking passphrase: %w", err)
+	}
+	logbook, err := newLogbook(passphrase, passnum)
+	if err != nil {
+		return fmt.Errorf("error creating Logbook: %w", err)
+	}
 
 	n, err := logbook.DowloadAll(flagOutputDir)
 	if err != nil {
-		quit(fmt.Sprintf("while retrieving files from address '%s' to floder '%s'", logbook.BitcoinPublicAddress(), flagOutputDir), exitFileError)
+		fmt.Errorf("error while retrieving files from address '%s' to floder '%s': %w", logbook.BitcoinPublicAddress(), flagOutputDir, err)
 	}
 	fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, logbook.BitcoinPublicAddress(), flagOutputDir)
 	return nil
