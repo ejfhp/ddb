@@ -149,7 +149,7 @@ func printHelp(flagset *flag.FlagSet) {
 }
 
 func quit(message string, code int) {
-	//fmt.Printf("An error has occurred %s.\n", message)
+	fmt.Printf("An error has occurred %s.\n", message)
 	os.Exit(code)
 }
 
@@ -250,7 +250,7 @@ func main() {
 		os.Exit(0)
 	}
 	command := strings.ToLower(os.Args[1])
-	//fmt.Printf("Command is: %s\n", command)
+	fmt.Printf("Command is: %s\n", command)
 	var err error
 	switch command {
 	case commandDescribe:
@@ -261,6 +261,6 @@ func main() {
 		err = cmdRetrieve(os.Args[2:])
 	}
 	if err != nil {
-		//fmt.Printf("ERROR: %v", err)
+		fmt.Printf("ERROR: %v", err)
 	}
 }
