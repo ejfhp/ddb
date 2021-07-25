@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -44,7 +45,12 @@ func checkPassphrase(args []string) (string, int, error) {
 	}
 	passphrase := strings.Join(args[startidx:], " ")
 	passnum := 0
-	for _, n := range strings.Split(passphrase, " ") {
+	reg, err := regexp.Compile("[^0-9 ]+")
+	if err != nil {
+		return "", 0, fmt.Errorf("error compiling regexp: %w", err)
+	}
+	phnum := reg.ReplaceAllString(passphrase, "")
+	for _, n := range strings.Split(phnum, " ") {
 		num, err := strconv.ParseInt(n, 10, 64)
 		if err != nil {
 			continue
@@ -89,7 +95,7 @@ func newLogbook(passphrase string, passnum int) (*ddb.Logbook, error) {
 }
 
 func logOn(on bool) {
-	if on == true {
+	if on {
 		log.SetWriter(os.Stderr)
 	}
 }
@@ -185,11 +191,15 @@ func cmdDescribe(args []string) error {
 	fmt.Printf("\nBitcoin configuration:\n")
 	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
 	if runtime.GOOS != "windows" {
+		fmt.Printf("\n")
 		ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
+		fmt.Printf("\n")
 	}
 	fmt.Printf("  Bitcoin Address  : '%s'\n", logbook.BitcoinPublicAddress())
 	if runtime.GOOS != "windows" {
+		fmt.Printf("\n")
 		ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
+		fmt.Printf("\n")
 	}
 
 	history, err := logbook.ListHistory(logbook.BitcoinPublicAddress())
