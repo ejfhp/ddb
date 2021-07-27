@@ -75,6 +75,60 @@ func TestProcessEntry(t *testing.T) {
 	}
 }
 
+func TestEncryptDecryptEntry(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	phrases := []string{
+		"tanto va la gatta al lardo che ci lascia lo zampino",
+		"ciao",
+	}
+	nums := []int{5, 5}
+	blockchain := ddb.NewBlockchain(taal, woc)
+	filename := "Inferno"
+	file := `Nel mezzo del cammin di nostra vita
+		mi ritrovai per una selva oscura,
+		ché la diritta via era smarrita.
+		
+		Ahi quanto a dir qual era è cosa dura
+		esta selva selvaggia e aspra e forte
+		che nel pensier rinova la paura!`
+	for i, phrase := range phrases {
+		k, err := ddb.NewKeygen2(nums[i], phrase)
+		if err != nil {
+			t.Logf("cannot generate Keygen2: %v", err)
+			t.Fail()
+		}
+		wif, err := k.WIF()
+		if err != nil {
+			t.Logf("cannot generate WIF: %v", err)
+			t.Fail()
+		}
+		pass := k.Password()
+		logbook, err := ddb.NewLogbook(wif, pass, blockchain)
+		if err != nil {
+			t.Logf("%d failed to create new Logbook: %v", i, err)
+			t.Fail()
+		}
+		entry := ddb.Entry{Name: filename, Data: []byte(file)}
+		encs, err := logbook.EncryptEntry(&entry)
+		if err != nil {
+			t.Logf("%d failed to process entry: %v", i, err)
+			t.Fail()
+		}
+		entries, err := logbook.DecryptEntries(encs)
+		if err != nil {
+			t.Logf("%d failed to decrypt entry: %v", i, err)
+			t.Fail()
+		}
+		if len(entries) != 1 {
+			t.Logf("%d unexpected nuber of entries %d", i, len(entries))
+			t.Fail()
+
+		}
+	}
+}
+
 func NO_TestCastEntry(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()

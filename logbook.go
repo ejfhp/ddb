@@ -164,7 +164,18 @@ func (l *Logbook) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 		log.Println(trace.Alert("error unpacking data").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error unpacking data: %w", err)
 	}
-	parts := make([]*EntryPart, 0, len(txs))
+	entries, err := l.DecryptEntries(crypts)
+	if err != nil {
+		log.Println(trace.Warning("error decrypting EntryPart").UTC().Error(err).Append(tr))
+	}
+	return entries, nil
+}
+
+//DecryptEntries decrypts entries from the encrypted OP_RETURN data.
+func (l *Logbook) DecryptEntries(crypts [][]byte) ([]*Entry, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "DecryptEntries")
+	log.Println(trace.Info("decrypting data").UTC().Append(tr))
+	parts := make([]*EntryPart, 0, len(crypts))
 	for _, cry := range crypts {
 		enco, err := AESDecrypt(l.cryptoKey, cry)
 		if err != nil {
