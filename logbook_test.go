@@ -21,13 +21,10 @@ func TestProcessEntry(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
-	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
-	blockchain := ddb.NewBlockchain(taal, woc)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
-	if err != nil {
-		t.Logf("failed to create new Logbook: %v", err)
-		t.Fail()
+	passwords := [][32]byte{
+		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
 	}
+	blockchain := ddb.NewBlockchain(taal, woc)
 	filename := "Inferno"
 	file := `Nel mezzo del cammin di nostra vita
 		mi ritrovai per una selva oscura,
@@ -36,37 +33,45 @@ func TestProcessEntry(t *testing.T) {
 		Ahi quanto a dir qual era è cosa dura
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
-	entry := ddb.Entry{Name: filename, Data: []byte(file)}
-	txs, err := logbook.ProcessEntry(&entry)
-	if err != nil {
-		t.Logf("failed to process entry: %v", err)
-		t.Fail()
-	}
-	for _, tx := range txs {
-		opr, ver, err := tx.Data()
+	for i, v := range passwords {
+		logbook, err := ddb.NewLogbook(key, v, blockchain)
 		if err != nil {
-			t.Logf("failed to get OP_RETURN: %v", err)
-			t.FailNow()
+			t.Logf("%d failed to create new Logbook: %v", i, err)
+			t.Fail()
 		}
-		if ver != ddb.VER_AES {
-			t.Logf("wrong version: %s", ver)
-			t.FailNow()
-		}
-		decrypt, err := ddb.AESDecrypt(password, opr)
+		entry := ddb.Entry{Name: filename, Data: []byte(file)}
+		txs, err := logbook.ProcessEntry(&entry)
 		if err != nil {
-			t.Logf("failed to decrypt: %v", err)
-			t.FailNow()
+			t.Logf("%d failed to process entry: %v", i, err)
+			t.Fail()
 		}
-		ep, err := ddb.EntryPartFromEncodedData(decrypt)
-		if err != nil {
-			t.Logf("failed to decode EntryPart: %v", err)
-			t.FailNow()
-		}
-		if ep.Name != filename {
-			t.Logf("unexpected name: %s != %s", ep.Name, filename)
-			t.FailNow()
+		for _, tx := range txs {
+			opr, ver, err := tx.Data()
+			if err != nil {
+				t.Logf("failed to get OP_RETURN: %v", err)
+				t.FailNow()
+			}
+			if ver != ddb.VER_AES {
+				t.Logf("wrong version: %s", ver)
+				t.FailNow()
+			}
+			decrypt, err := ddb.AESDecrypt(v, opr)
+			if err != nil {
+				t.Logf("failed to decrypt: %v", err)
+				t.FailNow()
+			}
+			ep, err := ddb.EntryPartFromEncodedData(decrypt)
+			if err != nil {
+				t.Logf("failed to decode EntryPart: %v", err)
+				t.FailNow()
+			}
+			if ep.Name != filename {
+				t.Logf("unexpected name: %s != %s", ep.Name, filename)
+				t.FailNow()
 
+			}
 		}
+
 	}
 }
 
@@ -222,6 +227,10 @@ func TestRetrieveAndExtractImageEntry(t *testing.T) {
 	name := "image.png"
 	filename := "testdata/image.png"
 	expEntry, err := ddb.NewEntryFromFile(name, filename)
+	if err != nil {
+		t.Logf("failed to build entry: %v", err)
+		t.Fail()
+	}
 	if entry.Name != expEntry.Name {
 		t.Logf("unexpected name for retrieved entry: %s", entry.Name)
 		t.Fail()
@@ -255,6 +264,10 @@ func TestLogbookEntryFullCycleText(t *testing.T) {
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc)
 	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	if err != nil {
+		t.Logf("failed to create logbook: %v", err)
+		t.Fail()
+	}
 	name := "test.txt"
 	fm := mime.TypeByExtension(filepath.Ext(name))
 	bytes := []byte("just a test")

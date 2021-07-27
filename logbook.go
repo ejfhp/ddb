@@ -62,17 +62,34 @@ func (l *Logbook) CastEntry(entry *Entry) ([]string, error) {
 func (l *Logbook) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ProcessEntry")
 	log.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
+	encryptedEntryParts, err := l.EncryptEntry(entry)
+	if err != nil {
+		log.Println(trace.Alert("error encrypting entries of file").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("error encrypting entries of file: %w", err)
+	}
+	txs, err := l.blockchain.PackData(VER_AES, l.bitcoinWif, encryptedEntryParts)
+	if err != nil {
+		log.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
+	}
+	return txs, nil
+}
+
+//ProcessEntry prepares all the TXs required to store the entry on the blockchain.
+func (l *Logbook) EncryptEntry(entry *Entry) ([][]byte, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "EncryptEntry")
+	log.Println(trace.Info("getting parts").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
 	parts, err := entry.Parts(l.MaxDataSize())
 	if err != nil {
-		log.Println(trace.Alert("error generating entries of file").UTC().Error(err).Append(tr))
-		return nil, fmt.Errorf("error generating entries of file: %w", err)
+		log.Println(trace.Alert("error generating parts of file").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("error generating parts of file: %w", err)
 	}
 	encryptedEntryParts := make([][]byte, 0, len(parts))
 	for _, p := range parts {
 		encodedp, err := p.Encode()
 		if err != nil {
-			log.Println(trace.Alert("error encoding entry part").UTC().Error(err).Append(tr))
-			return nil, fmt.Errorf("error encoding entry part: %w", err)
+			log.Println(trace.Alert("error encrypting entry part").UTC().Error(err).Append(tr))
+			return nil, fmt.Errorf("error encrypting entry part: %w", err)
 		}
 		cryptedp, err := AESEncrypt(l.cryptoKey, encodedp)
 		if err != nil {
@@ -81,12 +98,7 @@ func (l *Logbook) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 		}
 		encryptedEntryParts = append(encryptedEntryParts, cryptedp)
 	}
-	txs, err := l.blockchain.PackData(VER_AES, l.bitcoinWif, encryptedEntryParts)
-	if err != nil {
-		log.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
-		return nil, fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
-	}
-	return txs, nil
+	return encryptedEntryParts, nil
 }
 
 //RetrieveTXs retrieves the TXs with the given IDs.

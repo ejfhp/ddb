@@ -188,6 +188,7 @@ func cmdDescribe(args []string) error {
 	if err != nil {
 		return fmt.Errorf("error creating Logbook: %w", err)
 	}
+	fmt.Printf("  pasword:     '%s'\n", logbook.EncodingPassword())
 	fmt.Printf("\nBitcoin configuration:\n")
 	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
 	if runtime.GOOS != "windows" {
@@ -283,6 +284,6 @@ func main() {
 		err = cmdRetrieve(os.Args[2:])
 	}
 	if err != nil {
-		fmt.Printf("ERROR: %v", err)
+		fmt.Printf("ERROR: %v\n", err)
 	}
 }

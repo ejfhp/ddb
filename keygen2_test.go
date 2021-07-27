@@ -21,9 +21,12 @@ func TestNewKeygen2(t *testing.T) {
 	}
 }
 
-func TestKeygen2WIF(t *testing.T) {
-	nums := []int{3567}
-	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
+func TestKeygen2(t *testing.T) {
+	nums := []int{3567, 15}
+	phrases := []string{
+		"tanto va la gatta al lardo che ci lascia lo zampino",
+		"ciao",
+	}
 	for i, n := range nums {
 		k, err := ddb.NewKeygen2(n, phrases[i])
 		if err != nil {
@@ -36,8 +39,9 @@ func TestKeygen2WIF(t *testing.T) {
 			t.Fail()
 		}
 		pass := k.Password()
-		if pass[0] != 't' || pass[31] != 'c' {
-			t.Logf("wrong password: %v", err)
+		fmt.Printf("password: '%s'\n", string(pass[:]))
+		if len(pass) != 32 {
+			t.Logf("wrong password: '%s'", string(pass[:]))
 			t.Fail()
 		}
 		t.Logf("WIF: %s\n", wif)
