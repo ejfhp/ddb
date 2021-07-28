@@ -1,5 +1,2 @@
 secret_test.go
-cmd/trh/trh-macm1
-cmd/trh/trh-macin
-cmd/trh/trh-linux
-cmd/trh/trh.exe
+cmd/trh/trh-*

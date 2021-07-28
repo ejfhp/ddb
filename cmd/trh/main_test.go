@@ -23,12 +23,12 @@ func TestPassphrase(t *testing.T) {
 	keys := []string{
 		"L1XZMDYzVwkPUMnNgsKD8ysUMFzvvPAA1SKbeo5cjMuWSSPATQ6v",
 		"L1XkuhuE2vGfs2XSnVwr9nb4nzLcV9B2HehxUN2GiHsyAMNCpZRG",
-		"",
+		"KykxKKgmT6b8N2abJACuRHiHievFgzwWLLYjvU7AikBruhCur4Qu",
 	}
 	pwds := [][32]byte{
 		{'B', 'i', 't', 'c', 'o', 'i', 'n', ':', ' ', 'A', ' ', 'P', 'e', 'e', 'r', '-', 't', 'o', '-', 'P', 'e', 'e', 'r', ' ', 'E', 'l', 'e', 'c', 't', 'r', 'o', 'n'},
 		{'T', 'h', 'i', 's', ' ', 'i', 's', ' ', 't', 'h', 'e', ' ', 'p', 'a', 's', 's', 'p', 'h', 'r', 'a', 's', 'e', ' ', 'u', 's', 'e', 'd', ' ', 'i', 'n', ' ', 't'},
-		{},
+		{'c', 'i', 'a', 'o', ' ', '2', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
 	for i, pp := range passphrases {
 		pass, num, err := checkPassphrase(pp)
@@ -46,12 +46,12 @@ func TestPassphrase(t *testing.T) {
 			t.Fail()
 		}
 		if key != keys[i] {
-			t.Logf("%d key dows't match '%s': %s", i, key, keys[i])
+			t.Logf("%d key doesn't match '%s': %s", i, key, keys[i])
 			t.Fail()
 		}
 		for j, c := range pwd {
 			if c != pwds[i][j] {
-				t.Logf("%d,%d passwords doesn't match '%s': %s", i, j, string(pwd[:]), string(pwds[i][:]))
+				t.Logf("%d,%d passwords doesn't match '%v': %v", i, j, pwd, pwds[i])
 				t.Fail()
 
 			}
