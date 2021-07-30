@@ -33,4 +33,5 @@ zip trh-$GOOS-$GOARCH-$TAG.zip trh-$GOOS-$GOARCH-$TAG LICENSE.md
 
 
 mkdir -p ../../../ejfhp/website/static/binaries/trh/$TAG
-mv trh-* ../../../ejfhp/website/static/binaries/trh/$TAG
+mv trh-*.zip ../../../ejfhp/website/static/binaries/trh/$TAG
+rm trh-*
