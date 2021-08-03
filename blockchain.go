@@ -156,6 +156,30 @@ func (b *Blockchain) ListTXHistoryBackward(txid string, folllowAddress string, l
 	return path, nil
 }
 
+//Data returns data inside OP_RETURN and version of TX
+func (b *Blockchain) Fees(txs []*DataTX) Token {
+	tr := trace.New().Source("transaction.go", "DataTX", "Fee")
+	log.Println(trace.Info("getting fee from DataTX").UTC().Append(tr))
+	fees := uint64(0)
+	for _, tx := range txs {
+		totInput := uint64(0)
+		for _, in := range tx.Inputs {
+			fmt.Printf("input: %d\n", in.PreviousTxSatoshis)
+			totInput += in.PreviousTxSatoshis
+		}
+		totOutput := uint64(0)
+		for _, out := range tx.Outputs {
+			fmt.Printf("out: %d\n", out.Satoshis)
+			totOutput += out.Satoshis
+		}
+		fmt.Printf("tot input :%d\n", totInput)
+		fmt.Printf("tot output :%d\n", totOutput)
+		fee := totInput - totOutput
+		fees += fee
+	}
+	return Satoshi(fees)
+}
+
 //TODO This could be parallelized
 func (b *Blockchain) walkBackward(txid string, prevTXpos uint32, mainAddr string, depth int, maxpathlen int) ([]string, error) {
 	if txid == "" {

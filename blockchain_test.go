@@ -3,6 +3,7 @@ package ddb_test
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -204,4 +205,19 @@ func TestListTXHistoryBackward(t *testing.T) {
 	for i, p := range path {
 		t.Logf("%d: %s", i, p)
 	}
+}
+
+func TestFee(t *testing.T) {
+	he := "010000000155f058142e60b3d6f9f16667b7e9c10615be1c698f78b85362a4f50d906b70e6010000006b483045022100f729300b6b8b253d412b232d847f088f394321f785ff16f967303514acc6ad7b02203f49f2a8405bd1a0f419d8808d44ef68f1bb323e7608ab5fd326f567e84014684121032f8bdd0bdb654616c362a427a01cf7abafa0b61831297c09211998ede8b99b45ffffffff02a89c0000000000001976a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac000000000000000027006a246464623b746573743b646462202d2052656d696e64204d792e2e2e20627920656a66687000000000"
+	tx, err := ddb.DataTXFromHex(he)
+	if err != nil {
+		t.Logf("failed to create tx: %v", err)
+		t.Fail()
+	}
+	miner := ddb.NewTAAL()
+	expl := ddb.NewWOC()
+	blk := ddb.NewBlockchain(miner, expl)
+	fee := blk.Fees([]*ddb.DataTX{tx})
+	fmt.Printf("Fee: %f\n", fee.Bitcoin())
+	t.FailNow()
 }

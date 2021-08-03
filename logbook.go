@@ -40,7 +40,7 @@ func (l *Logbook) EncodingPassword() string {
 	return string(l.cryptoKey[:])
 }
 
-//CastEntry store the entry on the blockchain, returns the TXID of the transactions generated.
+//CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.
 func (l *Logbook) CastEntry(entry *Entry) ([]string, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "CastEntry")
 	log.Println(trace.Info("casting entry to the blockcchain").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
@@ -49,9 +49,22 @@ func (l *Logbook) CastEntry(entry *Entry) ([]string, error) {
 		log.Println(trace.Alert("error during TXs preparation").UTC().Add("file", entry.Name).Error(err).Append(tr))
 		return nil, fmt.Errorf("error during TXs preparation: %w", err)
 	}
-	ids, err := l.blockchain.Submit(txs)
+	ids, err := l.Submit(txs)
 	if err != nil {
 		log.Println(trace.Alert("error while sending transactions").UTC().Add("file", entry.Name).Error(err).Append(tr))
+		return nil, fmt.Errorf("error while sending transactions: %w", err)
+	}
+	return ids, nil
+
+}
+
+//Submit push the transactions to the blockchain, returns the TXID of the transactions sent.
+func (l *Logbook) Submit(txs []*DataTX) ([]string, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "Submit")
+	log.Println(trace.Info("submitting transactions to the blockcchain").Add("num txs", fmt.Sprintf("%d", len(txs))).UTC().Append(tr))
+	ids, err := l.blockchain.Submit(txs)
+	if err != nil {
+		log.Println(trace.Alert("error while sending transactions").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error while sending transactions: %w", err)
 	}
 	return ids, nil

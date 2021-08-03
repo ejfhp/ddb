@@ -24,6 +24,7 @@ const (
 	commandDescribe = "describe"
 	commandStore    = "store"
 	commandRetrieve = "retrieve"
+	commandEstimate = "estimate"
 )
 
 var (
@@ -119,8 +120,12 @@ To see the address to load and the corrisponding private key do:
 >trh describe + <passphrase with a number 9999>
 
 When the address has enough funds, you can store a file onchain. If the address has not enough 
-funds the store will fail but the money will be spent anyway. To have a raw estimation, fees
-are currently 500 satoshi/1000 bytes.
+funds the store will fail but the money will be spent anyway. 
+
+To have a raw estimation of the necessary amount of BSV to cover fees do: 
+
+>trh estimate -file <file path> + <passphrase with a number 9999>
+
 
 To store a file do:
 
@@ -140,6 +145,7 @@ Options:
 Examples:
 
 ./trh describe -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
+./trh estimate -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh store -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh retrieve -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 `)
@@ -212,6 +218,32 @@ func cmdDescribe(args []string) error {
 		fmt.Printf("this address has no history\n")
 	}
 	for i, tx := range history {
+		fmt.Printf("%d: %s\n", i, tx)
+	}
+	return nil
+}
+
+func cmdEstimate(args []string) error {
+	argsLeft := flagset(commandStore, args)
+
+	passphrase, passnum, err := checkPassphrase(argsLeft)
+	if err != nil {
+		return fmt.Errorf("error checking passphrase: %w", err)
+	}
+	logbook, err := newLogbook(passphrase, passnum)
+	if err != nil {
+		return fmt.Errorf("error creating Logbook: %w", err)
+	}
+	entry, err := ddb.NewEntryFromFile(filepath.Base(flagFilename), flagFilename)
+	if err != nil {
+		return fmt.Errorf("error opening file '%s': %v", flagFilename, err)
+	}
+	txs, err := logbook.ProcessEntry(entry)
+	if err != nil {
+		return fmt.Errorf("error while processing file '%s': %w", flagFilename, err)
+	}
+	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
+	for i, tx := range txids {
 		fmt.Printf("%d: %s\n", i, tx)
 	}
 	return nil
