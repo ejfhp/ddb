@@ -1,5 +1,7 @@
-# ddb - diario di bordo 
+# DDB - TRH
 
-DdB is a private encrypted logbook to store thoughts, important data, private memories and other sensitive information on the Bitcoin blockchain.
-Everything stored with ddb will probably last forever and will be accessible through the ddb code to the owner of the key. 
+## TRH
+TRH allows to store files on the blockchain. The files are encrypted with a passphrase and stored on a serie of transaction all connected to a single address.
+The stored file can be downloaded by anyone that knows the passphrase.
 
+For more information go to [https://ejfhp.com/projects/trh/](https://ejfhp.com/projects/trh/)
