@@ -98,27 +98,6 @@ func DataTXFromBytes(b []byte) (*DataTX, error) {
 }
 
 //Data returns data inside OP_RETURN and version of TX
-func (t *DataTX) Fee() Token {
-	tr := trace.New().Source("transaction.go", "DataTX", "Fee")
-	log.Println(trace.Info("getting fee from DataTX").UTC().Append(tr))
-	totInput := uint64(0)
-	for _, in := range t.Inputs {
-		fmt.Printf("input: %d\n", in.PreviousTxSatoshis)
-		totInput += in.PreviousTxSatoshis
-	}
-	totOutput := uint64(0)
-	for _, out := range t.Outputs {
-		fmt.Printf("out: %d\n", out.Satoshis)
-		totOutput += out.Satoshis
-	}
-	fmt.Printf("tot input :%d\n", totInput)
-	fmt.Printf("tot output :%d\n", totOutput)
-	fee := totInput - totOutput
-	satFee := Satoshi(fee)
-	return satFee
-}
-
-//Data returns data inside OP_RETURN and version of TX
 func (t *DataTX) Data() ([]byte, string, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Data")
 	log.Println(trace.Info("reading OP_RETURN from DataTX").UTC().Append(tr))
