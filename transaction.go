@@ -16,7 +16,15 @@ const (
 	VER_AES  = "0001" //4 bytes
 )
 
-type DataTX struct{ bt.Tx }
+type DataTX struct {
+	inputs []*UTXO
+	*bt.Tx
+}
+
+func NewDataTX(inputs []*UTXO, tx *bt.Tx) *DataTX {
+	return &DataTX{inputs: inputs, Tx: tx}
+
+}
 
 //BuildDataTX builds a DataTX with the given params. The values in the arrays must be correlated. Generated TX UTXO is in position 0.
 func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []byte, version string) (*DataTX, error) {
@@ -65,8 +73,8 @@ func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []b
 			return nil, fmt.Errorf("cannot sign input %d: %w", i, err)
 		}
 	}
-	dtx := DataTX{*tx}
-	return &dtx, nil
+	dtx := NewDataTX(inutxo, tx)
+	return dtx, nil
 }
 
 func DataTXFromHex(h string) (*DataTX, error) {
@@ -93,8 +101,8 @@ func DataTXFromBytes(b []byte) (*DataTX, error) {
 		log.Println(trace.Alert("cannot build Transaction from bytes").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot build Transaction from bytes: %w", err)
 	}
-	dtx := DataTX{*tx}
-	return &dtx, nil
+	dtx := NewDataTX(nil, tx)
+	return dtx, nil
 }
 
 //Data returns data inside OP_RETURN and version of TX
