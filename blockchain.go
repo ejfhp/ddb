@@ -157,6 +157,26 @@ func (b *Blockchain) ListTXHistoryBackward(txid string, folllowAddress string, l
 }
 
 //Data returns data inside OP_RETURN and version of TX
+func (b *Blockchain) FillUTXO(tx *DataTX) error {
+	utxos := make([]*UTXO, 0)
+	for _, in := range tx.Inputs {
+		prevTX, err := b.GetTX(in.PreviousTxID)
+		if err != nil {
+			return fmt.Errorf("error retrieving previous transaction: %w", err)
+		}
+		utxo := UTXO{
+			TXPos:           in.PreviousTxOutIndex,
+			TXHash:          in.PreviousTxID,
+			Value:           Satoshi(prevTX.Outputs[in.PreviousTxOutIndex].Satoshis).Bitcoin(),
+			ScriptPubKeyHex: prevTX.Outputs[in.PreviousTxOutIndex].GetLockingScriptHexString(),
+		}
+		utxos = append(utxos, &utxo)
+	}
+	tx.previousOutput = utxos
+	return nil
+}
+
+//Data returns data inside OP_RETURN and version of TX
 func (b *Blockchain) Fees(txs []*DataTX) Token {
 	tr := trace.New().Source("transaction.go", "DataTX", "Fee")
 	log.Println(trace.Info("getting fee from DataTX").UTC().Append(tr))

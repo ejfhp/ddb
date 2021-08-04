@@ -17,20 +17,19 @@ const (
 )
 
 type DataTX struct {
-	inputs []*UTXO
+	previousOutput []*UTXO
 	*bt.Tx
 }
 
-func NewDataTX(inputs []*UTXO, tx *bt.Tx) *DataTX {
-	return &DataTX{inputs: inputs, Tx: tx}
-
+func NewDataTX(utxo []*UTXO, tx *bt.Tx) *DataTX {
+	return &DataTX{previousOutput: utxo, Tx: tx}
 }
 
 //BuildDataTX builds a DataTX with the given params. The values in the arrays must be correlated. Generated TX UTXO is in position 0.
 func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []byte, version string) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "DataTX", "BuildDataTX")
 	log.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("address", address).Add("num UTXO", fmt.Sprintf("%d", len(inutxo))).Append(t))
-	payload, err := addHeader(version, data)
+	payload, err := addDataHeader(version, data)
 	if err != nil {
 		log.Println(trace.Alert("cannot add header").UTC().Add("version", version).Error(err).Append(t))
 		return nil, fmt.Errorf("cannot add header: %w", err)
@@ -90,7 +89,7 @@ func DataTXFromHex(h string) (*DataTX, error) {
 		log.Println(trace.Alert("cannot build Transaction from HEX").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot build Transaction from HEX: %w", err)
 	}
-	dtx := DataTX{*tx}
+	dtx := DataTX{Tx: tx}
 	return &dtx, nil
 }
 
@@ -101,8 +100,8 @@ func DataTXFromBytes(b []byte) (*DataTX, error) {
 		log.Println(trace.Alert("cannot build Transaction from bytes").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot build Transaction from bytes: %w", err)
 	}
-	dtx := NewDataTX(nil, tx)
-	return dtx, nil
+	dtx := DataTX{Tx: tx}
+	return &dtx, nil
 }
 
 //Data returns data inside OP_RETURN and version of TX
@@ -129,7 +128,7 @@ func (t *DataTX) Data() ([]byte, string, error) {
 					continue
 				}
 				//fmt.Printf("%d DATA %v  %v %d\n", i, v[0], string(v), len(v))
-				version, data, err = stripHeader(v)
+				version, data, err = stripDataHeader(v)
 				if err != nil {
 					log.Println(trace.Alert("cannot decode header").UTC().Error(err).Append(tr))
 					continue
@@ -141,7 +140,7 @@ func (t *DataTX) Data() ([]byte, string, error) {
 	return data, version, nil
 }
 
-func addHeader(version string, data []byte) ([]byte, error) {
+func addDataHeader(version string, data []byte) ([]byte, error) {
 	//header size: len(APP_NAME) + len(";") + len(VER_x) + len(";")
 	// ex.  "ddb;0001;"
 	if len(version) != 4 {
@@ -158,7 +157,7 @@ func addHeader(version string, data []byte) ([]byte, error) {
 	return payload, nil
 }
 
-func stripHeader(data []byte) (string, []byte, error) {
+func stripDataHeader(data []byte) (string, []byte, error) {
 	if len(data) < 9 {
 		return "", nil, fmt.Errorf("data is shorter than header")
 	}
