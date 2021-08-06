@@ -223,31 +223,31 @@ func cmdDescribe(args []string) error {
 	return nil
 }
 
-func cmdEstimate(args []string) error {
-	argsLeft := flagset(commandStore, args)
+// func cmdEstimate(args []string) error {
+// 	argsLeft := flagset(commandStore, args)
 
-	passphrase, passnum, err := checkPassphrase(argsLeft)
-	if err != nil {
-		return fmt.Errorf("error checking passphrase: %w", err)
-	}
-	logbook, err := newLogbook(passphrase, passnum)
-	if err != nil {
-		return fmt.Errorf("error creating Logbook: %w", err)
-	}
-	entry, err := ddb.NewEntryFromFile(filepath.Base(flagFilename), flagFilename)
-	if err != nil {
-		return fmt.Errorf("error opening file '%s': %v", flagFilename, err)
-	}
-	txs, err := logbook.ProcessEntry(entry)
-	if err != nil {
-		return fmt.Errorf("error while processing file '%s': %w", flagFilename, err)
-	}
-	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
-	for i, tx := range txids {
-		fmt.Printf("%d: %s\n", i, tx)
-	}
-	return nil
-}
+// 	passphrase, passnum, err := checkPassphrase(argsLeft)
+// 	if err != nil {
+// 		return fmt.Errorf("error checking passphrase: %w", err)
+// 	}
+// 	logbook, err := newLogbook(passphrase, passnum)
+// 	if err != nil {
+// 		return fmt.Errorf("error creating Logbook: %w", err)
+// 	}
+// 	entry, err := ddb.NewEntryFromFile(filepath.Base(flagFilename), flagFilename)
+// 	if err != nil {
+// 		return fmt.Errorf("error opening file '%s': %v", flagFilename, err)
+// 	}
+// 	txs, err := logbook.ProcessEntry(entry)
+// 	if err != nil {
+// 		return fmt.Errorf("error while processing file '%s': %w", flagFilename, err)
+// 	}
+// 	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
+// 	for i, tx := range txids {
+// 		fmt.Printf("%d: %s\n", i, tx)
+// 	}
+// 	return nil
+// }
 
 func cmdStore(args []string) error {
 	argsLeft := flagset(commandStore, args)

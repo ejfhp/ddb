@@ -16,13 +16,20 @@ const (
 	VER_AES  = "0001" //4 bytes
 )
 
+type SourceOutput struct {
+	TXPos           uint32
+	TXHash          string
+	Value           Satoshi
+	ScriptPubKeyHex string
+}
+
 type DataTX struct {
-	previousOutput []*UTXO
+	SourceOutputs []*SourceOutput
 	*bt.Tx
 }
 
-func NewDataTX(utxo []*UTXO, tx *bt.Tx) *DataTX {
-	return &DataTX{previousOutput: utxo, Tx: tx}
+func NewDataTX(utxo []*SourceOutput, tx *bt.Tx) *DataTX {
+	return &DataTX{SourceOutputs: utxo, Tx: tx}
 }
 
 //BuildDataTX builds a DataTX with the given params. The values in the arrays must be correlated. Generated TX UTXO is in position 0.
@@ -36,7 +43,10 @@ func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []b
 	}
 	tx := bt.NewTx()
 	satInput := Satoshi(0)
+	sourceOutputs := make([]*SourceOutput, len(inutxo))
 	for i, utx := range inutxo {
+		sourceOutput := SourceOutput{TXPos: utx.TXPos, TXHash: utx.TXHash, Value: utx.Value.Satoshi(), ScriptPubKeyHex: utx.ScriptPubKeyHex}
+		sourceOutputs = append(sourceOutputs, &sourceOutput)
 		input, err := bt.NewInputFromUTXO(utx.TXHash, utx.TXPos, uint64(utx.Value.Satoshi()), utx.ScriptPubKeyHex, math.MaxUint32)
 		if err != nil {
 			log.Println(trace.Alert("cannot get UTXO input").UTC().Add("i", fmt.Sprintf("%d", i)).Add("TXID", utx.TXHash).Add("inpos", fmt.Sprintf("%d", utx.TXPos)).Error(err).Append(t))
@@ -72,7 +82,7 @@ func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []b
 			return nil, fmt.Errorf("cannot sign input %d: %w", i, err)
 		}
 	}
-	dtx := NewDataTX(inutxo, tx)
+	dtx := NewDataTX(sourceOutputs, tx)
 	return dtx, nil
 }
 
@@ -138,6 +148,30 @@ func (t *DataTX) Data() ([]byte, string, error) {
 		}
 	}
 	return data, version, nil
+}
+
+//Data returns data inside OP_RETURN and version of TX
+func (t *DataTX) Fees() (Token, error) {
+	tr := trace.New().Source("transaction.go", "DataTX", "Fee")
+	if t.SourceOutputs == nil || len(t.SourceOutputs) == 0 {
+		log.Println(trace.Alert("transaction has no source utxo").UTC().Append(tr))
+		return Satoshi(0), fmt.Errorf("transaction has no source utxo")
+
+	}
+	totInput := Satoshi(0)
+	for _, in := range t.SourceOutputs {
+		log.Println(trace.Info("input").UTC().Add("value", fmt.Sprintf("%d", in.Value)).Append(tr))
+		totInput = totInput.Add(in.Value)
+	}
+	totOutput := uint64(0)
+	for _, out := range t.Outputs {
+		log.Println(trace.Info("output").UTC().Add("value", fmt.Sprintf("%d", out.Satoshis)).Append(tr))
+		totOutput += out.Satoshis
+	}
+	fmt.Printf("tot input :%d\n", totInput)
+	fmt.Printf("tot output :%d\n", totOutput)
+	fee := totInput.Sub(Satoshi(totOutput))
+	return fee, nil
 }
 
 func addDataHeader(version string, data []byte) ([]byte, error) {
