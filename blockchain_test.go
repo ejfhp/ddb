@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ejfhp/ddb"
 	log "github.com/ejfhp/trail"
 )
 
-func TestSubmit(t *testing.T) {
+func TestBlockchain_Submit(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	t.Skip("This always fail because it's a fake TX")
 	he := "010000000155f058142e60b3d6f9f16667b7e9c10615be1c698f78b85362a4f50d906b70e6010000006a473044022076b0dd878a1d7b6919c5c8becc3f2d993436dac616bc5f055273eda570c9d59502204ab86e52cb85ff425f16001633774618a5f3b0a7108ab9a73638e3ef3fa25a684121032f8bdd0bdb654616c362a427a01cf7abafa0b61831297c09211998ede8b99b45ffffffff02a89c0000000000001976a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac00000000000000001e006a1b646462202d2052656d696e64204d792e2e2e20627920656a66687000000000"
@@ -36,7 +37,7 @@ func TestSubmit(t *testing.T) {
 
 }
 
-func TestPackEntities(t *testing.T) {
+func TestBlockchain_PackEntities(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	testData := [][]byte{
 		[]byte("not encrypted"),
@@ -88,7 +89,7 @@ func TestPackEntities(t *testing.T) {
 	}
 }
 
-func TestPackUnpackText(t *testing.T) {
+func TestBlockchain_PackUnpackText(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	testData := [][]byte{
 		[]byte("I just want to write something a bit longer, even if I know it doesn't matter 1"),
@@ -124,7 +125,7 @@ func TestPackUnpackText(t *testing.T) {
 	}
 }
 
-func TestPackUnpackFile(t *testing.T) {
+func TestBlockchain_PackUnpackFile(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	file := "testdata/image.png"
 	image, err := ioutil.ReadFile(file)
@@ -165,7 +166,7 @@ func TestPackUnpackFile(t *testing.T) {
 	}
 }
 
-func TestGetTX(t *testing.T) {
+func TestBlockchain_GetTX(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
 	miner := ddb.NewTAAL()
@@ -181,8 +182,40 @@ func TestGetTX(t *testing.T) {
 		t.Fail()
 	}
 }
+func TestBlockchain_GetTXCache(t *testing.T) {
+	log.SetWriter(os.Stdout)
+	cache, _ := os.UserCacheDir()
+	cacheDir := filepath.Join(cache, "trh")
+	txCache, err := ddb.NewTXCache(cacheDir)
+	if err != nil {
+		t.Logf("failed to get data TX Cache: %v", err)
+		t.Fail()
+	}
+	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
+	miner := ddb.NewTAAL()
+	expl := ddb.NewWOC()
+	blk := ddb.NewBlockchain(miner, expl, txCache)
+	dataTx, err := blk.GetTX(txid)
+	if err != nil {
+		t.Logf("failed to get data TXs: %v", err)
+		t.Fail()
+	}
+	if dataTx.GetTxID() != txid {
+		t.Logf("unexpected ID: %s", dataTx.GetTxID())
+		t.Fail()
+	}
+	dataTx, err = blk.GetTX(txid)
+	if err != nil {
+		t.Logf("failed to get data TXs: %v", err)
+		t.Fail()
+	}
+	if dataTx.GetTxID() != txid {
+		t.Logf("unexpected ID: %s", dataTx.GetTxID())
+		t.Fail()
+	}
+}
 
-func TestListTXHistoryBackward(t *testing.T) {
+func TestBlockchain_ListTXHistoryBackward(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	txid := "8c4e50050f1a82e14765f4a79b2bdac700967e592486dcaa9eedb4f8bf441d16"
 	miner := ddb.NewTAAL()
@@ -207,7 +240,7 @@ func TestListTXHistoryBackward(t *testing.T) {
 	}
 }
 
-func TestFeeOfHEXTX(t *testing.T) {
+func TestBlockchain_FeeOfHEXTX(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	he := "010000000155f058142e60b3d6f9f16667b7e9c10615be1c698f78b85362a4f50d906b70e6010000006b483045022100f729300b6b8b253d412b232d847f088f394321f785ff16f967303514acc6ad7b02203f49f2a8405bd1a0f419d8808d44ef68f1bb323e7608ab5fd326f567e84014684121032f8bdd0bdb654616c362a427a01cf7abafa0b61831297c09211998ede8b99b45ffffffff02a89c0000000000001976a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac000000000000000027006a246464623b746573743b646462202d2052656d696e64204d792e2e2e20627920656a66687000000000"
 	tx, err := ddb.DataTXFromHex(he)

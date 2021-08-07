@@ -3,7 +3,6 @@ package ddb
 import (
 	"fmt"
 
-	"github.com/ejfhp/ddb"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 	"github.com/libsv/go-bt/bscript"
@@ -120,9 +119,9 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 	if b.cache != nil {
 		cacheTx, err := b.cache.Retrieve(id)
 		if err != nil {
-			if err != ddb.ErrTXNotExist {
+			if err != ErrTXNotExist {
 				trail.Println(trace.Alert("cannot get TX from cache").UTC().Add("id", id).Error(err).Append(tr))
-				return nil, fmt.Errorf("cannot get TX with id %d from cache: %w", id, err)
+				return nil, fmt.Errorf("cannot get TX with id %s from cache: %w", id, err)
 			}
 			trail.Println(trace.Alert("TX not in cache").UTC().Add("id", id).Error(err).Append(tr))
 		} else {
@@ -143,6 +142,9 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 		if err != nil {
 			trail.Println(trace.Alert("cannot build DataTX").UTC().Add("id", id).Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build DataTX: %w", err)
+		}
+		if b.cache != nil {
+			b.cache.Store(id, dataTX.ToBytes())
 		}
 	}
 	return dataTX, nil
