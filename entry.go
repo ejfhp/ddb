@@ -9,7 +9,7 @@ import (
 	"mime"
 	"path/filepath"
 
-	log "github.com/ejfhp/trail"
+	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
 
@@ -43,7 +43,7 @@ func NewEntryFromData(name string, mime string, data []byte) *Entry {
 
 func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntriesFromPart")
-	log.Println(trace.Debug("getting entries from parts").UTC().Append(t))
+	trail.Println(trace.Debug("getting entries from parts").UTC().Append(t))
 	entries := make([]*Entry, 0)
 	partsDict := make(map[string][]*EntryPart)
 	for _, p := range parts {
@@ -55,7 +55,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 	}
 	for _, pa := range partsDict {
 		if pa[0] == nil {
-			log.Println(trace.Warning("missing part").UTC().Add("part", "0").Append(t))
+			trail.Println(trace.Warning("missing part").UTC().Add("part", "0").Append(t))
 			continue
 		}
 		numPart := pa[0].NumPart
@@ -63,7 +63,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 		data := make([]byte, 0)
 		for i := 0; i < numPart; i++ {
 			if pa[i] == nil {
-				log.Println(trace.Warning("missing part").UTC().Add("part", fmt.Sprintf("%d", i)).Append(t))
+				trail.Println(trace.Warning("missing part").UTC().Add("part", fmt.Sprintf("%d", i)).Append(t))
 				continue
 			}
 			data = append(data, pa[i].Data...)
@@ -71,7 +71,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 		nh := sha256.Sum256(data)
 		nhash := hex.EncodeToString(nh[:])
 		if nhash != entry.Hash {
-			log.Println(trace.Alert("hash of decoded entry doesn't match").UTC().Add("new hash", nhash).Add("hash", entry.Hash))
+			trail.Println(trace.Alert("hash of decoded entry doesn't match").UTC().Add("new hash", nhash).Add("hash", entry.Hash))
 			return nil, fmt.Errorf("hash of decoded entry doesn't match stored:%s  new:%s", entry.Hash, nhash)
 		}
 		entry.Data = data
@@ -83,7 +83,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 //EntriesOfFile returns an array of entries for the given file.
 func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
-	log.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
+	trail.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
 	hash := make([]byte, 64)
 	sha := sha256.Sum256(e.Data)
 	hex.Encode(hash, sha[:])
@@ -123,12 +123,12 @@ func EntryPartFromEncodedData(encoded []byte) (*EntryPart, error) {
 
 // func EntryPartsFromEncodedData(encs [][]byte) ([]*EntryPart, error) {
 // 	tr := trace.New().Source("entry.go", "EntryPart", "EntryPartsFromEncryptedData")
-// 	log.Println(trace.Debug("decrypting and decoding").UTC().Append(tr))
+// 	trail.Println(trace.Debug("decrypting and decoding").UTC().Append(tr))
 // 	entryParts := make([]*EntryPart, 0, len(encs))
 // 	for _, ep := range encs {
 // 		entryPart, err := EntryPartFromEncodedData(ep)
 // 		if err != nil {
-// 			log.Println(trace.Alert("EntryPart decode failed").UTC().Error(err).Append(tr))
+// 			trail.Println(trace.Alert("EntryPart decode failed").UTC().Error(err).Append(tr))
 // 			return nil, fmt.Errorf("EntryPart decode failed: %w", err)
 // 		}
 // 		entryParts = append(entryParts, entryPart)

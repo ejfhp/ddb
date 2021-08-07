@@ -24,7 +24,7 @@ func TestSubmit(t *testing.T) {
 	txs := []*ddb.DataTX{tx}
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl)
+	blk := ddb.NewBlockchain(miner, expl, nil)
 	ids, err := blk.Submit(txs)
 	if len(ids) != len(txs) {
 		t.Logf("unexpected num of returned id: %d  exp: %d", len(ids), len(txs))
@@ -45,7 +45,7 @@ func TestPackEntities(t *testing.T) {
 	}
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl)
+	blk := ddb.NewBlockchain(miner, expl, nil)
 	txs, err := blk.PackData(ddb.VER_AES, key, testData)
 	if err != nil {
 		t.Logf("failed to prepare TXs: %v", err)
@@ -98,7 +98,7 @@ func TestPackUnpackText(t *testing.T) {
 	}
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl)
+	blk := ddb.NewBlockchain(miner, expl, nil)
 	txs, err := blk.PackData(ddb.VER_AES, key, testData)
 	if err != nil {
 		t.Logf("failed to prepare TXs: %v", err)
@@ -138,7 +138,7 @@ func TestPackUnpackFile(t *testing.T) {
 	imageHash := hex.EncodeToString(imageSha[:])
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl)
+	blk := ddb.NewBlockchain(miner, expl, nil)
 	txs, err := blk.PackData(ddb.VER_AES, key, testData)
 	if err != nil {
 		t.Logf("failed to prepare TXs: %v", err)
@@ -170,7 +170,7 @@ func TestGetTX(t *testing.T) {
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl)
+	blk := ddb.NewBlockchain(miner, expl, nil)
 	dataTx, err := blk.GetTX(txid)
 	if err != nil {
 		t.Logf("failed to get data TXs: %v", err)
@@ -187,7 +187,7 @@ func TestListTXHistoryBackward(t *testing.T) {
 	txid := "8c4e50050f1a82e14765f4a79b2bdac700967e592486dcaa9eedb4f8bf441d16"
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl)
+	blk := ddb.NewBlockchain(miner, expl, nil)
 	limit := 23
 	path, err := blk.ListTXHistoryBackward(txid, address, limit)
 	if err != nil {
@@ -217,7 +217,7 @@ func TestFeeOfHEXTX(t *testing.T) {
 	}
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl)
+	blk := ddb.NewBlockchain(miner, expl, nil)
 	err = blk.FillUTXO(tx)
 	if err != nil {
 		t.Logf("failed to fill sourceoutput: %v", err)

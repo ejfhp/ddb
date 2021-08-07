@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	log "github.com/ejfhp/trail"
+	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
 
@@ -36,19 +36,19 @@ func (w *WOC) GetUTXOs(address string) ([]*UTXO, error) {
 	url := fmt.Sprintf("%s/address/%s/unspent", w.BaseURL, address)
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Println(trace.Alert("error while getting unspent").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while getting unspent").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while getting unspent: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println(trace.Alert("error while reading response").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while reading response").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while reading response: %w", err)
 	}
 	unspent := []*wocu{}
 	err = json.Unmarshal(body, &unspent)
 	if err != nil {
-		log.Println(trace.Alert("error while unmarshalling").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while unmarshalling").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while unmarshalling: %w", err)
 	}
 
@@ -56,7 +56,7 @@ func (w *WOC) GetUTXOs(address string) ([]*UTXO, error) {
 	for _, u := range unspent {
 		tx, err := w.GetTX(u.TXHash)
 		if err != nil {
-			log.Println(trace.Alert("cannot get TX").UTC().Add("address", address).Add("TxHash", u.TXHash).Error(err).Append(t))
+			trail.Println(trace.Alert("cannot get TX").UTC().Add("address", address).Add("TxHash", u.TXHash).Error(err).Append(t))
 			return nil, fmt.Errorf("cannot get TX: %w", err)
 		}
 		for _, to := range tx.Out {
@@ -77,22 +77,22 @@ func (w *WOC) GetUTXOs(address string) ([]*UTXO, error) {
 func (w *WOC) GetTX(txHash string) (*TX, error) {
 	t := trace.New().Source("whatsonchain.go", "WOC", "GetTX")
 	url := fmt.Sprintf("%s/tx/hash/%s", w.BaseURL, txHash)
-	log.Println(trace.Debug("get tx").UTC().Add("hash", txHash).Add("url", url).Append(t))
+	trail.Println(trace.Debug("get tx").UTC().Add("hash", txHash).Add("url", url).Append(t))
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Println(trace.Alert("error while getting TX").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while getting TX").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while getting TX: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println(trace.Alert("error while reading response").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while reading response").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while reading response: %w", err)
 	}
 	tx := TX{}
 	err = json.Unmarshal(body, &tx)
 	if err != nil {
-		log.Println(trace.Alert("error while unmarshalling").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while unmarshalling").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while unmarshalling: %w", err)
 	}
 	return &tx, nil
@@ -102,16 +102,16 @@ func (w *WOC) GetRAWTXHEX(txHash string) ([]byte, error) {
 	t := trace.New().Source("whatsonchain.go", "WOC", "GetTX")
 	template := "%s/tx/%s/hex"
 	url := fmt.Sprintf(template, w.BaseURL, txHash)
-	log.Println(trace.Debug("get tx").UTC().Add("hash", txHash).Add("url", url).Append(t))
+	trail.Println(trace.Debug("get tx").UTC().Add("hash", txHash).Add("url", url).Append(t))
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Println(trace.Alert("error while getting TX").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while getting TX").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while getting TX: %w", err)
 	}
 	defer resp.Body.Close()
 	hex, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println(trace.Alert("error while reading response").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while reading response").UTC().Add("txHash", txHash).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while reading response: %w", err)
 	}
 	return hex, nil
@@ -122,19 +122,19 @@ func (w *WOC) GetTXIDs(address string) ([]string, error) {
 	url := fmt.Sprintf("%s/address/%s/history", w.BaseURL, address)
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Println(trace.Alert("error while getting unspent").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while getting unspent").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while getting unspent: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println(trace.Alert("error while reading response").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while reading response").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while reading response: %w", err)
 	}
 	txs := []*wocu{}
 	err = json.Unmarshal(body, &txs)
 	if err != nil {
-		log.Println(trace.Alert("error while unmarshalling").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
+		trail.Println(trace.Alert("error while unmarshalling").UTC().Add("address", address).Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while unmarshalling: %w", err)
 	}
 	txids := make([]string, len(txs))

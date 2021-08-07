@@ -11,11 +11,11 @@ import (
 	"testing"
 
 	"github.com/ejfhp/ddb"
-	log "github.com/ejfhp/trail"
+	"github.com/ejfhp/trail"
 )
 
 func TestNewEntryFromFile(t *testing.T) {
-	log.SetWriter(os.Stdout)
+	trail.SetWriter(os.Stdout)
 	inputs := [][]string{
 		{"testdata/test.txt", ""},
 		{"testdata/image.png", ""},
@@ -38,7 +38,7 @@ func TestNewEntryFromFile(t *testing.T) {
 
 }
 func TestEntryOfFile(t *testing.T) {
-	log.SetWriter(os.Stdout)
+	trail.SetWriter(os.Stdout)
 	inputs := [][]string{
 		{"testdata/test.txt", "text/plain; charset=utf-8"},
 		{"testdata/image.png", "image/png"},
@@ -115,7 +115,7 @@ func TestEntryOfFile(t *testing.T) {
 }
 
 func TestEntriesFromParts(t *testing.T) {
-	log.SetWriter(os.Stdout)
+	trail.SetWriter(os.Stdout)
 	inputs := []string{
 		"testdata/test.txt",
 		"testdata/image.png",
@@ -171,7 +171,7 @@ func TestEntriesFromParts(t *testing.T) {
 }
 
 func TestEncodeDecodeEntryPart(t *testing.T) {
-	log.SetWriter(os.Stdout)
+	trail.SetWriter(os.Stdout)
 	name := "test.txt"
 	hash := "hhhhhhhhhhhhhhhh"
 	mime := "text/plain"
@@ -205,7 +205,7 @@ func TestEncodeDecodeEntryPart(t *testing.T) {
 }
 
 func TestEncodeDecodeSingleEntry1(t *testing.T) {
-	log.SetWriter(os.Stdout)
+	trail.SetWriter(os.Stdout)
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	name := "image.png"
 	file := "testdata/image.png"
@@ -327,7 +327,7 @@ func TestEncodeDecodeSingleEntry1(t *testing.T) {
 }
 
 func TestEncodeDecodeSingleEntry2(t *testing.T) {
-	log.SetWriter(os.Stdout)
+	trail.SetWriter(os.Stdout)
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	name := "image.png"
 	file := "testdata/image.png"
@@ -367,7 +367,7 @@ func TestEncodeDecodeSingleEntry2(t *testing.T) {
 	//pack
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl)
+	blk := ddb.NewBlockchain(miner, expl, nil)
 	txs, err := blk.PackData("test", key, cryParts)
 	if err != nil {
 		t.Logf("failed to prepare TXs: %v", err)

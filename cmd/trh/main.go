@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
-	log "github.com/ejfhp/trail"
+	"github.com/ejfhp/trail"
 )
 
 const (
@@ -97,7 +97,7 @@ func newLogbook(passphrase string, passnum int) (*ddb.Logbook, error) {
 
 func logOn(on bool) {
 	if on {
-		log.SetWriter(os.Stderr)
+		trail.SetWriter(os.Stderr)
 	}
 }
 

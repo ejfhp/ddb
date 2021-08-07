@@ -1,7 +1,7 @@
 
 func EntryOfFile(name string, data []byte, maxPartSize int) ([]*EntryPart, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
-	log.Println(trace.Debug("building entries").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
+	trail.Println(trace.Debug("building entries").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
 	hash := make([]byte, 64)
 	sha := sha256.Sum256(data)
 	hex.Encode(hash, sha[:])

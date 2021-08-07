@@ -11,7 +11,7 @@ import (
 	"github.com/bitcoinsv/bsvd/bsvec"
 	"github.com/bitcoinsv/bsvd/chaincfg"
 	"github.com/bitcoinsv/bsvutil"
-	log "github.com/ejfhp/trail"
+	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
 
@@ -42,7 +42,7 @@ type Keygen1 struct {
 
 func NewKeygen1(number int, phrase string) (*Keygen1, error) {
 	tr := trace.New().Source("keygen1.go", "Keygen1", "NewKeygen1")
-	log.Println(trace.Debug("new keygen1").UTC().Append(tr))
+	trail.Println(trace.Debug("new keygen1").UTC().Append(tr))
 	if len(phrase) < MinPhraseLen {
 		return nil, fmt.Errorf("secret phrase should be longer than %d chars", MinPhraseLen)
 	}
@@ -58,7 +58,7 @@ func NewKeygen1(number int, phrase string) (*Keygen1, error) {
 	ws[NumWords-1] = append(ws[NumWords-1], phrase[(NumWords)*wLen:]...)
 	num := math.Abs(float64(number)) + 3
 	n := int(math.Ceil((math.Log(float64(num)) * 100)))
-	log.Println(trace.Debug("number of iteraction").UTC().Add("n", fmt.Sprintf("%d", n)).Append(tr))
+	trail.Println(trace.Debug("number of iteraction").UTC().Add("n", fmt.Sprintf("%d", n)).Append(tr))
 	return &Keygen1{num: n, phrase: phrase, confs: cns, words: ws}, nil
 }
 
