@@ -17,10 +17,10 @@ const (
 )
 
 type SourceOutput struct {
-	TXPos           uint32
-	TXHash          string
-	Value           Satoshi
-	ScriptPubKeyHex string
+	TXPos           uint32  `json:"txpos"`
+	TXHash          string  `json:"txhash"`
+	Value           Satoshi `json:"value"`
+	ScriptPubKeyHex string  `json:"scriptpubkeyhex"`
 }
 
 type DataTX struct {

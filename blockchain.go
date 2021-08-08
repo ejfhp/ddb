@@ -92,6 +92,12 @@ func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 		if id != tx.GetTxID() {
 			trail.Println(trace.Alert("for TX miner returned a different TXID").UTC().Add("minerTXID", id).Add("TXID", tx.GetTxID()).Add("miner", b.miner.GetName()).Append(tr))
 		}
+		if b.cache != nil {
+			err = b.cache.StoreTX(id, tx.ToBytes())
+			if err != nil {
+				trail.Println(trace.Alert("error while storing submitted TX in cache").UTC().Add("TXID", tx.GetTxID()).Append(tr))
+			}
+		}
 		ids[i] = id
 	}
 	return ids, nil
@@ -117,13 +123,13 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 	trail.Println(trace.Debug("get TX").UTC().Append(tr))
 	var dataTX *DataTX
 	if b.cache != nil {
-		cacheTx, err := b.cache.Retrieve(id)
+		cacheTx, err := b.cache.RetrieveTX(id)
 		if err != nil {
 			if err != ErrTXNotExist {
 				trail.Println(trace.Alert("cannot get TX from cache").UTC().Add("id", id).Error(err).Append(tr))
 				return nil, fmt.Errorf("cannot get TX with id %s from cache: %w", id, err)
 			}
-			trail.Println(trace.Alert("TX not in cache").UTC().Add("id", id).Error(err).Append(tr))
+			trail.Println(trace.Info("TX not in cache").UTC().Add("id", id).Error(err).Append(tr))
 		} else {
 			dataTX, err = DataTXFromBytes(cacheTx)
 			if err != nil {
@@ -144,7 +150,10 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 			return nil, fmt.Errorf("cannot build DataTX: %w", err)
 		}
 		if b.cache != nil {
-			b.cache.Store(id, dataTX.ToBytes())
+			err = b.cache.StoreTX(id, dataTX.ToBytes())
+			if err != nil {
+				trail.Println(trace.Warning("error while storing retrieved TX in cache").UTC().Add("TXID", dataTX.GetTxID()).Append(tr))
+			}
 		}
 	}
 	return dataTX, nil
