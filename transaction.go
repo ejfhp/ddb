@@ -23,6 +23,22 @@ type SourceOutput struct {
 	ScriptPubKeyHex string  `json:"scriptpubkeyhex"`
 }
 
+func (s *SourceOutput) Equals(so *SourceOutput) bool {
+	if s.TXPos != so.TXPos {
+		return false
+	}
+	if s.Value != so.Value {
+		return false
+	}
+	if s.ScriptPubKeyHex != so.ScriptPubKeyHex {
+		return false
+	}
+	if s.TXHash != so.TXHash {
+		return false
+	}
+	return true
+}
+
 type DataTX struct {
 	SourceOutputs []*SourceOutput
 	*bt.Tx
