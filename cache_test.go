@@ -86,7 +86,7 @@ func TestTXCache_StoreRetrieve(t *testing.T) {
 		t.Fail()
 	}
 	_, err = cache.RetrieveTX("notexists")
-	if err != ddb.ErrTXNotExist {
+	if err != ddb.ErrNotCached {
 		t.Logf("unexpected error for not existent tx: %v", err)
 		t.Fail()
 	}

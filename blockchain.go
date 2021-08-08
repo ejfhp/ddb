@@ -125,7 +125,7 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 	if b.cache != nil {
 		cacheTx, err := b.cache.RetrieveTX(id)
 		if err != nil {
-			if err != ErrTXNotExist {
+			if err != ErrNotCached {
 				trail.Println(trace.Alert("cannot get TX from cache").UTC().Add("id", id).Error(err).Append(tr))
 				return nil, fmt.Errorf("cannot get TX with id %s from cache: %w", id, err)
 			}

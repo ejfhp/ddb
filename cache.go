@@ -1,6 +1,7 @@
 package ddb
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -17,11 +18,12 @@ type TXCache struct {
 }
 
 type AddressInfo struct {
+	Address      string          `json:"address"`
 	SourceOutput []*SourceOutput `json:"outputs"`
 	TXIDs        []string        `json:"txids"`
 }
 
-var ErrTXNotExist error = fmt.Errorf("TX not exists")
+var ErrNotCached error = fmt.Errorf("entry not in cache")
 
 func NewTXCache(path string) (*TXCache, error) {
 	tr := trace.New().Source("cache.go", "TXCache", "NewTXCache")
@@ -71,26 +73,53 @@ func (c *TXCache) RetrieveTX(id string) ([]byte, error) {
 	return tx, nil
 }
 
-func (c *TXCache) StoreSourceOutput(address string, sourceOutput SourceOutput) error {
-	tr := trace.New().Source("cache.go", "TXCache", "Store")
-	trail.Println(trace.Debug("storing TX").UTC().Add("path", c.path).Add("id", id).Append(tr))
-	txpath := c.Path(id)
-	err := ioutil.WriteFile(txpath, tx, 0600)
+func (c *TXCache) StoreSourceOutput(address string, sourceOutput *SourceOutput) error {
+	tr := trace.New().Source("cache.go", "TXCache", "StoreSourceOutput")
+	trail.Println(trace.Debug("storing SourceOutput").UTC().Add("path", c.path).Add("address", address).Append(tr))
+	addinfo, err := c.retrieveAddressInfo(address)
 	if err != nil {
-		trail.Println(trace.Alert("error storing tx to cache").UTC().Add("path", c.path).Add("id", id).Error(err).Append(tr))
-		return fmt.Errorf("error storing tx '%s' to cache dir '%s': %w", id, c.path, err)
+		if err == ErrNotCached {
+			addinfo = &AddressInfo{SourceOutput: []*SourceOutput{}, TXIDs: []string{}, Address: address}
+		} else {
+			trail.Println(trace.Alert("error storing sourceoutput to cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
+			return fmt.Errorf("error storing sourceoutput of address '%s' to cache dir '%s': %w", address, c.path, err)
+		}
+	}
+	addinfo.SourceOutput = append(addinfo.SourceOutput, sourceOutput)
+	err = c.storeAddressInfo(address, addinfo)
+	if err != nil {
+		trail.Println(trace.Alert("error storing source output to cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
+		return fmt.Errorf("error storing source output for address '%s' to cache dir '%s': %w", address, c.path, err)
 	}
 	return nil
 }
 
-func (c *TXCache) RetrieveSourceOutput(address string, sourceOutput SourceOutput) error {
-	tr := trace.New().Source("cache.go", "TXCache", "Store")
-	trail.Println(trace.Debug("storing TX").UTC().Add("path", c.path).Add("id", id).Append(tr))
-	txpath := c.Path(id)
-	err := ioutil.WriteFile(txpath, tx, 0600)
+func (c *TXCache) retrieveAddressInfo(address string) (*AddressInfo, error) {
+	txpath := c.Path(address)
+	bytes, err := ioutil.ReadFile(txpath)
 	if err != nil {
-		trail.Println(trace.Alert("error storing tx to cache").UTC().Add("path", c.path).Add("id", id).Error(err).Append(tr))
-		return fmt.Errorf("error storing tx '%s' to cache dir '%s': %w", id, c.path, err)
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, ErrNotCached
+		}
+		return nil, fmt.Errorf("error retrieving sourceoutput of address '%s' from cache dir '%s': %w", address, c.path, err)
+	}
+	var addinfo AddressInfo
+	json.Unmarshal(bytes, &addinfo)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling address info for '%s': %w", address, err)
+	}
+	return &addinfo, nil
+}
+
+func (c *TXCache) storeAddressInfo(address string, addressinfo *AddressInfo) error {
+	aipath := c.Path(address)
+	bytes, err := json.Marshal(addressinfo)
+	if err != nil {
+		return fmt.Errorf("error marshaling address info for '%s': %w", address, err)
+	}
+	err = ioutil.WriteFile(aipath, bytes, 0600)
+	if err != nil {
+		return fmt.Errorf("error storing address info for address '%s' to cache dir '%s': %w", address, c.path, err)
 	}
 	return nil
 }
