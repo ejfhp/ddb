@@ -18,9 +18,8 @@ type TXCache struct {
 }
 
 type AddressInfo struct {
-	Address      string          `json:"address"`
-	SourceOutput []*SourceOutput `json:"outputs"`
-	TXIDs        []string        `json:"txids"`
+	Address string   `json:"address"`
+	TXIDs   []string `json:"txids"`
 }
 
 var ErrNotCached error = fmt.Errorf("entry not in cache")
@@ -73,65 +72,29 @@ func (c *TXCache) RetrieveTX(id string) ([]byte, error) {
 	return tx, nil
 }
 
-func (c *TXCache) StoreSourceOutput(address string, sourceOutput *SourceOutput) error {
-	tr := trace.New().Source("cache.go", "TXCache", "StoreSourceOutput")
-	trail.Println(trace.Debug("storing SourceOutput").UTC().Add("path", c.path).Add("address", address).Append(tr))
-	addinfo, err := c.retrieveAddressInfo(address)
-	if err != nil {
-		if err == ErrNotCached {
-			addinfo = &AddressInfo{SourceOutput: []*SourceOutput{}, TXIDs: []string{}, Address: address}
-		} else {
-			trail.Println(trace.Alert("error storing sourceoutput to cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
-			return fmt.Errorf("error storing sourceoutput of address '%s' to cache dir '%s': %w", address, c.path, err)
-		}
-	}
-	for _, so := range addinfo.SourceOutput {
-		if so.Equals(sourceOutput) {
-			return nil
-		}
-	}
-	addinfo.SourceOutput = append(addinfo.SourceOutput, sourceOutput)
-	err = c.storeAddressInfo(address, addinfo)
-	if err != nil {
-		trail.Println(trace.Alert("error storing source output to cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
-		return fmt.Errorf("error storing source output for address '%s' to cache dir '%s': %w", address, c.path, err)
-	}
-	return nil
-}
-
-func (c *TXCache) RetrieveSourceOutput(address string) ([]*SourceOutput, error) {
-	tr := trace.New().Source("cache.go", "TXCache", "RetrieveSourceOutput")
-	trail.Println(trace.Debug("retrieving SourceOutput").UTC().Add("path", c.path).Add("address", address).Append(tr))
-	addinfo, err := c.retrieveAddressInfo(address)
-	if err != nil {
-		if err == ErrNotCached {
-			trail.Println(trace.Alert("address not in cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
-			return nil, err
-		} else {
-			trail.Println(trace.Alert("error retrieving address from cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
-			return nil, fmt.Errorf("error retrieving address '%s' from cache dir '%s': %w", address, c.path, err)
-		}
-	}
-	if addinfo.SourceOutput == nil || len(addinfo.SourceOutput) == 0 {
-		trail.Println(trace.Alert("sourceoutput not found in cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
-		return nil, ErrNotCached
-	}
-	return addinfo.SourceOutput, nil
-}
-
-func (c *TXCache) StoreTXID(address string, txid string) error {
+func (c *TXCache) StoreTXIDs(address string, txids []string) error {
 	tr := trace.New().Source("cache.go", "TXCache", "StoreTXID")
 	trail.Println(trace.Debug("storing TXID").UTC().Add("path", c.path).Add("address", address).Append(tr))
 	addinfo, err := c.retrieveAddressInfo(address)
 	if err != nil {
 		if err == ErrNotCached {
-			addinfo = &AddressInfo{SourceOutput: []*SourceOutput{}, TXIDs: []string{}, Address: address}
+			addinfo = &AddressInfo{TXIDs: []string{}, Address: address}
 		} else {
 			trail.Println(trace.Alert("error storing txid to cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
 			return fmt.Errorf("error storing txid of address '%s' to cache dir '%s': %w", address, c.path, err)
 		}
 	}
-	addinfo.TXIDs = append(addinfo.TXIDs, txid)
+	for _, incom := range txids {
+		exist := false
+		for _, exing := range addinfo.TXIDs {
+			if incom == exing {
+				exist = true
+			}
+		}
+		if exist == false {
+			addinfo.TXIDs = append(addinfo.TXIDs, incom)
+		}
+	}
 	err = c.storeAddressInfo(address, addinfo)
 	if err != nil {
 		trail.Println(trace.Alert("error storing txid to cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
@@ -140,7 +103,7 @@ func (c *TXCache) StoreTXID(address string, txid string) error {
 	return nil
 }
 
-func (c *TXCache) RetrieveTXID(address string) ([]string, error) {
+func (c *TXCache) RetrieveTXIDs(address string) ([]string, error) {
 	tr := trace.New().Source("cache.go", "TXCache", "RetrieveTXID")
 	trail.Println(trace.Debug("retrieving TXID").UTC().Add("path", c.path).Add("address", address).Append(tr))
 	addinfo, err := c.retrieveAddressInfo(address)

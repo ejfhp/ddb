@@ -251,7 +251,7 @@ func TestBlockchain_FeeOfHEXTX(t *testing.T) {
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, nil)
-	err = blk.FillUTXO(tx)
+	err = blk.FillSourceOutput(tx)
 	if err != nil {
 		t.Logf("failed to fill sourceoutput: %v", err)
 		t.Fail()

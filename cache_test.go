@@ -92,49 +92,6 @@ func TestTXCache_StoreRetrieveTX(t *testing.T) {
 	}
 }
 
-func TestTXCache_StoreRetrieveSourceOuput(t *testing.T) {
-	trail.SetWriter(os.Stdout)
-	address := "address"
-	so1 := ddb.SourceOutput{TXPos: 1, TXHash: "txhash1", Value: 100, ScriptPubKeyHex: "scriptpubhex1"}
-	so2 := ddb.SourceOutput{TXPos: 2, TXHash: "txhash2", Value: 200, ScriptPubKeyHex: "scriptpubhex2"}
-	usercache, _ := os.UserCacheDir()
-
-	cache, err := ddb.NewTXCache(filepath.Join(usercache, "trh"))
-	if err != nil {
-		t.Logf("failed to create cache: %v", err)
-		t.FailNow()
-	}
-
-	//STORE
-	err = cache.StoreSourceOutput(address, &so1)
-	if err != nil {
-		t.Logf("failed to store sourceoutput 1: %v", err)
-		t.FailNow()
-	}
-	err = cache.StoreSourceOutput(address, &so2)
-	if err != nil {
-		t.Logf("failed to store sourceoutput 2: %v", err)
-		t.Fail()
-	}
-
-	//RETRIEVE
-	sos, err := cache.RetrieveSourceOutput(address)
-	if err != nil {
-		t.Logf("failed to retrieve source outputs: %v", err)
-		t.Fail()
-	}
-	if len(sos) != 2 {
-		t.Logf("unexpected number of sos: %d", len(sos))
-		t.Fail()
-	}
-
-	_, err = cache.RetrieveSourceOutput("notexists")
-	if err != ddb.ErrNotCached {
-		t.Logf("unexpected error for not existent sourceoutput: %v", err)
-		t.Fail()
-	}
-}
-
 func TestTXCache_StoreRetrieveTXID(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	address := "address"
@@ -149,19 +106,19 @@ func TestTXCache_StoreRetrieveTXID(t *testing.T) {
 	}
 
 	//STORE
-	err = cache.StoreTXID(address, txid1)
+	err = cache.StoreTXIDs(address, []string{txid1})
 	if err != nil {
 		t.Logf("failed to store sourceoutput 1: %v", err)
 		t.FailNow()
 	}
-	err = cache.StoreTXID(address, txid2)
+	err = cache.StoreTXIDs(address, []string{txid2, txid1})
 	if err != nil {
 		t.Logf("failed to store sourceoutput 2: %v", err)
 		t.Fail()
 	}
 
 	//RETRIEVE
-	sos, err := cache.RetrieveTXID(address)
+	sos, err := cache.RetrieveTXIDs(address)
 	if err != nil {
 		t.Logf("failed to retrieve txid: %v", err)
 		t.Fail()
@@ -171,7 +128,7 @@ func TestTXCache_StoreRetrieveTXID(t *testing.T) {
 		t.Fail()
 	}
 
-	_, err = cache.RetrieveSourceOutput("notexists")
+	_, err = cache.RetrieveTXIDs("notexists")
 	if err != ddb.ErrNotCached {
 		t.Logf("unexpected error for not existent sourceoutput: %v", err)
 		t.Fail()

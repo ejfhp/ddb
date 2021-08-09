@@ -28,7 +28,7 @@ func (b *Blockchain) PackData(version string, ownerKey string, data [][]byte) ([
 		trail.Println(trace.Alert("cannot get owner address").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get owner address: %w", err)
 	}
-	utxos, err := b.GetLastUTXO(address)
+	utxos, err := b.GetUTXO(address)
 	if err != nil {
 		trail.Println(trace.Alert("cannot get last UTXO").UTC().Add("address", address).Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get last UTXO: %w", err)
@@ -103,7 +103,7 @@ func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 	return ids, nil
 }
 
-func (b *Blockchain) GetLastUTXO(address string) ([]*UTXO, error) {
+func (b *Blockchain) GetUTXO(address string) ([]*UTXO, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "GetLastUTXO")
 	trail.Println(trace.Debug("get last UTXO").UTC().Append(tr))
 	utxos, err := b.explorer.GetUTXOs(address)
@@ -159,6 +159,29 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 	return dataTX, nil
 }
 
+func (b *Blockchain) ListTXID(address string, cacheonly bool) ([]string, error) {
+	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXID")
+	trail.Println(trace.Debug("listing TXIDs").UTC().Add("address", address).Add("cacheonly", fmt.Sprintf("%t", cacheonly)).Append(tr))
+	txids := make([]string, 0)
+	if cacheonly && b.cache != nil {
+		txids, err := b.cache.RetrieveTXIDs(address)
+		if err != ErrNotCached {
+			trail.Println(trace.Alert("error while getting TXID from cache").UTC().Add("address", address).Error(err).Append(tr))
+			return nil, fmt.Errorf("error while getting TXID from cache: %w", err)
+		}
+		return txids, nil
+	}
+	txids, err := b.explorer.GetTXIDs(address)
+	if err != nil {
+		trail.Println(trace.Alert("error while getting TXID from explorer").UTC().Add("address", address).Error(err).Append(tr))
+		return nil, fmt.Errorf("error while getting TXID from explorer: %w", err)
+	}
+	if b.cache != nil {
+		b.cache.StoreTXIDs(address, txids)
+	}
+	return nil, nil
+}
+
 //ListTXHistoryBackward returns all the TXID of the TX history that ends to txid.
 //The search follows the given address.
 //List length is limited to limit.
@@ -187,9 +210,9 @@ func (b *Blockchain) ListTXHistoryBackward(txid string, folllowAddress string, l
 }
 
 //Data returns data inside OP_RETURN and version of TX
-func (b *Blockchain) FillUTXO(tx *DataTX) error {
-	tr := trace.New().Source("blockchain.go", "Blockchain", "FillUTXO")
-	trail.Println(trace.Debug("fill TX").UTC().Append(tr))
+func (b *Blockchain) FillSourceOutput(tx *DataTX) error {
+	tr := trace.New().Source("blockchain.go", "Blockchain", "FillSourceOutput")
+	trail.Println(trace.Debug("filling source outputs").UTC().Append(tr))
 	sourceOutputs := make([]*SourceOutput, 0)
 	for _, in := range tx.Inputs {
 		prevTX, err := b.GetTX(in.PreviousTxID)
