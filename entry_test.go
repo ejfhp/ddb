@@ -365,10 +365,20 @@ func TestEncodeDecodeSingleEntry2(t *testing.T) {
 		cryParts = append(cryParts, ep)
 	}
 	//pack
-	miner := ddb.NewTAAL()
-	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl, nil)
-	txs, err := blk.PackData("test", key, cryParts)
+	utxos := []*ddb.UTXO{&ddb.UTXO{TXPos: 1, TXHash: "TXHASH", Value: 1000, ScriptPubKeyHex: "scriptpubkey"}}
+	satoshi500 := ddb.Satoshi(500)
+	fee := &ddb.Fee{
+		FeeType: "data",
+		MiningFee: ddb.FeeUnit{
+			Satoshis: &satoshi500,
+			Bytes:    1000,
+		},
+		RelayFee: ddb.FeeUnit{
+			Satoshis: &satoshi500,
+			Bytes:    1000,
+		},
+	}
+	txs, err := ddb.PackData("test", key, cryParts, utxos, fee)
 	if err != nil {
 		t.Logf("failed to prepare TXs: %v", err)
 		t.Fail()
@@ -414,7 +424,7 @@ func TestEncodeDecodeSingleEntry2(t *testing.T) {
 		datatxs = append(datatxs, ep)
 	}
 	//unpacking
-	oprets, err := blk.UnpackData(datatxs)
+	oprets, err := ddb.UnpackData(datatxs)
 	if err != nil {
 		t.Logf("unpacking failed: %v", err)
 		t.Fail()

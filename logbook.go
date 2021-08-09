@@ -80,7 +80,17 @@ func (l *Logbook) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 		trail.Println(trace.Alert("error encrypting entries of file").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error encrypting entries of file: %w", err)
 	}
-	txs, err := l.blockchain.PackData(VER_AES, l.bitcoinWif, encryptedEntryParts)
+	utxo, err := l.blockchain.GetUTXO(l.bitcoinAdd)
+	if err != nil {
+		trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", l.bitcoinAdd).Error(err).Append(tr))
+		return nil, fmt.Errorf("error getting UTXO for address %s: %w", l.bitcoinAdd, err)
+	}
+	fee, err := l.blockchain.miner.GetDataFee()
+	if err != nil {
+		trail.Println(trace.Alert("error miner data fee").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("error getting miner data fee: %w", err)
+	}
+	txs, err := PackData(VER_AES, l.bitcoinWif, encryptedEntryParts, utxo, fee)
 	if err != nil {
 		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
@@ -172,7 +182,7 @@ func (l *Logbook) DowloadAll(outPath string) (int, error) {
 func (l *Logbook) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ExtractEntries")
 	trail.Println(trace.Info("reading entries from TXs").Add("len txs", fmt.Sprintf("%d", len(txs))).UTC().Append(tr))
-	crypts, err := l.blockchain.UnpackData(txs)
+	crypts, err := UnpackData(txs)
 	if err != nil {
 		trail.Println(trace.Alert("error unpacking data").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error unpacking data: %w", err)

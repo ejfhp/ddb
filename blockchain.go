@@ -19,64 +19,6 @@ func NewBlockchain(miner Miner, explorer Explorer, cache *TXCache) *Blockchain {
 	return &Blockchain{miner: miner, explorer: explorer, cache: cache}
 }
 
-//PackEncryptedEntriesPart writes each []data on a single TX chained with the others, returns the TXIDs and the hex encoded TXs
-func (b *Blockchain) PackData(version string, ownerKey string, data [][]byte) ([]*DataTX, error) {
-	tr := trace.New().Source("blockchain.go", "Blockchain", "PackEncryptedEntriesPart")
-	trail.Println(trace.Info("packing bytes in an array of DataTX").UTC().Append(tr))
-	address, err := AddressOf(ownerKey)
-	if err != nil {
-		trail.Println(trace.Alert("cannot get owner address").UTC().Error(err).Append(tr))
-		return nil, fmt.Errorf("cannot get owner address: %w", err)
-	}
-	utxos, err := b.GetUTXO(address)
-	if err != nil {
-		trail.Println(trace.Alert("cannot get last UTXO").UTC().Add("address", address).Error(err).Append(tr))
-		return nil, fmt.Errorf("cannot get last UTXO: %w", err)
-	}
-	dataFee, err := b.miner.GetDataFee()
-	if err != nil {
-		trail.Println(trace.Alert("cannot get data fee from miner").UTC().Add("miner", b.miner.GetName()).Error(err).Append(tr))
-		return nil, fmt.Errorf("cannot get data fee from miner: %w", err)
-	}
-	dataTXs := make([]*DataTX, len(data))
-	for i, ep := range data {
-		tempTx, err := BuildDataTX(address, utxos, ownerKey, Bitcoin(0), ep, version)
-		if err != nil {
-			trail.Println(trace.Alert("cannot build 0-fee TX").UTC().Error(err).Append(tr))
-			return nil, fmt.Errorf("cannot build 0-fee TX: %w", err)
-		}
-		fee := dataFee.CalculateFee(tempTx.ToBytes())
-		dataTx, err := BuildDataTX(address, utxos, ownerKey, fee, ep, version)
-		if err != nil {
-			trail.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
-			return nil, fmt.Errorf("cannot build TX: %w", err)
-		}
-		trail.Println(trace.Info("estimated fee").UTC().Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Add("txid", dataTx.GetTxID()).Append(tr))
-		//UTXO in TX built by BuildDataTX is in position 0
-		inPos := 0
-		utxos = []*UTXO{{TXPos: 0, TXHash: dataTx.GetTxID(), Value: Satoshi(dataTx.Outputs[inPos].Satoshis).Bitcoin(), ScriptPubKeyHex: dataTx.Outputs[inPos].GetLockingScriptHexString()}}
-		dataTXs[i] = dataTx
-	}
-	return dataTXs, nil
-}
-
-//UnpackData extract the OP_RETURN data from the given transaxtions byte arrays
-func (b *Blockchain) UnpackData(txs []*DataTX) ([][]byte, error) {
-	tr := trace.New().Source("blockchain.go", "Blockchain", "UnpackEncryptedEntriesPart")
-	trail.Println(trace.Info("opening TXs").UTC().Append(tr))
-	data := make([][]byte, 0, len(txs))
-	for _, tx := range txs {
-		opr, ver, err := tx.Data()
-		// trail.Println(trace.Info("DataTX version").Add("version", ver).UTC().Error(err).Append(tr))
-		if err != nil {
-			trail.Println(trace.Alert("error while getting OpReturn data from DataTX").UTC().Add("version", ver).Error(err).Append(tr))
-			return nil, fmt.Errorf("error while getting OpReturn data from DataTX ver%s: %w", ver, err)
-		}
-		data = append(data, opr)
-	}
-	return data, nil
-}
-
 //Submit submits all the transactions to the miner to be included in the blockchain, returns the TX IDs
 func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
@@ -179,7 +121,7 @@ func (b *Blockchain) ListTXID(address string, cacheonly bool) ([]string, error) 
 	if b.cache != nil {
 		b.cache.StoreTXIDs(address, txids)
 	}
-	return nil, nil
+	return txids, nil
 }
 
 //ListTXHistoryBackward returns all the TXID of the TX history that ends to txid.

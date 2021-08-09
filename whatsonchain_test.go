@@ -13,6 +13,10 @@ func TestGetUTXOs(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	unsTx, err := woc.GetUTXOs("1K2HC5AQQniJ2zcWSyjjtkKZgKMkZ1CGNr")
+	fmt.Printf("spub: %s\n", unsTx[0].ScriptPubKeyHex)
+	fmt.Printf("txhs: %s\n", unsTx[0].TXHash)
+	fmt.Printf("valu: %v\n", unsTx[0].Value)
+	fmt.Printf("posi: %d\n", unsTx[0].TXPos)
 	if err != nil {
 		t.Logf("error: %v", err)
 		t.Fail()
