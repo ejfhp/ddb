@@ -9,14 +9,14 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
-type Logbook struct {
+type Diary struct {
 	bitcoinWif string
 	bitcoinAdd string
 	cryptoKey  [32]byte
 	blockchain *Blockchain
 }
 
-func NewLogbook(wif string, password [32]byte, blockchain *Blockchain) (*Logbook, error) {
+func NewDiary(wif string, password [32]byte, blockchain *Blockchain) (*Diary, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "NewLogbook")
 	trail.Println(trace.Debug("new Logbook").UTC().Append(tr))
 	address, err := AddressOf(wif)
@@ -24,24 +24,24 @@ func NewLogbook(wif string, password [32]byte, blockchain *Blockchain) (*Logbook
 		trail.Println(trace.Alert("cannot get address of key").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get address of key: %w", err)
 	}
-	return &Logbook{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, blockchain: blockchain}, nil
+	return &Diary{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, blockchain: blockchain}, nil
 
 }
 
-func (l *Logbook) BitcoinPrivateKey() string {
+func (l *Diary) BitcoinPrivateKey() string {
 	return l.bitcoinWif
 }
 
-func (l *Logbook) BitcoinPublicAddress() string {
+func (l *Diary) BitcoinPublicAddress() string {
 	return l.bitcoinAdd
 }
 
-func (l *Logbook) EncodingPassword() string {
+func (l *Diary) EncodingPassword() string {
 	return string(l.cryptoKey[:])
 }
 
 //CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.
-func (l *Logbook) CastEntry(entry *Entry) ([]string, error) {
+func (l *Diary) CastEntry(entry *Entry) ([]string, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "CastEntry")
 	trail.Println(trace.Info("casting entry to the blockcchain").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
 	txs, err := l.ProcessEntry(entry)
@@ -55,11 +55,42 @@ func (l *Logbook) CastEntry(entry *Entry) ([]string, error) {
 		return nil, fmt.Errorf("error while sending transactions: %w", err)
 	}
 	return ids, nil
+}
 
+//EstimateFee returns an estimation in satoshi of the fee necessary to store the entry on the blockchain.
+func (l *Diary) EstimateFee(entry *Entry) (Satoshi, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "EstimateFee")
+	trail.Println(trace.Info("estimate fee to cast entry").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
+	encryptedEntryParts, err := l.EncryptEntry(entry)
+	if err != nil {
+		trail.Println(trace.Alert("error encrypting entries of file").UTC().Error(err).Append(tr))
+		return Satoshi(0), fmt.Errorf("error encrypting entries of file: %w", err)
+	}
+	fakeUtxos := []*UTXO{{TXPos: 0, TXHash: "72124e293287ab0ca20a723edb61b58d6ef89aba05508b92198bd948bfb6da40", Value: 100000000000, ScriptPubKeyHex: "76a914330a97979931a961d1e5f05d3c7ace4217fc7adc88ac"}}
+	dataFee, err := l.blockchain.miner.GetDataFee()
+	if err != nil {
+		trail.Println(trace.Alert("error getting miner data fee").UTC().Error(err).Append(tr))
+		return Satoshi(0), fmt.Errorf("error getting miner data fee: %w", err)
+	}
+	txs, err := PackData(VER_AES, l.bitcoinWif, encryptedEntryParts, fakeUtxos, dataFee)
+	if err != nil {
+		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
+		return Satoshi(0), fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
+	}
+	fee := Satoshi(0)
+	for _, tx := range txs {
+		f, err := tx.Fee()
+		if err != nil {
+			trail.Println(trace.Alert("error getting fee from DataTXs").UTC().Error(err).Append(tr))
+			return Satoshi(0), fmt.Errorf("error getting fee DataTXs: %w", err)
+		}
+		fee = fee.Add(f)
+	}
+	return fee, nil
 }
 
 //Submit push the transactions to the blockchain, returns the TXID of the transactions sent.
-func (l *Logbook) Submit(txs []*DataTX) ([]string, error) {
+func (l *Diary) Submit(txs []*DataTX) ([]string, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "Submit")
 	trail.Println(trace.Info("submitting transactions to the blockcchain").Add("num txs", fmt.Sprintf("%d", len(txs))).UTC().Append(tr))
 	ids, err := l.blockchain.Submit(txs)
@@ -72,7 +103,7 @@ func (l *Logbook) Submit(txs []*DataTX) ([]string, error) {
 }
 
 //ProcessEntry prepares all the TXs required to store the entry on the blockchain.
-func (l *Logbook) ProcessEntry(entry *Entry) ([]*DataTX, error) {
+func (l *Diary) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ProcessEntry")
 	trail.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
 	encryptedEntryParts, err := l.EncryptEntry(entry)
@@ -99,7 +130,7 @@ func (l *Logbook) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 }
 
 //ProcessEntry prepares all the TXs required to store the entry on the blockchain.
-func (l *Logbook) EncryptEntry(entry *Entry) ([][]byte, error) {
+func (l *Diary) EncryptEntry(entry *Entry) ([][]byte, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "EncryptEntry")
 	trail.Println(trace.Info("getting parts").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
 	parts, err := entry.Parts(l.MaxDataSize())
@@ -125,7 +156,7 @@ func (l *Logbook) EncryptEntry(entry *Entry) ([][]byte, error) {
 }
 
 //RetrieveTXs retrieves the TXs with the given IDs.
-func (l *Logbook) RetrieveTXs(txids []string) ([]*DataTX, error) {
+func (l *Diary) RetrieveTXs(txids []string) ([]*DataTX, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "RetrieveTXs")
 	trail.Println(trace.Info("retrieving TXs from the blockchain").Add("len txids", fmt.Sprintf("%d", len(txids))).UTC().Append(tr))
 	txs := make([]*DataTX, 0, len(txids))
@@ -141,7 +172,7 @@ func (l *Logbook) RetrieveTXs(txids []string) ([]*DataTX, error) {
 }
 
 //RetrieveAndExtractEntries retrieve the TX with the given IDs and extracts all the Entries fully contained.
-func (l *Logbook) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
+func (l *Diary) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "RetrievingEntries")
 	trail.Println(trace.Info("retrieving TXs from the blockchain and extracting entries").Add("len txids", fmt.Sprintf("%d", len(txids))).UTC().Append(tr))
 	txs, err := l.RetrieveTXs(txids)
@@ -158,7 +189,7 @@ func (l *Logbook) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
 }
 
 //DownloadAll saves locally all the files connected to the address. Return the number of entries saved.
-func (l *Logbook) DowloadAll(outPath string) (int, error) {
+func (l *Diary) DowloadAll(outPath string) (int, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "DownloadAll")
 	trail.Println(trace.Info("download all entries locally").Add("outpath", outPath).UTC().Append(tr))
 	history, err := l.blockchain.explorer.GetTXIDs(l.bitcoinAdd)
@@ -179,7 +210,7 @@ func (l *Logbook) DowloadAll(outPath string) (int, error) {
 }
 
 //ExtractEntries rebuild all the Entries fully contained in the given TXs array.
-func (l *Logbook) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
+func (l *Diary) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ExtractEntries")
 	trail.Println(trace.Info("reading entries from TXs").Add("len txs", fmt.Sprintf("%d", len(txs))).UTC().Append(tr))
 	crypts, err := UnpackData(txs)
@@ -195,7 +226,7 @@ func (l *Logbook) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 }
 
 //DecryptEntries decrypts entries from the encrypted OP_RETURN data.
-func (l *Logbook) DecryptEntries(crypts [][]byte) ([]*Entry, error) {
+func (l *Diary) DecryptEntries(crypts [][]byte) ([]*Entry, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "DecryptEntries")
 	trail.Println(trace.Info("decrypting data").UTC().Append(tr))
 	parts := make([]*EntryPart, 0, len(crypts))
@@ -220,7 +251,7 @@ func (l *Logbook) DecryptEntries(crypts [][]byte) ([]*Entry, error) {
 	return entries, nil
 }
 
-func (l *Logbook) ListHistory(address string) ([]string, error) {
+func (l *Diary) ListHistory(address string) ([]string, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ListHistory")
 	trail.Println(trace.Info("listing TX history").UTC().Add("address", address).Append(tr))
 	txids, err := l.blockchain.explorer.GetTXIDs(address)
@@ -231,7 +262,7 @@ func (l *Logbook) ListHistory(address string) ([]string, error) {
 	return txids, nil
 }
 
-func (l *Logbook) MaxDataSize() int {
+func (l *Diary) MaxDataSize() int {
 	//9 is header size and must never be changed
 	avai := l.blockchain.miner.MaxOpReturn() - 9
 	cryptFactor := 0.5

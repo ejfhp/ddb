@@ -167,7 +167,7 @@ func (t *DataTX) Data() ([]byte, string, error) {
 }
 
 //Data returns data inside OP_RETURN and version of TX
-func (t *DataTX) Fees() (Token, error) {
+func (t *DataTX) Fee() (Token, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Fee")
 	if t.SourceOutputs == nil || len(t.SourceOutputs) == 0 {
 		trail.Println(trace.Alert("transaction has no source utxo").UTC().Append(tr))
@@ -176,16 +176,16 @@ func (t *DataTX) Fees() (Token, error) {
 	}
 	totInput := Satoshi(0)
 	for _, in := range t.SourceOutputs {
-		trail.Println(trace.Info("input").UTC().Add("value", fmt.Sprintf("%d", in.Value)).Append(tr))
+		// trail.Println(trace.Info("input").UTC().Add("value", fmt.Sprintf("%d", in.Value)).Append(tr))
 		totInput = totInput.Add(in.Value)
 	}
 	totOutput := uint64(0)
 	for _, out := range t.Outputs {
-		trail.Println(trace.Info("output").UTC().Add("value", fmt.Sprintf("%d", out.Satoshis)).Append(tr))
+		// trail.Println(trace.Info("output").UTC().Add("value", fmt.Sprintf("%d", out.Satoshis)).Append(tr))
 		totOutput += out.Satoshis
 	}
-	fmt.Printf("tot input :%d\n", totInput)
-	fmt.Printf("tot output :%d\n", totOutput)
+	// fmt.Printf("tot input :%d\n", totInput)
+	// fmt.Printf("tot output :%d\n", totOutput)
 	fee := totInput.Sub(Satoshi(totOutput))
 	return fee, nil
 }

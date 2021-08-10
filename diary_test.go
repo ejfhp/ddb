@@ -17,7 +17,7 @@ import (
 var address string
 var key string
 
-func TestProcessEntry(t *testing.T) {
+func TestDiary_ProcessEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -34,7 +34,7 @@ func TestProcessEntry(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	for i, v := range passwords {
-		logbook, err := ddb.NewLogbook(key, v, blockchain)
+		logbook, err := ddb.NewDiary(key, v, blockchain)
 		if err != nil {
 			t.Logf("%d failed to create new Logbook: %v", i, err)
 			t.Fail()
@@ -68,14 +68,48 @@ func TestProcessEntry(t *testing.T) {
 			if ep.Name != filename {
 				t.Logf("unexpected name: %s != %s", ep.Name, filename)
 				t.FailNow()
-
 			}
 		}
-
 	}
 }
 
-func TestEncryptDecryptEntry(t *testing.T) {
+func TestDiary_EstimateFee(t *testing.T) {
+	trail.SetWriter(os.Stdout)
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	passwords := [][32]byte{
+		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
+	}
+	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	filename := "Inferno"
+	file := `Nel mezzo del cammin di nostra vita
+		mi ritrovai per una selva oscura,
+		ché la diritta via era smarrita.
+		
+		Ahi quanto a dir qual era è cosa dura
+		esta selva selvaggia e aspra e forte
+		che nel pensier rinova la paura!`
+	for i, v := range passwords {
+		diary, err := ddb.NewDiary(key, v, blockchain)
+		if err != nil {
+			t.Logf("%d failed to create new Logbook: %v", i, err)
+			t.Fail()
+		}
+		entry := ddb.Entry{Name: filename, Data: []byte(file)}
+		fee, err := diary.EstimateFee(&entry)
+		if err != nil {
+			t.Logf("%d failed to estimate fee: %v", i, err)
+			t.Fail()
+		}
+		if fee < 10 {
+			t.Logf("%d fee too cheap: %d", i, fee.Satoshi())
+			t.Fail()
+
+		}
+	}
+}
+
+func TestDiary_EncryptDecryptEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -105,7 +139,7 @@ func TestEncryptDecryptEntry(t *testing.T) {
 			t.Fail()
 		}
 		pass := k.Password()
-		logbook, err := ddb.NewLogbook(wif, pass, blockchain)
+		logbook, err := ddb.NewDiary(wif, pass, blockchain)
 		if err != nil {
 			t.Logf("%d failed to create new Logbook: %v", i, err)
 			t.Fail()
@@ -129,13 +163,13 @@ func TestEncryptDecryptEntry(t *testing.T) {
 	}
 }
 
-func NO_TestCastEntry(t *testing.T) {
+func NO_TestDiary_CastEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Logf("failed to create new Logbook: %v", err)
 		t.Fail()
@@ -163,13 +197,13 @@ func NO_TestCastEntry(t *testing.T) {
 	}
 }
 
-func NO_TestCastImageEntry(t *testing.T) {
+func NO_TestDiary_CastImageEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Logf("failed to create new Logbook: %v", err)
 		t.Fail()
@@ -195,14 +229,14 @@ func NO_TestCastImageEntry(t *testing.T) {
 	}
 }
 
-func TestRetrieveAndExtractEntries(t *testing.T) {
+func TestDiary_RetrieveAndExtractEntries(t *testing.T) {
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Logf("failed to create new Logbook: %v", err)
 		t.Fail()
@@ -244,7 +278,7 @@ func TestRetrieveAndExtractEntries(t *testing.T) {
 	}
 }
 
-func TestRetrieveAndExtractImageEntry(t *testing.T) {
+func TestDiary_RetrieveAndExtractImageEntry(t *testing.T) {
 	txids := []string{
 		"afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426", //EXTRA TX
 		"33c5339f5f942793867898d92c72cdab8fc5ff464f77970fc6fd0cf8dd99f271",
@@ -262,7 +296,7 @@ func TestRetrieveAndExtractImageEntry(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Logf("failed to create new Logbook: %v", err)
 		t.Fail()
@@ -311,13 +345,13 @@ func TestRetrieveAndExtractImageEntry(t *testing.T) {
 	}
 }
 
-func TestLogbookEntryFullCycleText(t *testing.T) {
+func TestDiary_EntryFullCycleText(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Logf("failed to create logbook: %v", err)
 		t.Fail()
@@ -365,13 +399,13 @@ func TestLogbookEntryFullCycleText(t *testing.T) {
 	}
 }
 
-func TestLogbookEntryFullCycleImage(t *testing.T) {
+func TestDiary_EntryFullCycleImage(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Fatalf("error building Logbook: %v", err)
 	}
@@ -422,13 +456,13 @@ func TestLogbookEntryFullCycleImage(t *testing.T) {
 	}
 }
 
-func TestRetrieveTXs(t *testing.T) {
+func TestDiary_RetrieveTXs(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Logf("error building Logbook: %v", err)
 		t.FailNow()
@@ -448,13 +482,13 @@ func TestRetrieveTXs(t *testing.T) {
 	}
 }
 
-func TestDownloadAll(t *testing.T) {
+func TestDiary_DownloadAll(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Logf("error building Logbook: %v", err)
 		t.FailNow()
@@ -472,13 +506,13 @@ func TestDownloadAll(t *testing.T) {
 	t.Logf("downloaded entries: %d", n)
 }
 
-func TestListHistory(t *testing.T) {
+func TestDiary_ListHistory(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewLogbook(key, password, blockchain)
+	logbook, err := ddb.NewDiary(key, password, blockchain)
 	if err != nil {
 		t.Logf("error building Logbook: %v", err)
 		t.FailNow()
