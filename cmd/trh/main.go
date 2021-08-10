@@ -80,7 +80,7 @@ func keyGen(passphrase string, passnum int) (string, [32]byte, error) {
 	return wif, password, nil
 }
 
-func newLogbook(passphrase string, passnum int) (*ddb.DDB, error) {
+func newLogbook(passphrase string, passnum int) (*ddb.Diary, error) {
 	wif, password, err := keyGen(passphrase, passnum)
 	if err != nil {
 		return nil, fmt.Errorf("error while generating the Bitcoin private key: %w", err)
