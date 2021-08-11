@@ -59,7 +59,7 @@ func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []b
 	}
 	tx := bt.NewTx()
 	satInput := Satoshi(0)
-	sourceOutputs := make([]*SourceOutput, len(inutxo))
+	sourceOutputs := make([]*SourceOutput, 0, len(inutxo))
 	for i, utx := range inutxo {
 		sourceOutput := SourceOutput{TXPos: utx.TXPos, TXHash: utx.TXHash, Value: utx.Value.Satoshi(), ScriptPubKeyHex: utx.ScriptPubKeyHex}
 		sourceOutputs = append(sourceOutputs, &sourceOutput)
@@ -176,12 +176,12 @@ func (t *DataTX) Fee() (Token, error) {
 	}
 	totInput := Satoshi(0)
 	for _, in := range t.SourceOutputs {
-		// trail.Println(trace.Info("input").UTC().Add("value", fmt.Sprintf("%d", in.Value)).Append(tr))
+		trail.Println(trace.Info("input").UTC().Add("value", fmt.Sprintf("%d", in.Value)).Append(tr))
 		totInput = totInput.Add(in.Value)
 	}
 	totOutput := uint64(0)
 	for _, out := range t.Outputs {
-		// trail.Println(trace.Info("output").UTC().Add("value", fmt.Sprintf("%d", out.Satoshis)).Append(tr))
+		trail.Println(trace.Info("output").UTC().Add("value", fmt.Sprintf("%d", out.Satoshis)).Append(tr))
 		totOutput += out.Satoshis
 	}
 	// fmt.Printf("tot input :%d\n", totInput)

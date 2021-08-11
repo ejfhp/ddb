@@ -9,7 +9,7 @@ import (
 
 //PackEncryptedEntriesPart writes each []data on a single TX chained with the others, returns the TXIDs and the hex encoded TXs
 func PackData(version string, ownerKey string, data [][]byte, utxos []*UTXO, dataFee *Fee) ([]*DataTX, error) {
-	tr := trace.New().Source("blockchain.go", "Blockchain", "PackEncryptedEntriesPart")
+	tr := trace.New().Source("packer.go", "", "PackData")
 	trail.Println(trace.Info("packing bytes in an array of DataTX").UTC().Append(tr))
 	address, err := AddressOf(ownerKey)
 	if err != nil {
@@ -29,7 +29,7 @@ func PackData(version string, ownerKey string, data [][]byte, utxos []*UTXO, dat
 			trail.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build TX: %w", err)
 		}
-		trail.Println(trace.Info("estimated fee").UTC().Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Add("txid", dataTx.GetTxID()).Append(tr))
+		trail.Println(trace.Info("got estimated fee").UTC().Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Add("txid", dataTx.GetTxID()).Append(tr))
 		//UTXO in TX built by BuildDataTX is in position 0
 		inPos := 0
 		utxos = []*UTXO{{TXPos: 0, TXHash: dataTx.GetTxID(), Value: Satoshi(dataTx.Outputs[inPos].Satoshis).Bitcoin(), ScriptPubKeyHex: dataTx.Outputs[inPos].GetLockingScriptHexString()}}

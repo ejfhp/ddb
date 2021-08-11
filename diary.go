@@ -60,7 +60,7 @@ func (l *Diary) CastEntry(entry *Entry) ([]string, error) {
 //EstimateFee returns an estimation in satoshi of the fee necessary to store the entry on the blockchain.
 func (l *Diary) EstimateFee(entry *Entry) (Satoshi, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "EstimateFee")
-	trail.Println(trace.Info("estimate fee to cast entry").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
+	trail.Println(trace.Info("estimate fee to cast entry").UTC().Append(tr).Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))))
 	encryptedEntryParts, err := l.EncryptEntry(entry)
 	if err != nil {
 		trail.Println(trace.Alert("error encrypting entries of file").UTC().Error(err).Append(tr))

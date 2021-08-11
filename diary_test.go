@@ -92,7 +92,7 @@ func TestDiary_EstimateFee(t *testing.T) {
 	for i, v := range passwords {
 		diary, err := ddb.NewDiary(key, v, blockchain)
 		if err != nil {
-			t.Logf("%d failed to create new Logbook: %v", i, err)
+			t.Logf("%d failed to create new Diary: %v", i, err)
 			t.Fail()
 		}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
