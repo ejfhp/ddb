@@ -101,10 +101,9 @@ func TestDiary_EstimateFee(t *testing.T) {
 			t.Logf("%d failed to estimate fee: %v", i, err)
 			t.Fail()
 		}
-		if fee < 10 {
+		if fee < 300 {
 			t.Logf("%d fee too cheap: %d", i, fee.Satoshi())
 			t.Fail()
-
 		}
 	}
 }

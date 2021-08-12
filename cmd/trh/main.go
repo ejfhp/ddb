@@ -4,13 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
-	"regexp"
-	"runtime"
-	"strconv"
 	"strings"
 
-	"github.com/ejfhp/ddb"
 	"github.com/ejfhp/trail"
 )
 
@@ -33,67 +28,6 @@ var (
 	flagFilename  string
 	flagOutputDir string
 )
-
-func checkPassphrase(args []string) (string, int, error) {
-	startidx := -1
-	for i, t := range args {
-		if t == "+" {
-			startidx = i + 1
-		}
-	}
-	if startidx < 0 || startidx >= len(args) {
-		return "", 0, fmt.Errorf("passphrase is missing")
-	}
-	passphrase := strings.Join(args[startidx:], " ")
-	passnum := 0
-	reg, err := regexp.Compile("[^0-9 ]+")
-	if err != nil {
-		return "", 0, fmt.Errorf("error compiling regexp: %w", err)
-	}
-	phnum := reg.ReplaceAllString(passphrase, "")
-	for _, n := range strings.Split(phnum, " ") {
-		num, err := strconv.ParseInt(n, 10, 64)
-		if err != nil {
-			continue
-		}
-		if num < 0 {
-			num = num * -1
-		}
-		passnum = int(num)
-	}
-	if passnum == 0 {
-		return "", 0, fmt.Errorf("passphrase must contain a number")
-	}
-	return passphrase, passnum, nil
-}
-
-func keyGen(passphrase string, passnum int) (string, [32]byte, error) {
-	keygen, err := ddb.NewKeygen2(passnum, passphrase)
-	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error while building Keygen: %w", err)
-	}
-	wif, err := keygen.WIF()
-	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error while generating bitcoin key: %w", err)
-	}
-	password := keygen.Password()
-	return wif, password, nil
-}
-
-func newLogbook(passphrase string, passnum int) (*ddb.Diary, error) {
-	wif, password, err := keyGen(passphrase, passnum)
-	if err != nil {
-		return nil, fmt.Errorf("error while generating the Bitcoin private key: %w", err)
-	}
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	blockchain := ddb.NewBlockchain(taal, woc)
-	logbook, err := ddb.NewLogbook(wif, password, blockchain)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating a new Logbook: %w", err)
-	}
-	return logbook, nil
-}
 
 func logOn(on bool) {
 	if on {
@@ -158,144 +92,6 @@ func printHelp(flagset *flag.FlagSet) {
 	}
 	fmt.Printf("Main command: describe, store, retrieve.\n")
 	os.Exit(0)
-}
-
-func flagset(cmd string, args []string) []string {
-	flagset := flag.NewFlagSet("describe", flag.ContinueOnError)
-	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
-	flagset.BoolVar(&flagHelp, "help", false, "print help")
-	flagset.BoolVar(&flagHelp, "h", false, "print help")
-	switch cmd {
-	case commandStore:
-		flagset.StringVar(&flagFilename, "file", "", "path of file to store onchain")
-	case commandRetrieve:
-		flagset.StringVar(&flagOutputDir, "outdir", "", "path of folder where to save retrived files")
-	}
-	flagset.Parse(args)
-	if flagHelp {
-		printHelp(flagset)
-	}
-	//fmt.Printf("file: %s\n", flagFilename)
-	logOn(flagLog)
-	return flagset.Args()
-}
-
-func cmdDescribe(args []string) error {
-	argsLeft := flagset(commandDescribe, args)
-
-	passphrase, passnum, err := checkPassphrase(argsLeft)
-	if err != nil {
-		return fmt.Errorf("error checking passphrase: %w", err)
-	}
-	fmt.Printf("\nSecret configuration:\n")
-	fmt.Printf("  passnum:    '%d'\n", passnum)
-	fmt.Printf("  passphrase: '%s'\n", passphrase)
-	logbook, err := newLogbook(passphrase, passnum)
-	if err != nil {
-		return fmt.Errorf("error creating Logbook: %w", err)
-	}
-	fmt.Printf("  pasword:     '%s'\n", logbook.EncodingPassword())
-	fmt.Printf("\nBitcoin configuration:\n")
-	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
-	if runtime.GOOS != "windows" {
-		fmt.Printf("\n")
-		ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
-		fmt.Printf("\n")
-	}
-	fmt.Printf("  Bitcoin Address  : '%s'\n", logbook.BitcoinPublicAddress())
-	if runtime.GOOS != "windows" {
-		fmt.Printf("\n")
-		ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
-		fmt.Printf("\n")
-	}
-
-	history, err := logbook.ListHistory(logbook.BitcoinPublicAddress())
-	if err != nil {
-		return fmt.Errorf("error getting address history; %w", err)
-	}
-	fmt.Printf("Transaction History\n")
-	if len(history) == 0 {
-		fmt.Printf("this address has no history\n")
-	}
-	for i, tx := range history {
-		fmt.Printf("%d: %s\n", i, tx)
-	}
-	return nil
-}
-
-// func cmdEstimate(args []string) error {
-// 	argsLeft := flagset(commandStore, args)
-
-// 	passphrase, passnum, err := checkPassphrase(argsLeft)
-// 	if err != nil {
-// 		return fmt.Errorf("error checking passphrase: %w", err)
-// 	}
-// 	logbook, err := newLogbook(passphrase, passnum)
-// 	if err != nil {
-// 		return fmt.Errorf("error creating Logbook: %w", err)
-// 	}
-// 	entry, err := ddb.NewEntryFromFile(filepath.Base(flagFilename), flagFilename)
-// 	if err != nil {
-// 		return fmt.Errorf("error opening file '%s': %v", flagFilename, err)
-// 	}
-// 	txs, err := logbook.ProcessEntry(entry)
-// 	if err != nil {
-// 		return fmt.Errorf("error while processing file '%s': %w", flagFilename, err)
-// 	}
-// 	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
-// 	for i, tx := range txids {
-// 		fmt.Printf("%d: %s\n", i, tx)
-// 	}
-// 	return nil
-// }
-
-func cmdStore(args []string) error {
-	argsLeft := flagset(commandStore, args)
-
-	passphrase, passnum, err := checkPassphrase(argsLeft)
-	if err != nil {
-		return fmt.Errorf("error checking passphrase: %w", err)
-	}
-	logbook, err := newLogbook(passphrase, passnum)
-	if err != nil {
-		return fmt.Errorf("error creating Logbook: %w", err)
-	}
-	entry, err := ddb.NewEntryFromFile(filepath.Base(flagFilename), flagFilename)
-	if err != nil {
-		return fmt.Errorf("error opening file '%s': %v", flagFilename, err)
-	}
-	txids, err := logbook.CastEntry(entry)
-	if err != nil {
-		return fmt.Errorf("error while storing file '%s' onchain connected to address '%s': %w", flagFilename, logbook.BitcoinPublicAddress(), err)
-	}
-	fmt.Printf("The file has been stored in transactions with the followind IDs\n")
-	for i, tx := range txids {
-		fmt.Printf("%d: %s\n", i, tx)
-	}
-	return nil
-}
-
-func cmdRetrieve(args []string) error {
-	argsLeft := flagset(commandRetrieve, args)
-
-	if flagOutputDir == "" {
-		fmt.Printf("Output dir not set, using local flolder.\n")
-	}
-	passphrase, passnum, err := checkPassphrase(argsLeft)
-	if err != nil {
-		return fmt.Errorf("error checking passphrase: %w", err)
-	}
-	logbook, err := newLogbook(passphrase, passnum)
-	if err != nil {
-		return fmt.Errorf("error creating Logbook: %w", err)
-	}
-
-	n, err := logbook.DowloadAll(flagOutputDir)
-	if err != nil {
-		fmt.Errorf("error while retrieving files from address '%s' to floder '%s': %w", logbook.BitcoinPublicAddress(), flagOutputDir, err)
-	}
-	fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, logbook.BitcoinPublicAddress(), flagOutputDir)
-	return nil
 }
 
 func main() {

@@ -25,7 +25,6 @@ func NewDiary(wif string, password [32]byte, blockchain *Blockchain) (*Diary, er
 		return nil, fmt.Errorf("cannot get address of key: %w", err)
 	}
 	return &Diary{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, blockchain: blockchain}, nil
-
 }
 
 func (l *Diary) BitcoinPrivateKey() string {
