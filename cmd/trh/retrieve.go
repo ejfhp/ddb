@@ -28,12 +28,6 @@ func NewRetrieve(environment *Environment) *Retrieve {
 
 }
 
-func flagsetRetrieve(cmd string, args []string) []string {
-	flagset.Parse(args)
-	//fmt.Printf("file: %s\n", flagFilename)
-	return flagset.Args()
-}
-
 func (cr *Retrieve) Cmd(args []string) error {
 	err := cr.flagset.Parse(args)
 	if flagHelp {
@@ -45,11 +39,11 @@ func (cr *Retrieve) Cmd(args []string) error {
 	if flagOutputDir == "" {
 		fmt.Printf("Output dir not set, using local flolder.\n")
 	}
-	passphrase, passnum, err := checkPassphrase(argsLeft)
+	passphrase, num, err := checkPassphrase(argsLeft)
 	if err != nil {
 		return fmt.Errorf("error checking passphrase: %w", err)
 	}
-	logbook, err := newLogbook(passphrase, passnum)
+	logbook := newDiary(passphrase, num)
 	if err != nil {
 		return fmt.Errorf("error creating Logbook: %w", err)
 	}

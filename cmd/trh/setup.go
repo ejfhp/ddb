@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,7 +15,7 @@ type Environment struct {
 	Diary *ddb.Diary
 }
 
-func checkPassphrase(args []string) (string, int, error) {
+func extractPassphrase(args []string) (string, error) {
 	startidx := -1
 	for i, t := range args {
 		if t == "+" {
@@ -21,16 +23,20 @@ func checkPassphrase(args []string) (string, int, error) {
 		}
 	}
 	if startidx < 0 || startidx >= len(args) {
-		return "", 0, fmt.Errorf("passphrase is missing")
+		return "", fmt.Errorf("passphrase is missing")
 	}
 	passphrase := strings.Join(args[startidx:], " ")
-	passnum := 0
+	return passphrase, nil
+}
+
+func processPassphrase(passphrase string, keygenID int) (string, [32]byte, error) {
+	var passnum int
 	reg, err := regexp.Compile("[^0-9 ]+")
 	if err != nil {
-		return "", 0, fmt.Errorf("error compiling regexp: %w", err)
+		return "", [32]byte{}, fmt.Errorf("error compiling regexp: %w", err)
 	}
-	phnum := reg.ReplaceAllString(passphrase, "")
-	for _, n := range strings.Split(phnum, " ") {
+	phrasenum := reg.ReplaceAllString(passphrase, "")
+	for _, n := range strings.Split(phrasenum, " ") {
 		num, err := strconv.ParseInt(n, 10, 64)
 		if err != nil {
 			continue
@@ -41,15 +47,14 @@ func checkPassphrase(args []string) (string, int, error) {
 		passnum = int(num)
 	}
 	if passnum == 0 {
-		return "", 0, fmt.Errorf("passphrase must contain a number")
+		return "", [32]byte{}, fmt.Errorf("passphrase must contain a number")
 	}
-	return passphrase, passnum, nil
-}
-
-func keyGen(passphrase string, passnum int) (string, [32]byte, error) {
-	keygen, err := ddb.NewKeygen2(passnum, passphrase)
-	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error while building Keygen: %w", err)
+	var keygen ddb.Keygen
+	if keygenID == 2 {
+		keygen, err = ddb.NewKeygen2(passnum, passphrase)
+		if err != nil {
+			return "", [32]byte{}, fmt.Errorf("error building Keygen2: %w", err)
+		}
 	}
 	wif, err := keygen.WIF()
 	if err != nil {
@@ -59,15 +64,38 @@ func keyGen(passphrase string, passnum int) (string, [32]byte, error) {
 	return wif, password, nil
 }
 
-func newDiary(passphrase string, passnum int, cache *ddb.TXCache) (*ddb.Diary, error) {
-	wif, password, err := keyGen(passphrase, passnum)
-	if err != nil {
-		return nil, fmt.Errorf("error while generating the Bitcoin private key: %w", err)
+func prepareDiary(passphrase string, keygenID int, privateKey string, address string, password string, enableCache bool, cachePath string) (*ddb.Diary, error) {
+	var passEncrypt [32]byte
+	var bitcoinKey string
+	var err error
+	if passphrase != "" {
+		bitcoinKey, passEncrypt, err = processPassphrase(passphrase, keygenID)
+		if err != nil {
+			return nil, fmt.Errorf("error while processing passphrase: %w", err)
+		}
+	}
+	if privateKey != "" {
+		bitcoinKey = privateKey
+	}
+	if password != "" {
+		copy(passEncrypt[:], []byte(password))
 	}
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
+	var cache *ddb.TXCache
+	if enableCache {
+		if cachePath != "" {
+			cache, err = ddb.NewTXCache(cachePath)
+		} else {
+			usercache, _ := os.UserCacheDir()
+			cache, err = ddb.NewTXCache(filepath.Join(usercache, "trh"))
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error while creating Cache: %w", err)
+		}
+	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	diary, err := ddb.NewDiary(wif, password, blockchain)
+	diary, err := ddb.NewDiary(bitcoinKey, passEncrypt, blockchain)
 	if err != nil {
 		return nil, fmt.Errorf("error while creating a new Diary: %w", err)
 	}

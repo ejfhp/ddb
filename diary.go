@@ -17,14 +17,20 @@ type Diary struct {
 }
 
 func NewDiary(wif string, password [32]byte, blockchain *Blockchain) (*Diary, error) {
-	tr := trace.New().Source("logbook.go", "Logbook", "NewLogbook")
-	trail.Println(trace.Debug("new Logbook").UTC().Append(tr))
+	tr := trace.New().Source("diary.go", "Diary", "NewDiary")
+	trail.Println(trace.Debug("new Diary").UTC().Append(tr))
 	address, err := AddressOf(wif)
 	if err != nil {
 		trail.Println(trace.Alert("cannot get address of key").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get address of key: %w", err)
 	}
 	return &Diary{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, blockchain: blockchain}, nil
+}
+
+func NewDiaryRO(address string, password [32]byte, blockchain *Blockchain) (*Diary, error) {
+	tr := trace.New().Source("logbook.go", "Logbook", "NewDiaryRO")
+	trail.Println(trace.Debug("new readonly Diary").UTC().Append(tr))
+	return &Diary{bitcoinWif: "", bitcoinAdd: address, cryptoKey: password, blockchain: blockchain}, nil
 }
 
 func (l *Diary) BitcoinPrivateKey() string {
@@ -37,6 +43,10 @@ func (l *Diary) BitcoinPublicAddress() string {
 
 func (l *Diary) EncodingPassword() string {
 	return string(l.cryptoKey[:])
+}
+
+func (l *Diary) ReadOnly() bool {
+	return l.bitcoinWif == ""
 }
 
 //CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.

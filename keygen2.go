@@ -44,7 +44,7 @@ func (k *Keygen2) WIF() (string, error) {
 
 func (k *Keygen2) Password() [32]byte {
 	var password [32]byte
-	copy(password[:], []byte(k.phrase)[:32])
+	copy(password[:], []byte(k.phrase))
 	return password
 }
 
