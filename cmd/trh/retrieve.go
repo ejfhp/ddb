@@ -3,42 +3,73 @@ package main
 import (
 	"flag"
 	"fmt"
-)
+	"os"
+	"path/filepath"
 
-var (
-	flagRLog       bool
-	flagRHelp      bool
-	flagRFilename  string
-	flagROutputDir string
+	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/trail"
+	"github.com/ejfhp/trail/trace"
 )
 
 type Retrieve struct {
-	flagset *flag.FlagSet
-	env     *Environment
+	diary     *ddb.Diary
+	outfolder string
 }
 
-func NewRetrieve(environment *Environment) *Retrieve {
-	flagset := flag.NewFlagSet("describe", flag.ContinueOnError)
-	flagset.BoolVar(&flagRLog, "log", false, "true enables log output")
-	flagset.BoolVar(&flagRHelp, "help", false, "print help")
-	flagset.BoolVar(&flagRHelp, "h", false, "print help")
-	flagset.StringVar(&flagROutputDir, "outdir", "", "path of folder where to save retrived files")
-	cmd := Retrieve{flagset: flagset, env: environment}
-	return &cmd
+func NewRetrieve(args []string, flagset *flag.FlagSet) (*Retrieve, error) {
+	tr := trace.New().Source("retrieve.go", "Retrieve", "NewRetrieve")
+	var outputDir string
+	var address string
+	var key string
+	var password string
+
+	passphrase, err := extractPassphrase(os.Args)
+	if err != nil {
+		fmt.Printf("passphrase not found\n")
+	}
+	if passphrase == "" && flagBitcoinAddress == "" && flagBitcoinKey == "" {
+		trail.Println(trace.Alert("one of (passphrase, key, address) must be set").Append(tr).UTC())
+		return nil, fmt.Errorf("one of (passphrase, key, address) must be set")
+	}
+
+	if flagPassword != "" && (flagBitcoinAddress != "" || flagBitcoinKey != "") {
+		password = flagPassword
+		if flagBitcoinAddress != "" {
+			address = flagBitcoinAddress
+		} else {
+			address, err = ddb.AddressOf(flagBitcoinKey)
+			if err != nil {
+				return nil, fmt.Errorf("bitcoin key is invalid")
+			}
+		}
+	}
+	if passphrase != "" {
+		key, password, err := processPassphrase(passphrase)
+	}
+	err := flagset.Parse(args)
+	if err != nil {
+		return nil, fmt.Errorf("error while parsing args: %w", err)
+	}
+	if flagHelp {
+		printHelp(flagset)
+	}
+	logOn(flagLog)
+	outputDir := flagOutputDir
+	if outputDir == "" {
+		fmt.Printf("Output dir not set, using local flolder.\n")
+		outputDir, _ = filepath.Abs(filepath.Dir(args[0]))
+	}
+
+	if flagBitcoinAddress == "" {
+
+	}
+	diarty := ddb.NewDiaryRO()
+	retrieve := Retrieve{diary: diary, outfolder: outputDir}
+	return &retrieve, nil
 
 }
 
 func (cr *Retrieve) Cmd(args []string) error {
-	err := cr.flagset.Parse(args)
-	if flagHelp {
-		printHelp(cr.flagset)
-	}
-	logOn(flagLog)
-	argsLeft := cr.flagset.Args()
-
-	if flagOutputDir == "" {
-		fmt.Printf("Output dir not set, using local flolder.\n")
-	}
 	passphrase, num, err := checkPassphrase(argsLeft)
 	if err != nil {
 		return fmt.Errorf("error checking passphrase: %w", err)

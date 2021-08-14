@@ -22,13 +22,6 @@ const (
 	commandEstimate = "estimate"
 )
 
-var (
-	flagLog       bool
-	flagHelp      bool
-	flagFilename  string
-	flagOutputDir string
-)
-
 func logOn(on bool) {
 	if on {
 		trail.SetWriter(os.Stderr)
@@ -100,16 +93,19 @@ func main() {
 		printMainHelp()
 		os.Exit(0)
 	}
+	passphrase, err := extractPassphrase(os.Args)
+	if err != nil {
+		fmt.Printf("ERROR cannot read passphrase: %v\n", err)
+	}
 	command := strings.ToLower(os.Args[1])
 	fmt.Printf("Command is: %s\n", command)
-	var err error
 	switch command {
 	case commandDescribe:
-		err = cmdDescribe(os.Args[2:])
+		err = cmdDescribe(os.Args)
 	case commandStore:
-		err = cmdStore(os.Args[2:])
+		err = cmdStore(os.Args)
 	case commandRetrieve:
-		err = cmdRetrieve(os.Args[2:])
+		err = cmdRetrieve(os.Args)
 	}
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,8 +12,45 @@ import (
 	"github.com/ejfhp/ddb"
 )
 
+var (
+	flagLog            bool
+	flagHelp           bool
+	flagFilename       string
+	flagOutputDir      string
+	flagCacheDir       string
+	flagDisableCache   bool
+	flagBitcoinAddress string
+	flagBitcoinKey     string
+	flagPassword       string
+	flagKeygenID       int64
+)
+
 type Environment struct {
 	Diary *ddb.Diary
+}
+
+func flagsets() map[string]*flag.FlagSet {
+	flagsets := make(map[string]*flag.FlagSet)
+	//DESCRIBE
+	flagsetDesc := flag.NewFlagSet("describe", flag.ContinueOnError)
+	flagsetDesc.BoolVar(&flagLog, "log", false, "true enables log output")
+	flagsetDesc.BoolVar(&flagHelp, "help", false, "print help")
+	flagsetDesc.BoolVar(&flagHelp, "h", false, "print help")
+	flagsetDesc.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+	flagsets[commandDescribe] = flagsetDesc
+	//RETRIEVE
+	flagsetRetr := flag.NewFlagSet("retrieve", flag.ContinueOnError)
+	flagsetRetr.BoolVar(&flagLog, "log", false, "true enables log output")
+	flagsetRetr.BoolVar(&flagHelp, "help", false, "print help")
+	flagsetRetr.BoolVar(&flagHelp, "h", false, "print help")
+	flagsetRetr.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
+	flagsetRetr.BoolVar(&flagDisableCache, "nocache", false, "true disable cache")
+	flagsetRetr.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
+	flagsetRetr.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+	flagsetRetr.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+	flagsetRetr.StringVar(&flagPassword, "password", "", "encryption password")
+	flagsetRetr.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
+	return flagsets
 }
 
 func extractPassphrase(args []string) (string, error) {
