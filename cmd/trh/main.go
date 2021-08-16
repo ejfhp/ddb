@@ -16,10 +16,10 @@ const (
 	exitLogbookError
 	exitFileError
 	exitStoreError
-	commandDescribe = "describe"
-	commandStore    = "store"
-	commandRetrieve = "retrieve"
-	commandEstimate = "estimate"
+	commandDescribe    = "describe"
+	commandStore       = "store"
+	commandRetrieveAll = "retrieveAll"
+	commandEstimate    = "estimate"
 )
 
 func logOn(on bool) {
@@ -93,21 +93,32 @@ func main() {
 		printMainHelp()
 		os.Exit(0)
 	}
-	passphrase, err := extractPassphrase(os.Args)
-	if err != nil {
-		fmt.Printf("ERROR cannot read passphrase: %v\n", err)
-	}
 	command := strings.ToLower(os.Args[1])
 	fmt.Printf("Command is: %s\n", command)
 	switch command {
 	case commandDescribe:
-		err = cmdDescribe(os.Args)
+		// err = cmdDescribe(os.Args)
 	case commandStore:
-		err = cmdStore(os.Args)
-	case commandRetrieve:
-		err = cmdRetrieve(os.Args)
-	}
-	if err != nil {
-		fmt.Printf("ERROR: %v\n", err)
+		// err = cmdStore(os.Args)
+	case commandRetrieveAll:
+		flagset := newFlagset(commandRetrieveAll)
+		env, err := prepareEnvironment(os.Args, flagset)
+		if err != nil {
+			fmt.Printf("ERROR: %v\n", err)
+			os.Exit(-1)
+		}
+		cache, err := prepareCache(env)
+		if err != nil {
+			fmt.Printf("ERROR: %v\n", err)
+			os.Exit(-1)
+		}
+		diary, err := prepareDiary(env, cache)
+		if err != nil {
+			fmt.Printf("ERROR: %v\n", err)
+			os.Exit(-1)
+		}
+		retrieve := NewRetrieve(env, diary)
+		n, err := retrieve.CmdDownloadAll()
+		fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, diary.BitcoinPublicAddress(), flagOutputDir)
 	}
 }

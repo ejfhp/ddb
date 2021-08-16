@@ -10,15 +10,10 @@ import (
 
 func TestPassphrase(t *testing.T) {
 	trail.SetWriter(os.Stdout)
-	passphrases := [][]string{
+	clis := [][]string{
 		strings.Split("+ Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF", " "),
 		strings.Split("+ This is the passphrase used in the TRH help, the 24th of July, 2021.", " "),
 		strings.Split("+ ciao 2", " "),
-	}
-	nums := []int{
-		2008,
-		2021,
-		2,
 	}
 	keys := []string{
 		"L1XZMDYzVwkPUMnNgsKD8ysUMFzvvPAA1SKbeo5cjMuWSSPATQ6v",
@@ -30,19 +25,15 @@ func TestPassphrase(t *testing.T) {
 		{'T', 'h', 'i', 's', ' ', 'i', 's', ' ', 't', 'h', 'e', ' ', 'p', 'a', 's', 's', 'p', 'h', 'r', 'a', 's', 'e', ' ', 'u', 's', 'e', 'd', ' ', 'i', 'n', ' ', 't'},
 		{'c', 'i', 'a', 'o', ' ', '2', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
-	for i, pp := range passphrases {
-		pass, num, err := checkPassphrase(pp)
+	for i, args := range clis {
+		passp, err := extractPassphrase(args)
 		if err != nil {
-			t.Logf("%d passphrase failed '%s': %v", i, pp, err)
+			t.Logf("%d extractPassphrase failed '%v': %v", i, args, err)
 			t.Fail()
 		}
-		if num != nums[i] {
-			t.Logf("%d num dows't match '%d': %d", i, num, nums[i])
-			t.Fail()
-		}
-		key, pwd, err := keyGen(pass, num)
+		key, pwd, err := processPassphrase(passp, 2)
 		if err != nil {
-			t.Logf("%d keygen failed '%s' '%d': %v", i, pass, num, err)
+			t.Logf("%d keygen failed, passphrase '%s': %v", i, passp, err)
 			t.Fail()
 		}
 		if key != keys[i] {

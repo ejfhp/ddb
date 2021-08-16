@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/trail"
+	"github.com/ejfhp/trail/trace"
 )
 
 var (
@@ -26,31 +28,137 @@ var (
 )
 
 type Environment struct {
-	Diary *ddb.Diary
+	log           bool
+	help          bool
+	workingDir    string
+	key           string
+	address       string
+	password      [32]byte
+	outFolder     string
+	cacheFolder   string
+	cacheDisabled bool
 }
 
-func flagsets() map[string]*flag.FlagSet {
-	flagsets := make(map[string]*flag.FlagSet)
+func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, error) {
+	tr := trace.New().Source("setup.go", "Environment", "BuildEnvironment")
+	err := flagset.Parse(args)
+	if err != nil {
+		return nil, fmt.Errorf("error while parsing args: %w", err)
+	}
+	env := Environment{}
+	env.log = flagLog
+	if env.log {
+		trail.SetWriter(os.Stderr)
+	}
+	env.help = flagHelp
+
+	env.workingDir, err = filepath.Abs(filepath.Dir(args[0]))
+	if err != nil {
+		trail.Println(trace.Alert("error gettign current working dir").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error gettign current working dir")
+	}
+
+	keygenID := flagKeygenID
+	if keygenID < 1 || keygenID > 2 {
+		trail.Println(trace.Warning("keygenID out of range using default").Append(tr).UTC())
+		keygenID = 2
+	}
+	trail.Println(trace.Info("keygenID defined").Append(tr).UTC().Add("keygenID", fmt.Sprintf("%d", keygenID)))
+
+	passphrase, err := extractPassphrase(os.Args)
+	if err != nil {
+		trail.Println(trace.Warning("passphrase not found").Append(tr).UTC().Error(err))
+	}
+	if passphrase != "" {
+		env.key, env.password, err = processPassphrase(passphrase, int(keygenID))
+	}
+
+	if flagBitcoinKey != "" {
+		trail.Println(trace.Info("using key from command line").Append(tr).UTC().Add("key", flagBitcoinKey))
+		env.key = flagBitcoinKey
+	}
+	if flagBitcoinAddress != "" && env.key == "" {
+		trail.Println(trace.Info("using address from command line").Append(tr).UTC().Add("address", flagBitcoinAddress))
+		env.address = flagBitcoinAddress
+	}
+	if flagPassword != "" {
+		trail.Println(trace.Info("using password from command line").Append(tr).UTC().Add("flagPassword", flagPassword))
+		copy(env.password[:], []byte(flagPassword))
+	}
+
+	if flagOutputDir != "" {
+		env.outFolder = flagOutputDir
+	}
+	env.cacheDisabled = flagDisableCache
+	env.cacheFolder = flagCacheDir
+	return &env, nil
+}
+
+func prepareCache(env *Environment) (*ddb.TXCache, error) {
+	tr := trace.New().Source("setup.go", "", "prepareCache")
+	if env.cacheDisabled == true {
+		trail.Println(trace.Info("cache disabled").Append(tr).UTC())
+		return nil, nil
+	}
+	usercache, _ := os.UserCacheDir()
+	cacheDir := filepath.Join(usercache, "trh")
+	if env.cacheFolder != "" {
+		cacheDir = flagCacheDir
+	}
+	cache, err := ddb.NewTXCache(cacheDir)
+	if err != nil {
+		trail.Println(trace.Info("error while building cache").Append(tr).UTC())
+		return nil, fmt.Errorf("error while parsing args: %w", err)
+	}
+	return cache, nil
+}
+
+func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.Diary, error) {
+	tr := trace.New().Source("setup.go", "", "prepareCache")
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	blockchain := ddb.NewBlockchain(taal, woc, cache)
+	var err error
+	var diary *ddb.Diary
+	if env.key == "" {
+		trail.Println(trace.Info("building Diary").Append(tr).UTC())
+		diary, err = ddb.NewDiary(env.key, env.password, blockchain)
+		if err != nil {
+			return nil, fmt.Errorf("error while creating a new Diary: %w", err)
+		}
+	} else {
+		trail.Println(trace.Info("building read only Diary").Append(tr).UTC())
+		diary, err = ddb.NewDiaryRO(env.address, env.password, blockchain)
+		if err != nil {
+			return nil, fmt.Errorf("error while creating a new read only Diary: %w", err)
+		}
+	}
+	return diary, nil
+}
+
+func newFlagset(command string) *flag.FlagSet {
+	flagset := flag.NewFlagSet(command, flag.ContinueOnError)
+	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
+	flagset.BoolVar(&flagHelp, "help", false, "print help")
+	flagset.BoolVar(&flagHelp, "h", false, "print help")
+	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+	flagset.StringVar(&flagPassword, "password", "", "encryption password")
+	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 	//DESCRIBE
-	flagsetDesc := flag.NewFlagSet("describe", flag.ContinueOnError)
-	flagsetDesc.BoolVar(&flagLog, "log", false, "true enables log output")
-	flagsetDesc.BoolVar(&flagHelp, "help", false, "print help")
-	flagsetDesc.BoolVar(&flagHelp, "h", false, "print help")
-	flagsetDesc.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
-	flagsets[commandDescribe] = flagsetDesc
+	if command == commandDescribe {
+		flagset := flag.NewFlagSet("describe", flag.ContinueOnError)
+		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+		return flagset
+	}
 	//RETRIEVE
-	flagsetRetr := flag.NewFlagSet("retrieve", flag.ContinueOnError)
-	flagsetRetr.BoolVar(&flagLog, "log", false, "true enables log output")
-	flagsetRetr.BoolVar(&flagHelp, "help", false, "print help")
-	flagsetRetr.BoolVar(&flagHelp, "h", false, "print help")
-	flagsetRetr.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
-	flagsetRetr.BoolVar(&flagDisableCache, "nocache", false, "true disable cache")
-	flagsetRetr.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
-	flagsetRetr.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
-	flagsetRetr.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
-	flagsetRetr.StringVar(&flagPassword, "password", "", "encryption password")
-	flagsetRetr.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-	return flagsets
+	if command == commandRetrieveAll {
+		flagset.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
+		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disable cache")
+		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
+		return flagset
+	}
+	return flagset
 }
 
 func extractPassphrase(args []string) (string, error) {
@@ -100,42 +208,4 @@ func processPassphrase(passphrase string, keygenID int) (string, [32]byte, error
 	}
 	password := keygen.Password()
 	return wif, password, nil
-}
-
-func prepareDiary(passphrase string, keygenID int, privateKey string, address string, password string, enableCache bool, cachePath string) (*ddb.Diary, error) {
-	var passEncrypt [32]byte
-	var bitcoinKey string
-	var err error
-	if passphrase != "" {
-		bitcoinKey, passEncrypt, err = processPassphrase(passphrase, keygenID)
-		if err != nil {
-			return nil, fmt.Errorf("error while processing passphrase: %w", err)
-		}
-	}
-	if privateKey != "" {
-		bitcoinKey = privateKey
-	}
-	if password != "" {
-		copy(passEncrypt[:], []byte(password))
-	}
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	var cache *ddb.TXCache
-	if enableCache {
-		if cachePath != "" {
-			cache, err = ddb.NewTXCache(cachePath)
-		} else {
-			usercache, _ := os.UserCacheDir()
-			cache, err = ddb.NewTXCache(filepath.Join(usercache, "trh"))
-		}
-		if err != nil {
-			return nil, fmt.Errorf("error while creating Cache: %w", err)
-		}
-	}
-	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	diary, err := ddb.NewDiary(bitcoinKey, passEncrypt, blockchain)
-	if err != nil {
-		return nil, fmt.Errorf("error while creating a new Diary: %w", err)
-	}
-	return diary, nil
 }
