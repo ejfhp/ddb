@@ -18,7 +18,7 @@ const (
 	exitStoreError
 	commandDescribe    = "describe"
 	commandStore       = "store"
-	commandRetrieveAll = "retrieveAll"
+	commandRetrieveAll = "retrieveall"
 	commandEstimate    = "estimate"
 )
 
@@ -60,9 +60,9 @@ To store a file do:
 
 If all is fine, the transactions id of the generated transaction will be shown.
 
-To retrieve the file from the blockchain do:
+To retrieve all the files from the blockchain do:
 
->trh retrieve -outdir <output folder> + <passphrase with a number 9999>
+>trh retrieveAll -outdir <output folder> + <passphrase with a number 9999>
 
 
 Options:
@@ -74,7 +74,7 @@ Examples:
 ./trh describe -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh estimate -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh store -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
-./trh retrieve -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
+./trh retrieveAll -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 `)
 }
 
@@ -111,6 +111,9 @@ func main() {
 		if err != nil {
 			fmt.Printf("ERROR: %v\n", err)
 			os.Exit(-1)
+		}
+		if cache != nil {
+			fmt.Printf("Using cache folder: %s\n", cache.DirPath())
 		}
 		diary, err := prepareDiary(env, cache)
 		if err != nil {

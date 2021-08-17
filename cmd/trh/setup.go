@@ -71,6 +71,10 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	}
 	if passphrase != "" {
 		env.key, env.password, err = processPassphrase(passphrase, int(keygenID))
+		if err != nil {
+			trail.Println(trace.Warning("error processing passphrase").Append(tr).UTC().Add("passphrase", passphrase).Error(err))
+			return nil, fmt.Errorf("error procesing passphrase")
+		}
 	}
 
 	if flagBitcoinKey != "" {
@@ -91,12 +95,17 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	}
 	env.cacheDisabled = flagDisableCache
 	env.cacheFolder = flagCacheDir
+
+	if env.key == "" && env.address == "" {
+		trail.Println(trace.Alert("bitcoin key and address are both empty").Append(tr).UTC())
+		return nil, fmt.Errorf("bitcoin key and address are both empty")
+	}
 	return &env, nil
 }
 
 func prepareCache(env *Environment) (*ddb.TXCache, error) {
 	tr := trace.New().Source("setup.go", "", "prepareCache")
-	if env.cacheDisabled == true {
+	if env.cacheDisabled {
 		trail.Println(trace.Info("cache disabled").Append(tr).UTC())
 		return nil, nil
 	}
@@ -120,7 +129,7 @@ func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.Diary, error) {
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	var err error
 	var diary *ddb.Diary
-	if env.key == "" {
+	if env.key != "" {
 		trail.Println(trace.Info("building Diary").Append(tr).UTC())
 		diary, err = ddb.NewDiary(env.key, env.password, blockchain)
 		if err != nil {
