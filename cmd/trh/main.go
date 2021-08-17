@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/ejfhp/trail"
 )
 
 const (
@@ -21,12 +19,6 @@ const (
 	commandRetrieveAll = "retrieveall"
 	commandEstimate    = "estimate"
 )
-
-func logOn(on bool) {
-	if on {
-		trail.SetWriter(os.Stderr)
-	}
-}
 
 func printMainHelp() {
 	fmt.Printf(`
@@ -83,7 +75,6 @@ func printHelp(flagset *flag.FlagSet) {
 		flagset.SetOutput(os.Stdout)
 		flagset.PrintDefaults()
 	}
-	fmt.Printf("Main command: describe, store, retrieve.\n")
 	os.Exit(0)
 }
 
@@ -94,7 +85,7 @@ func main() {
 		os.Exit(0)
 	}
 	command := strings.ToLower(os.Args[1])
-	fmt.Printf("Command is: %s\n", command)
+	fmt.Printf("INFO: command is: %s\n", command)
 	switch command {
 	case commandDescribe:
 		// err = cmdDescribe(os.Args)
@@ -104,24 +95,35 @@ func main() {
 		flagset := newFlagset(commandRetrieveAll)
 		env, err := prepareEnvironment(os.Args, flagset)
 		if err != nil {
-			fmt.Printf("ERROR: %v\n", err)
-			os.Exit(-1)
+			fmt.Printf("ERROR: %v.\n", err)
+			os.Exit(1)
+		}
+		if env.help {
+			printHelp(flagset)
+			os.Exit(0)
+		}
+		if !env.passwordSet {
+			fmt.Printf("WARNING: password is not set.\n")
 		}
 		cache, err := prepareCache(env)
 		if err != nil {
-			fmt.Printf("ERROR: %v\n", err)
-			os.Exit(-1)
+			fmt.Printf("ERROR: %v.\n", err)
+			os.Exit(2)
 		}
 		if cache != nil {
-			fmt.Printf("Using cache folder: %s\n", cache.DirPath())
+			fmt.Printf("INFO: cache folder is: %s.\n", cache.DirPath())
 		}
 		diary, err := prepareDiary(env, cache)
 		if err != nil {
-			fmt.Printf("ERROR: %v\n", err)
-			os.Exit(-1)
+			fmt.Printf("ERROR: %v.\n", err)
+			os.Exit(3)
 		}
 		retrieve := NewRetrieve(env, diary)
 		n, err := retrieve.CmdDownloadAll()
-		fmt.Printf("%d files has been retrived from '%s' to '%s'\n", n, diary.BitcoinPublicAddress(), flagOutputDir)
+		if err != nil {
+			fmt.Printf("ERROR: %v.\n", err)
+			os.Exit(4)
+		}
+		fmt.Printf("INFO: %d files has been retrived from '%s' to '%s'\n", n, diary.BitcoinPublicAddress(), flagOutputDir)
 	}
 }

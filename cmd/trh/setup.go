@@ -34,15 +34,22 @@ type Environment struct {
 	key           string
 	address       string
 	password      [32]byte
+	passwordSet   bool
 	outFolder     string
 	cacheFolder   string
 	cacheDisabled bool
 }
 
+func (e *Environment) passwordString() string {
+	p := e.password[:]
+	return strings.TrimSpace(string(p))
+}
+
 func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, error) {
 	tr := trace.New().Source("setup.go", "Environment", "BuildEnvironment")
-	err := flagset.Parse(args)
+	err := flagset.Parse(args[2:])
 	if err != nil {
+		trail.Println(trace.Alert("error while parsing args").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while parsing args: %w", err)
 	}
 	env := Environment{}
@@ -71,6 +78,7 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	}
 	if passphrase != "" {
 		env.key, env.password, err = processPassphrase(passphrase, int(keygenID))
+		env.passwordSet = true
 		if err != nil {
 			trail.Println(trace.Warning("error processing passphrase").Append(tr).UTC().Add("passphrase", passphrase).Error(err))
 			return nil, fmt.Errorf("error procesing passphrase")
@@ -88,6 +96,7 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	if flagPassword != "" {
 		trail.Println(trace.Info("using password from command line").Append(tr).UTC().Add("flagPassword", flagPassword))
 		copy(env.password[:], []byte(flagPassword))
+		env.passwordSet = true
 	}
 
 	if flagOutputDir != "" {
@@ -95,11 +104,6 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	}
 	env.cacheDisabled = flagDisableCache
 	env.cacheFolder = flagCacheDir
-
-	if env.key == "" && env.address == "" {
-		trail.Println(trace.Alert("bitcoin key and address are both empty").Append(tr).UTC())
-		return nil, fmt.Errorf("bitcoin key and address are both empty")
-	}
 	return &env, nil
 }
 
@@ -124,6 +128,10 @@ func prepareCache(env *Environment) (*ddb.TXCache, error) {
 
 func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.Diary, error) {
 	tr := trace.New().Source("setup.go", "", "prepareCache")
+	if env.key == "" && env.address == "" {
+		trail.Println(trace.Alert("bitcoin key and address are both empty").Append(tr).UTC())
+		return nil, fmt.Errorf("cannot prepare diary, bitcoin key and address are both empty")
+	}
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
@@ -156,7 +164,6 @@ func newFlagset(command string) *flag.FlagSet {
 	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 	//DESCRIBE
 	if command == commandDescribe {
-		flagset := flag.NewFlagSet("describe", flag.ContinueOnError)
 		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
 		return flagset
 	}
