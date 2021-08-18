@@ -9,14 +9,14 @@ import (
 )
 
 type Blockchain struct {
-	miner    Miner
-	explorer Explorer
-	cache    *TXCache
+	Miner    Miner
+	Explorer Explorer
+	Cache    *TXCache
 }
 
 //NewBlockchain builds a new Blockchain. This is the access point to write and read from a blockchain.
 func NewBlockchain(miner Miner, explorer Explorer, cache *TXCache) *Blockchain {
-	return &Blockchain{miner: miner, explorer: explorer, cache: cache}
+	return &Blockchain{Miner: miner, Explorer: explorer, Cache: cache}
 }
 
 //Submit submits all the transactions to the miner to be included in the blockchain, returns the TX IDs
@@ -26,16 +26,16 @@ func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 	for i, tx := range txs {
 		fee := tx.GetTotalInputSatoshis() - tx.GetTotalOutputSatoshis()
 		trail.Println(trace.Info("submiting TX").UTC().Add("id", tx.GetTxID()).Add("fee", fmt.Sprintf("%d", fee)).Append(tr))
-		id, err := b.miner.SubmitTX(tx.ToString())
+		id, err := b.Miner.SubmitTX(tx.ToString())
 		if err != nil {
-			trail.Println(trace.Alert("cannot submit TX to miner").UTC().Add("TX n.", fmt.Sprintf("%d", i)).Add("miner", b.miner.GetName()).Error(err).Append(tr))
+			trail.Println(trace.Alert("cannot submit TX to miner").UTC().Add("TX n.", fmt.Sprintf("%d", i)).Add("miner", b.Miner.GetName()).Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot submit TX to miner: %w", err)
 		}
 		if id != tx.GetTxID() {
-			trail.Println(trace.Alert("for TX miner returned a different TXID").UTC().Add("minerTXID", id).Add("TXID", tx.GetTxID()).Add("miner", b.miner.GetName()).Append(tr))
+			trail.Println(trace.Alert("for TX miner returned a different TXID").UTC().Add("minerTXID", id).Add("TXID", tx.GetTxID()).Add("miner", b.Miner.GetName()).Append(tr))
 		}
-		if b.cache != nil {
-			err = b.cache.StoreTX(id, tx.ToBytes())
+		if b.Cache != nil {
+			err = b.Cache.StoreTX(id, tx.ToBytes())
 			if err != nil {
 				trail.Println(trace.Alert("error while storing submitted TX in cache").UTC().Add("TXID", tx.GetTxID()).Append(tr))
 			}
@@ -48,7 +48,7 @@ func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 func (b *Blockchain) GetUTXO(address string) ([]*UTXO, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "GetLastUTXO")
 	trail.Println(trace.Debug("get last UTXO").UTC().Append(tr))
-	utxos, err := b.explorer.GetUTXOs(address)
+	utxos, err := b.Explorer.GetUTXOs(address)
 	if err != nil {
 		trail.Println(trace.Alert("cannot get UTXOs").UTC().Add("address", address).Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get UTXOs: %w", err)
@@ -64,8 +64,8 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "GetTX")
 	trail.Println(trace.Debug("get TX").UTC().Append(tr))
 	var dataTX *DataTX
-	if b.cache != nil {
-		cacheTx, err := b.cache.RetrieveTX(id)
+	if b.Cache != nil {
+		cacheTx, err := b.Cache.RetrieveTX(id)
 		if err != nil {
 			if err != ErrNotCached {
 				trail.Println(trace.Alert("cannot get TX from cache").UTC().Add("id", id).Error(err).Append(tr))
@@ -81,7 +81,7 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 		}
 	}
 	if dataTX == nil {
-		hex, err := b.explorer.GetRAWTXHEX(id)
+		hex, err := b.Explorer.GetRAWTXHEX(id)
 		if err != nil {
 			trail.Println(trace.Alert("cannot get TX").UTC().Add("id", id).Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot get TX: %w", err)
@@ -91,8 +91,8 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 			trail.Println(trace.Alert("cannot build DataTX").UTC().Add("id", id).Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build DataTX: %w", err)
 		}
-		if b.cache != nil {
-			err = b.cache.StoreTX(id, dataTX.ToBytes())
+		if b.Cache != nil {
+			err = b.Cache.StoreTX(id, dataTX.ToBytes())
 			if err != nil {
 				trail.Println(trace.Warning("error while storing retrieved TX in cache").UTC().Add("TXID", dataTX.GetTxID()).Append(tr))
 			}
@@ -105,21 +105,21 @@ func (b *Blockchain) ListTXID(address string, cacheonly bool) ([]string, error) 
 	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXID")
 	trail.Println(trace.Debug("listing TXIDs").UTC().Add("address", address).Add("cacheonly", fmt.Sprintf("%t", cacheonly)).Append(tr))
 	txids := make([]string, 0)
-	if cacheonly && b.cache != nil {
-		txids, err := b.cache.RetrieveTXIDs(address)
+	if cacheonly && b.Cache != nil {
+		txids, err := b.Cache.RetrieveTXIDs(address)
 		if err != ErrNotCached {
 			trail.Println(trace.Alert("error while getting TXID from cache").UTC().Add("address", address).Error(err).Append(tr))
 			return nil, fmt.Errorf("error while getting TXID from cache: %w", err)
 		}
 		return txids, nil
 	}
-	txids, err := b.explorer.GetTXIDs(address)
+	txids, err := b.Explorer.GetTXIDs(address)
 	if err != nil {
 		trail.Println(trace.Alert("error while getting TXID from explorer").UTC().Add("address", address).Error(err).Append(tr))
 		return nil, fmt.Errorf("error while getting TXID from explorer: %w", err)
 	}
-	if b.cache != nil {
-		b.cache.StoreTXIDs(address, txids)
+	if b.Cache != nil {
+		b.Cache.StoreTXIDs(address, txids)
 	}
 	return txids, nil
 }

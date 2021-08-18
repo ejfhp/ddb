@@ -13,7 +13,7 @@ type Diary struct {
 	bitcoinWif string
 	bitcoinAdd string
 	cryptoKey  [32]byte
-	blockchain *Blockchain
+	Blockchain *Blockchain
 }
 
 func NewDiary(wif string, password [32]byte, blockchain *Blockchain) (*Diary, error) {
@@ -24,13 +24,13 @@ func NewDiary(wif string, password [32]byte, blockchain *Blockchain) (*Diary, er
 		trail.Println(trace.Alert("cannot get address of key").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get address of key: %w", err)
 	}
-	return &Diary{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, blockchain: blockchain}, nil
+	return &Diary{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, Blockchain: blockchain}, nil
 }
 
 func NewDiaryRO(address string, password [32]byte, blockchain *Blockchain) (*Diary, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "NewDiaryRO")
 	trail.Println(trace.Debug("new readonly Diary").UTC().Append(tr))
-	return &Diary{bitcoinWif: "", bitcoinAdd: address, cryptoKey: password, blockchain: blockchain}, nil
+	return &Diary{bitcoinWif: "", bitcoinAdd: address, cryptoKey: password, Blockchain: blockchain}, nil
 }
 
 func (l *Diary) BitcoinPrivateKey() string {
@@ -76,7 +76,7 @@ func (l *Diary) EstimateFee(entry *Entry) (Satoshi, error) {
 		return Satoshi(0), fmt.Errorf("error encrypting entries of file: %w", err)
 	}
 	fakeUtxos := []*UTXO{{TXPos: 0, TXHash: "72124e293287ab0ca20a723edb61b58d6ef89aba05508b92198bd948bfb6da40", Value: 100000000000, ScriptPubKeyHex: "76a914330a97979931a961d1e5f05d3c7ace4217fc7adc88ac"}}
-	dataFee, err := l.blockchain.miner.GetDataFee()
+	dataFee, err := l.Blockchain.Miner.GetDataFee()
 	if err != nil {
 		trail.Println(trace.Alert("error getting miner data fee").UTC().Error(err).Append(tr))
 		return Satoshi(0), fmt.Errorf("error getting miner data fee: %w", err)
@@ -102,7 +102,7 @@ func (l *Diary) EstimateFee(entry *Entry) (Satoshi, error) {
 func (l *Diary) Submit(txs []*DataTX) ([]string, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "Submit")
 	trail.Println(trace.Info("submitting transactions to the blockcchain").Add("num txs", fmt.Sprintf("%d", len(txs))).UTC().Append(tr))
-	ids, err := l.blockchain.Submit(txs)
+	ids, err := l.Blockchain.Submit(txs)
 	if err != nil {
 		trail.Println(trace.Alert("error while sending transactions").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error while sending transactions: %w", err)
@@ -120,12 +120,12 @@ func (l *Diary) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 		trail.Println(trace.Alert("error encrypting entries of file").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error encrypting entries of file: %w", err)
 	}
-	utxo, err := l.blockchain.GetUTXO(l.bitcoinAdd)
+	utxo, err := l.Blockchain.GetUTXO(l.bitcoinAdd)
 	if err != nil {
 		trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", l.bitcoinAdd).Error(err).Append(tr))
 		return nil, fmt.Errorf("error getting UTXO for address %s: %w", l.bitcoinAdd, err)
 	}
-	fee, err := l.blockchain.miner.GetDataFee()
+	fee, err := l.Blockchain.Miner.GetDataFee()
 	if err != nil {
 		trail.Println(trace.Alert("error miner data fee").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error getting miner data fee: %w", err)
@@ -170,7 +170,7 @@ func (l *Diary) RetrieveTXs(txids []string) ([]*DataTX, error) {
 	trail.Println(trace.Info("retrieving TXs from the blockchain").Add("len txids", fmt.Sprintf("%d", len(txids))).UTC().Append(tr))
 	txs := make([]*DataTX, 0, len(txids))
 	for _, txid := range txids {
-		tx, err := l.blockchain.GetTX(txid)
+		tx, err := l.Blockchain.GetTX(txid)
 		if err != nil {
 			trail.Println(trace.Alert("error getting DataTX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error getting DataTX: %w", err)
@@ -201,7 +201,7 @@ func (l *Diary) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
 func (l *Diary) DowloadAll(outPath string) (int, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "DownloadAll")
 	trail.Println(trace.Info("download all entries locally").Add("outpath", outPath).UTC().Append(tr))
-	history, err := l.blockchain.explorer.GetTXIDs(l.bitcoinAdd)
+	history, err := l.Blockchain.Explorer.GetTXIDs(l.bitcoinAdd)
 	if err != nil {
 		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
 		return 0, fmt.Errorf("error getting address history: %w", err)
@@ -263,7 +263,7 @@ func (l *Diary) DecryptEntries(crypts [][]byte) ([]*Entry, error) {
 func (l *Diary) ListHistory(address string) ([]string, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ListHistory")
 	trail.Println(trace.Info("listing TX history").UTC().Add("address", address).Append(tr))
-	txids, err := l.blockchain.explorer.GetTXIDs(address)
+	txids, err := l.Blockchain.Explorer.GetTXIDs(address)
 	if err != nil {
 		trail.Println(trace.Warning("error while listing TX history").UTC().Add("address", address).Error(err).Append(tr))
 		return nil, fmt.Errorf("error while listing TX history: %w", err)
@@ -273,7 +273,7 @@ func (l *Diary) ListHistory(address string) ([]string, error) {
 
 func (l *Diary) MaxDataSize() int {
 	//9 is header size and must never be changed
-	avai := l.blockchain.miner.MaxOpReturn() - 9
+	avai := l.Blockchain.Miner.MaxOpReturn() - 9
 	cryptFactor := 0.5
 	disp := float64(avai) * cryptFactor
 	return int(disp)

@@ -28,6 +28,7 @@ var (
 )
 
 type Environment struct {
+	passphrase    string
 	log           bool
 	help          bool
 	workingDir    string
@@ -77,6 +78,7 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 		trail.Println(trace.Warning("passphrase not found").Append(tr).UTC().Error(err))
 	}
 	if passphrase != "" {
+		env.passphrase = passphrase
 		env.key, env.password, err = processPassphrase(passphrase, int(keygenID))
 		env.passwordSet = true
 		if err != nil {
@@ -164,7 +166,6 @@ func newFlagset(command string) *flag.FlagSet {
 	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 	//DESCRIBE
 	if command == commandDescribe {
-		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
 		return flagset
 	}
 	//RETRIEVE

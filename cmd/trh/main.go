@@ -88,7 +88,32 @@ func main() {
 	fmt.Printf("INFO: command is: %s\n", command)
 	switch command {
 	case commandDescribe:
-		// err = cmdDescribe(os.Args)
+		flagset := newFlagset(commandRetrieveAll)
+		env, err := prepareEnvironment(os.Args, flagset)
+		if err != nil {
+			fmt.Printf("ERROR: %v.\n", err)
+			os.Exit(1)
+		}
+		if env.help {
+			printHelp(flagset)
+			os.Exit(0)
+		}
+		cache, err := prepareCache(env)
+		if err != nil {
+			fmt.Printf("ERROR: %v.\n", err)
+			os.Exit(2)
+		}
+		diary, err := prepareDiary(env, cache)
+		if err != nil {
+			fmt.Printf("ERROR: %v.\n", err)
+			os.Exit(3)
+		}
+		describe := NewDescribe(env, diary)
+		err = describe.CmdDescribe(os.Stdout)
+		if err != nil {
+			fmt.Printf("ERROR: %v.\n", err)
+			os.Exit(4)
+		}
 	case commandStore:
 		// err = cmdStore(os.Args)
 	case commandRetrieveAll:

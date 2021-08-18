@@ -1,64 +1,80 @@
 package main
 
-// func flagsetDescribe(cmd string, args []string) []string {
-// 	flagset := flag.NewFlagSet("describe", flag.ContinueOnError)
-// 	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
-// 	flagset.BoolVar(&flagHelp, "help", false, "print help")
-// 	flagset.BoolVar(&flagHelp, "h", false, "print help")
-// 	switch cmd {
-// 	case commandStore:
-// 		flagset.StringVar(&flagFilename, "file", "", "path of file to store onchain")
-// 	case commandRetrieve:
-// 		flagset.StringVar(&flagOutputDir, "outdir", "", "path of folder where to save retrived files")
-// 	}
-// 	flagset.Parse(args)
-// 	if flagHelp {
-// 		printHelp(flagset)
-// 	}
-// 	//fmt.Printf("file: %s\n", flagFilename)
-// 	logOn(flagLog)
-// 	return flagset.Args()
-// }
+import (
+	"fmt"
+	"io"
+	"runtime"
 
-// func cmdDescribe(args []string) error {
-// 	argsLeft := flagset(commandDescribe, args)
+	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/trail"
+	"github.com/ejfhp/trail/trace"
+)
 
-// 	passphrase, passnum, err := checkPassphrase(argsLeft)
-// 	if err != nil {
-// 		return fmt.Errorf("error checking passphrase: %w", err)
-// 	}
-// 	fmt.Printf("\nSecret configuration:\n")
-// 	fmt.Printf("  passnum:    '%d'\n", passnum)
-// 	fmt.Printf("  passphrase: '%s'\n", passphrase)
-// 	logbook, err := newLogbook(passphrase, passnum)
-// 	if err != nil {
-// 		return fmt.Errorf("error creating Logbook: %w", err)
-// 	}
-// 	fmt.Printf("  pasword:     '%s'\n", logbook.EncodingPassword())
-// 	fmt.Printf("\nBitcoin configuration:\n")
-// 	fmt.Printf("  Bitcoin Key (WIF): '%s'\n", logbook.BitcoinPrivateKey())
-// 	if runtime.GOOS != "windows" {
-// 		fmt.Printf("\n")
-// 		ddb.PrintQRCode(os.Stdout, logbook.BitcoinPrivateKey())
-// 		fmt.Printf("\n")
-// 	}
-// 	fmt.Printf("  Bitcoin Address  : '%s'\n", logbook.BitcoinPublicAddress())
-// 	if runtime.GOOS != "windows" {
-// 		fmt.Printf("\n")
-// 		ddb.PrintQRCode(os.Stdout, logbook.BitcoinPublicAddress())
-// 		fmt.Printf("\n")
-// 	}
+type Describe struct {
+	diary *ddb.Diary
+	env   *Environment
+}
 
-// 	history, err := logbook.ListHistory(logbook.BitcoinPublicAddress())
-// 	if err != nil {
-// 		return fmt.Errorf("error getting address history; %w", err)
-// 	}
-// 	fmt.Printf("Transaction History\n")
-// 	if len(history) == 0 {
-// 		fmt.Printf("this address has no history\n")
-// 	}
-// 	for i, tx := range history {
-// 		fmt.Printf("%d: %s\n", i, tx)
-// 	}
-// 	return nil
-// }
+func NewDescribe(env *Environment, diary *ddb.Diary) *Describe {
+	describe := Describe{diary: diary, env: env}
+	return &describe
+
+}
+
+func (d *Describe) CmdDescribe(writer io.Writer) error {
+	tr := trace.New().Source("describe.go", "Describe", "CmdDescribe")
+	trail.Println(trace.Info("printing environment configuration").Append(tr).UTC())
+
+	fmt.Fprintf(writer, "Current configuration:\n")
+
+	fmt.Fprintf(writer, "\n")
+	fmt.Fprintf(writer, "Secret:\n")
+	if d.env.passphrase != "" {
+		fmt.Fprintf(writer, "passphrase: '%s'\n", d.env.passphrase)
+	}
+	if d.env.passwordSet {
+		fmt.Fprintf(writer, "pasword: '%s'\n", d.env.passwordString())
+	}
+
+	fmt.Fprintf(writer, "\n")
+	fmt.Fprintf(writer, "Bitcoin:\n")
+	if d.diary.BitcoinPrivateKey() != "" {
+		fmt.Fprintf(writer, "key (WIF): '%s'\n", d.diary.BitcoinPrivateKey())
+		if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
+			fmt.Fprintf(writer, "Bitcoin key QRCode\n")
+			ddb.PrintQRCode(writer, d.diary.BitcoinPrivateKey())
+			fmt.Fprintf(writer, "\n")
+		}
+	}
+	if d.diary.BitcoinPublicAddress() != "" {
+		fmt.Fprintf(writer, "address: '%s'\n", d.diary.BitcoinPublicAddress())
+		if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
+			fmt.Fprintf(writer, "Bitcoin address QRCode\n")
+			ddb.PrintQRCode(writer, d.diary.BitcoinPublicAddress())
+			fmt.Fprintf(writer, "\n")
+		}
+	}
+
+	fmt.Fprintf(writer, "\n")
+	fmt.Fprintf(writer, "Transaction:\n")
+	if d.diary.BitcoinPublicAddress() != "" {
+		history, err := d.diary.ListHistory(d.diary.BitcoinPublicAddress())
+		if err != nil {
+			trail.Println(trace.Alert("error getting transaction history").Append(tr).UTC().Add("address", d.diary.BitcoinPublicAddress()))
+			return fmt.Errorf("error getting transaction history for address '%s': %w", d.diary.BitcoinPublicAddress(), err)
+		}
+		if len(history) == 0 {
+			fmt.Printf("this address has no history\n")
+		}
+		for i, tx := range history {
+			fmt.Fprintf(writer, "%d: %s\n", i, tx)
+		}
+	}
+
+	fmt.Fprintf(writer, "\n")
+	fmt.Fprintf(writer, "Cache:\n")
+	if !d.env.cacheDisabled {
+		fmt.Fprintf(writer, "cache folder: '%s'\n", d.diary.Blockchain.Cache.DirPath())
+	}
+	return nil
+}
