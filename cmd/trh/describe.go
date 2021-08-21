@@ -21,7 +21,7 @@ func NewDescribe(env *Environment, diary *ddb.Diary) *Describe {
 
 }
 
-func (d *Describe) CmdDescribe(writer io.Writer) error {
+func (d *Describe) Describe(writer io.Writer) error {
 	tr := trace.New().Source("describe.go", "Describe", "CmdDescribe")
 	trail.Println(trace.Info("printing environment configuration").Append(tr).UTC())
 
@@ -29,17 +29,18 @@ func (d *Describe) CmdDescribe(writer io.Writer) error {
 
 	fmt.Fprintf(writer, "\n")
 	fmt.Fprintf(writer, "Secret:\n")
+	fmt.Fprintf(writer, "WARNING: Save the passphrase in a safe place.\n")
 	if d.env.passphrase != "" {
-		fmt.Fprintf(writer, "passphrase: '%s'\n", d.env.passphrase)
+		fmt.Fprintf(writer, "passphrase: -->%s<--\n", d.env.passphrase)
 	}
 	if d.env.passwordSet {
-		fmt.Fprintf(writer, "pasword: '%s'\n", d.env.passwordString())
+		fmt.Fprintf(writer, "pasword: -->%s<--\n", d.env.passwordString())
 	}
 
 	fmt.Fprintf(writer, "\n")
 	fmt.Fprintf(writer, "Bitcoin:\n")
 	if d.diary.BitcoinPrivateKey() != "" {
-		fmt.Fprintf(writer, "key (WIF): '%s'\n", d.diary.BitcoinPrivateKey())
+		fmt.Fprintf(writer, "key (WIF): -->%s<--\n", d.diary.BitcoinPrivateKey())
 		if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
 			fmt.Fprintf(writer, "Bitcoin key QRCode\n")
 			ddb.PrintQRCode(writer, d.diary.BitcoinPrivateKey())
@@ -47,7 +48,7 @@ func (d *Describe) CmdDescribe(writer io.Writer) error {
 		}
 	}
 	if d.diary.BitcoinPublicAddress() != "" {
-		fmt.Fprintf(writer, "address: '%s'\n", d.diary.BitcoinPublicAddress())
+		fmt.Fprintf(writer, "address: -->%s<--\n", d.diary.BitcoinPublicAddress())
 		if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
 			fmt.Fprintf(writer, "Bitcoin address QRCode\n")
 			ddb.PrintQRCode(writer, d.diary.BitcoinPublicAddress())

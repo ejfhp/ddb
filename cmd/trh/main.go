@@ -26,47 +26,26 @@ TRH (The Rabbit Hole)
 
 TRH is a tool that let you store and retrieve files from the Bitcoin BSV blockchain.
 
-To start you have to load the address that will be used to store your data onchain.
-The address is generated starting from the passphrase given in input.
-The passphrase has always to be put at the end of the command, after a plus (+) and can be 
-written with or without double quotes ("). Pay attention to write the passphrase exactly 
-every time that's the key to access the files onchain. The passphrase must contains a number.
-The time it takes the generation of the address is proportional to the value of the number, I
-suggest to not go over 9999999999.
+Read instruction on https://ejfhp.com/projects/trh/
 
-To see the address to load and the corrisponding private key do:
+Commands:
+- describe: to show address, keys and transaction IDs
+- estimate: to estimate the miner fee before to store a file
+- store: to write files on the blockchain
+- retrieveall: to download all the files from the blockchain
 
->trh describe + <passphrase with a number 9999>
-
-When the address has enough funds, you can store a file onchain. If the address has not enough 
-funds the store will fail but the money will be spent anyway. 
-
-To have a raw estimation of the necessary amount of BSV to cover fees do: 
-
->trh estimate -file <file path> + <passphrase with a number 9999>
-
-
-To store a file do:
-
->trh store -file <file path> + <passphrase with a number 9999>
-
-If all is fine, the transactions id of the generated transaction will be shown.
-
-To retrieve all the files from the blockchain do:
-
->trh retrieveAll -outdir <output folder> + <passphrase with a number 9999>
-
-
-Options:
--log   true enables log output
--help  print help
+Options: 
+- log: enables log
+- help: to show options for a command
 
 Examples:
 
+./trh store -help
 ./trh describe -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh estimate -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh store -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh retrieveAll -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
+./trh retrieveall -address 16dEpFZ8nEvSv9MJ9MQqZ7ihk6mypQdrZ -password "Bitcoin: A Peer-to-Peer Electron"
 `)
 }
 
@@ -76,6 +55,142 @@ func printHelp(flagset *flag.FlagSet) {
 		flagset.PrintDefaults()
 	}
 	os.Exit(0)
+}
+
+func cmdDescribe() {
+	flagset := newFlagset(commandRetrieveAll)
+	env, err := prepareEnvironment(os.Args, flagset)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(1)
+	}
+	if env.help {
+		printHelp(flagset)
+		os.Exit(0)
+	}
+	cache, err := prepareCache(env)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(2)
+	}
+	diary, err := prepareDiary(env, cache)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(3)
+	}
+	describe := NewDescribe(env, diary)
+	err = describe.Describe(os.Stdout)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(4)
+	}
+}
+
+func cmdStore() {
+	flagset := newFlagset(commandStore)
+	env, err := prepareEnvironment(os.Args, flagset)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(1)
+	}
+	if env.help {
+		printHelp(flagset)
+		os.Exit(0)
+	}
+	if flagFile == "" {
+		fmt.Printf("WARNING: file not specified\n")
+		os.Exit(0)
+	}
+	cache, err := prepareCache(env)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(2)
+	}
+	if cache != nil {
+		fmt.Printf("INFO: cache folder is: %s.\n", cache.DirPath())
+	}
+	diary, err := prepareDiary(env, cache)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(3)
+	}
+	store := NewStore(env, diary)
+	txs, err := store.Store(flagFile)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(4)
+	}
+	if len(txs) > 0 {
+		fmt.Printf("INFO: the file has been stored in %d transactions with the followind ID:\n", len(txs))
+		for i, tx := range txs {
+			fmt.Printf("%d: %s\n", i, tx)
+		}
+	}
+}
+
+func cmdEstimate() {
+	flagset := newFlagset(commandStore)
+	env, err := prepareEnvironment(os.Args, flagset)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(1)
+	}
+	if env.help {
+		printHelp(flagset)
+		os.Exit(0)
+	}
+	if flagFile == "" {
+		fmt.Printf("WARNING: file not specified\n")
+		os.Exit(0)
+	}
+	diary, err := prepareDiary(env, nil)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(3)
+	}
+	store := NewStore(env, diary)
+	fee, err := store.Estimate(flagFile)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(4)
+	}
+	fmt.Printf("INFO: estimated fee to store the file: %d satoshi\n", fee.Satoshi())
+}
+
+func cmdRetrieveAll() {
+	flagset := newFlagset(commandRetrieveAll)
+	env, err := prepareEnvironment(os.Args, flagset)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(1)
+	}
+	if env.help {
+		printHelp(flagset)
+		os.Exit(0)
+	}
+	if !env.passwordSet {
+		fmt.Printf("WARNING: password is not set.\n")
+	}
+	cache, err := prepareCache(env)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(2)
+	}
+	if cache != nil {
+		fmt.Printf("INFO: cache folder is: %s.\n", cache.DirPath())
+	}
+	diary, err := prepareDiary(env, cache)
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(3)
+	}
+	retrieve := NewRetrieve(env, diary)
+	n, err := retrieve.DownloadAll()
+	if err != nil {
+		fmt.Printf("ERROR: %v.\n", err)
+		os.Exit(4)
+	}
+	fmt.Printf("INFO: %d files has been retrived from '%s' to '%s'\n", n, diary.BitcoinPublicAddress(), flagOutputDir)
 }
 
 func main() {
@@ -88,67 +203,12 @@ func main() {
 	fmt.Printf("INFO: command is: %s\n", command)
 	switch command {
 	case commandDescribe:
-		flagset := newFlagset(commandRetrieveAll)
-		env, err := prepareEnvironment(os.Args, flagset)
-		if err != nil {
-			fmt.Printf("ERROR: %v.\n", err)
-			os.Exit(1)
-		}
-		if env.help {
-			printHelp(flagset)
-			os.Exit(0)
-		}
-		cache, err := prepareCache(env)
-		if err != nil {
-			fmt.Printf("ERROR: %v.\n", err)
-			os.Exit(2)
-		}
-		diary, err := prepareDiary(env, cache)
-		if err != nil {
-			fmt.Printf("ERROR: %v.\n", err)
-			os.Exit(3)
-		}
-		describe := NewDescribe(env, diary)
-		err = describe.CmdDescribe(os.Stdout)
-		if err != nil {
-			fmt.Printf("ERROR: %v.\n", err)
-			os.Exit(4)
-		}
+		cmdDescribe()
 	case commandStore:
-		// err = cmdStore(os.Args)
+		cmdStore()
+	case commandEstimate:
+		cmdEstimate()
 	case commandRetrieveAll:
-		flagset := newFlagset(commandRetrieveAll)
-		env, err := prepareEnvironment(os.Args, flagset)
-		if err != nil {
-			fmt.Printf("ERROR: %v.\n", err)
-			os.Exit(1)
-		}
-		if env.help {
-			printHelp(flagset)
-			os.Exit(0)
-		}
-		if !env.passwordSet {
-			fmt.Printf("WARNING: password is not set.\n")
-		}
-		cache, err := prepareCache(env)
-		if err != nil {
-			fmt.Printf("ERROR: %v.\n", err)
-			os.Exit(2)
-		}
-		if cache != nil {
-			fmt.Printf("INFO: cache folder is: %s.\n", cache.DirPath())
-		}
-		diary, err := prepareDiary(env, cache)
-		if err != nil {
-			fmt.Printf("ERROR: %v.\n", err)
-			os.Exit(3)
-		}
-		retrieve := NewRetrieve(env, diary)
-		n, err := retrieve.CmdDownloadAll()
-		if err != nil {
-			fmt.Printf("ERROR: %v.\n", err)
-			os.Exit(4)
-		}
-		fmt.Printf("INFO: %d files has been retrived from '%s' to '%s'\n", n, diary.BitcoinPublicAddress(), flagOutputDir)
+		cmdRetrieveAll()
 	}
 }

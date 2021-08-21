@@ -18,19 +18,21 @@ type Diary struct {
 
 func NewDiary(wif string, password [32]byte, blockchain *Blockchain) (*Diary, error) {
 	tr := trace.New().Source("diary.go", "Diary", "NewDiary")
-	trail.Println(trace.Debug("new Diary").UTC().Append(tr))
 	address, err := AddressOf(wif)
 	if err != nil {
 		trail.Println(trace.Alert("cannot get address of key").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get address of key: %w", err)
 	}
-	return &Diary{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, Blockchain: blockchain}, nil
+	d := Diary{bitcoinWif: wif, bitcoinAdd: address, cryptoKey: password, Blockchain: blockchain}
+	trail.Println(trace.Debug("new Diary built").UTC().Append(tr).Add("wif", wif).Add("address", address).Add("password", d.EncodingPassword()))
+	return &d, nil
 }
 
 func NewDiaryRO(address string, password [32]byte, blockchain *Blockchain) (*Diary, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "NewDiaryRO")
-	trail.Println(trace.Debug("new readonly Diary").UTC().Append(tr))
-	return &Diary{bitcoinWif: "", bitcoinAdd: address, cryptoKey: password, Blockchain: blockchain}, nil
+	d := Diary{bitcoinWif: "", bitcoinAdd: address, cryptoKey: password, Blockchain: blockchain}
+	trail.Println(trace.Debug("new readonly Diary").UTC().Append(tr).Add("address", address).Add("password", d.EncodingPassword()))
+	return &d, nil
 }
 
 func (l *Diary) BitcoinPrivateKey() string {

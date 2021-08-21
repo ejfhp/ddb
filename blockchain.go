@@ -104,7 +104,6 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 func (b *Blockchain) ListTXID(address string, cacheonly bool) ([]string, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXID")
 	trail.Println(trace.Debug("listing TXIDs").UTC().Add("address", address).Add("cacheonly", fmt.Sprintf("%t", cacheonly)).Append(tr))
-	txids := make([]string, 0)
 	if cacheonly && b.Cache != nil {
 		txids, err := b.Cache.RetrieveTXIDs(address)
 		if err != ErrNotCached {
@@ -112,16 +111,17 @@ func (b *Blockchain) ListTXID(address string, cacheonly bool) ([]string, error) 
 			return nil, fmt.Errorf("error while getting TXID from cache: %w", err)
 		}
 		return txids, nil
+	} else {
+		txids, err := b.Explorer.GetTXIDs(address)
+		if err != nil {
+			trail.Println(trace.Alert("error while getting TXID from explorer").UTC().Add("address", address).Error(err).Append(tr))
+			return nil, fmt.Errorf("error while getting TXID from explorer: %w", err)
+		}
+		if b.Cache != nil {
+			b.Cache.StoreTXIDs(address, txids)
+		}
+		return txids, nil
 	}
-	txids, err := b.Explorer.GetTXIDs(address)
-	if err != nil {
-		trail.Println(trace.Alert("error while getting TXID from explorer").UTC().Add("address", address).Error(err).Append(tr))
-		return nil, fmt.Errorf("error while getting TXID from explorer: %w", err)
-	}
-	if b.Cache != nil {
-		b.Cache.StoreTXIDs(address, txids)
-	}
-	return txids, nil
 }
 
 //ListTXHistoryBackward returns all the TXID of the TX history that ends to txid.
@@ -191,7 +191,7 @@ func (b *Blockchain) walkBackward(txid string, prevTXpos uint32, mainAddr string
 		return nil, fmt.Errorf("prev output index out of range: %d with %d outputs", prevTXpos, len(tx.Outputs))
 	}
 	output := tx.Outputs[prevTXpos]
-	if output.LockingScript.IsP2PKH() == true {
+	if output.LockingScript.IsP2PKH() {
 		//fmt.Printf("found P2PKH in tx %s\n", txid)
 		pkhash, err := output.LockingScript.GetPublicKeyHash()
 		if err != nil {

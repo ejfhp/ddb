@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -17,7 +18,7 @@ import (
 var (
 	flagLog            bool
 	flagHelp           bool
-	flagFilename       string
+	flagFile           string
 	flagOutputDir      string
 	flagCacheDir       string
 	flagDisableCache   bool
@@ -26,6 +27,36 @@ var (
 	flagPassword       string
 	flagKeygenID       int64
 )
+
+func newFlagset(command string) *flag.FlagSet {
+	flagset := flag.NewFlagSet(command, flag.ContinueOnError)
+	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
+	flagset.BoolVar(&flagHelp, "help", false, "print help")
+	flagset.BoolVar(&flagHelp, "h", false, "print help")
+	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+	flagset.StringVar(&flagPassword, "password", "", "encryption password")
+	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
+	//DESCRIBE
+	if command == commandDescribe {
+		return flagset
+	}
+	//RETRIEVE
+	if command == commandRetrieveAll {
+		flagset.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
+		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disable cache")
+		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
+		return flagset
+	}
+	//STORE
+	if command == commandStore {
+		flagset.StringVar(&flagFile, "file", "", "path of file to store")
+		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disable cache")
+		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
+		return flagset
+	}
+	return flagset
+}
 
 type Environment struct {
 	passphrase    string
@@ -42,8 +73,7 @@ type Environment struct {
 }
 
 func (e *Environment) passwordString() string {
-	p := e.password[:]
-	return strings.TrimSpace(string(p))
+	return string(bytes.Trim(e.password[:], string([]byte{0})))
 }
 
 func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, error) {
@@ -73,18 +103,19 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	}
 	trail.Println(trace.Info("keygenID defined").Append(tr).UTC().Add("keygenID", fmt.Sprintf("%d", keygenID)))
 
-	passphrase, err := extractPassphrase(os.Args)
+	passphrase, err := extractPassphrase(args)
 	if err != nil {
 		trail.Println(trace.Warning("passphrase not found").Append(tr).UTC().Error(err))
 	}
+	trail.Println(trace.Info("passphrase extracted").Append(tr).UTC().Add("passphrase", passphrase))
 	if passphrase != "" {
 		env.passphrase = passphrase
 		env.key, env.password, err = processPassphrase(passphrase, int(keygenID))
-		env.passwordSet = true
 		if err != nil {
 			trail.Println(trace.Warning("error processing passphrase").Append(tr).UTC().Add("passphrase", passphrase).Error(err))
 			return nil, fmt.Errorf("error procesing passphrase")
 		}
+		env.passwordSet = true
 	}
 
 	if flagBitcoinKey != "" {
@@ -97,6 +128,9 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	}
 	if flagPassword != "" {
 		trail.Println(trace.Info("using password from command line").Append(tr).UTC().Add("flagPassword", flagPassword))
+		for i := 0; i < len(env.password); i++ {
+			env.password[i] = 0
+		}
 		copy(env.password[:], []byte(flagPassword))
 		env.passwordSet = true
 	}
@@ -106,6 +140,7 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	}
 	env.cacheDisabled = flagDisableCache
 	env.cacheFolder = flagCacheDir
+	trail.Println(trace.Info("environment prepared").Append(tr).UTC().Add("key", env.key).Add("address", env.address).Add("password", env.passwordString()))
 	return &env, nil
 }
 
@@ -153,29 +188,6 @@ func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.Diary, error) {
 		}
 	}
 	return diary, nil
-}
-
-func newFlagset(command string) *flag.FlagSet {
-	flagset := flag.NewFlagSet(command, flag.ContinueOnError)
-	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
-	flagset.BoolVar(&flagHelp, "help", false, "print help")
-	flagset.BoolVar(&flagHelp, "h", false, "print help")
-	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
-	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
-	flagset.StringVar(&flagPassword, "password", "", "encryption password")
-	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-	//DESCRIBE
-	if command == commandDescribe {
-		return flagset
-	}
-	//RETRIEVE
-	if command == commandRetrieveAll {
-		flagset.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
-		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disable cache")
-		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
-		return flagset
-	}
-	return flagset
 }
 
 func extractPassphrase(args []string) (string, error) {

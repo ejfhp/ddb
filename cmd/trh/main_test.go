@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -49,4 +50,42 @@ func TestPassphrase(t *testing.T) {
 		}
 
 	}
+}
+
+func TestEnvironment(t *testing.T) {
+	clis := []map[string]string{
+		{
+			"cli":        "trh store -log -file logo.png -password logo + this passphrase is only for test1ng purpose, nothing is stored",
+			"command":    "store",
+			"password":   "logo",
+			"passphrase": "this passphrase is only for test1ng purpose, nothing is stored",
+		},
+	}
+	for i, conf := range clis {
+		flagset := newFlagset(conf["command"])
+		args := strings.Split(conf["cli"], " ")
+		for i, a := range args {
+			fmt.Printf("%d: %s\n", i, a)
+		}
+		env, err := prepareEnvironment(args, flagset)
+		if err != nil {
+			t.Logf("%d, prepare environment failed: %v", i, err)
+			t.FailNow()
+		}
+		for k, v := range conf {
+			if k == "cli" || k == "command" {
+				continue
+			}
+			if k == "password" && env.passwordString() != v {
+				t.Logf("%d, wrong %s: %s (%d) != %s", 1, k, env.passwordString(), len(env.passwordString()), v)
+				t.Fail()
+			}
+			if k == "passphrase" && env.passphrase != v {
+				t.Logf("%d, wrong %s: %s (%d) != %s", 1, k, env.passphrase, len(env.passphrase), v)
+				t.Fail()
+			}
+		}
+
+	}
+
 }
