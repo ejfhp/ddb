@@ -36,18 +36,18 @@ func NewTXCache(path string) (*TXCache, error) {
 	return &cache, nil
 }
 
-func (c *TXCache) DirPath() string {
-	return c.path
+func (c *TXCache) PathOf(base string) string {
+	return path.Join(c.path, base+".trh")
 }
 
-func (c *TXCache) Path(base string) string {
-	return path.Join(c.path, base+".trh")
+func (c *TXCache) DirPath() string {
+	return c.path
 }
 
 func (c *TXCache) StoreTX(id string, tx []byte) error {
 	tr := trace.New().Source("cache.go", "TXCache", "Store")
 	trail.Println(trace.Debug("storing TX").UTC().Add("path", c.path).Add("id", id).Append(tr))
-	txpath := c.Path(id)
+	txpath := c.PathOf(id)
 	err := ioutil.WriteFile(txpath, tx, 0600)
 	if err != nil {
 		trail.Println(trace.Alert("error storing tx to cache").UTC().Add("path", c.path).Add("id", id).Error(err).Append(tr))
@@ -59,7 +59,7 @@ func (c *TXCache) StoreTX(id string, tx []byte) error {
 func (c *TXCache) RetrieveTX(id string) ([]byte, error) {
 	tr := trace.New().Source("cache.go", "TXCache", "Retrieve")
 	trail.Println(trace.Debug("retrieving TX").UTC().Add("id", id).Append(tr))
-	txpath := c.Path(id)
+	txpath := c.PathOf(id)
 	tx, err := ioutil.ReadFile(txpath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -74,7 +74,7 @@ func (c *TXCache) RetrieveTX(id string) ([]byte, error) {
 
 func (c *TXCache) StoreTXIDs(address string, txids []string) error {
 	tr := trace.New().Source("cache.go", "TXCache", "StoreTXID")
-	trail.Println(trace.Debug("storing TXID").UTC().Add("path", c.path).Add("address", address).Append(tr))
+	trail.Println(trace.Debug("storing TXIDs").UTC().Add("path", c.path).Add("address", address).Append(tr))
 	addinfo, err := c.retrieveAddressInfo(address)
 	if err != nil {
 		if err == ErrNotCached {
@@ -91,11 +91,12 @@ func (c *TXCache) StoreTXIDs(address string, txids []string) error {
 				exist = true
 			}
 		}
-		if exist == false {
+		if !exist {
 			addinfo.TXIDs = append(addinfo.TXIDs, incom)
 		}
 	}
-	err = c.storeAddressInfo(address, addinfo)
+	err = c.storeAddressInfo(addinfo)
+	fmt.Println(addinfo)
 	if err != nil {
 		trail.Println(trace.Alert("error storing txid to cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
 		return fmt.Errorf("error storing txid for address '%s' to cache dir '%s': %w", address, c.path, err)
@@ -103,9 +104,9 @@ func (c *TXCache) StoreTXIDs(address string, txids []string) error {
 	return nil
 }
 
-func (c *TXCache) RetrieveTXIDs(address string) ([]string, error) {
-	tr := trace.New().Source("cache.go", "TXCache", "RetrieveTXID")
-	trail.Println(trace.Debug("retrieving TXID").UTC().Add("path", c.path).Add("address", address).Append(tr))
+func (c *TXCache) GetTXIDs(address string) ([]string, error) {
+	tr := trace.New().Source("cache.go", "TXCache", "GetTXIDs")
+	trail.Println(trace.Debug("getting TXID").UTC().Add("path", c.path).Add("address", address).Append(tr))
 	addinfo, err := c.retrieveAddressInfo(address)
 	if err != nil {
 		if err == ErrNotCached {
@@ -124,7 +125,7 @@ func (c *TXCache) RetrieveTXIDs(address string) ([]string, error) {
 }
 
 func (c *TXCache) retrieveAddressInfo(address string) (*AddressInfo, error) {
-	txpath := c.Path(address)
+	txpath := c.PathOf(address)
 	bytes, err := ioutil.ReadFile(txpath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -140,15 +141,15 @@ func (c *TXCache) retrieveAddressInfo(address string) (*AddressInfo, error) {
 	return &addinfo, nil
 }
 
-func (c *TXCache) storeAddressInfo(address string, addressinfo *AddressInfo) error {
-	aipath := c.Path(address)
+func (c *TXCache) storeAddressInfo(addressinfo *AddressInfo) error {
+	aipath := c.PathOf(addressinfo.Address)
 	bytes, err := json.Marshal(addressinfo)
 	if err != nil {
-		return fmt.Errorf("error marshaling address info for '%s': %w", address, err)
+		return fmt.Errorf("error marshaling address info for '%s': %w", addressinfo.Address, err)
 	}
 	err = ioutil.WriteFile(aipath, bytes, 0600)
 	if err != nil {
-		return fmt.Errorf("error storing address info for address '%s' to cache dir '%s': %w", address, c.path, err)
+		return fmt.Errorf("error storing address info for address '%s' to cache dir '%s': %w", addressinfo.Address, c.path, err)
 	}
 	return nil
 }

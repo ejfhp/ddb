@@ -185,7 +185,7 @@ func cmdRetrieveAll() {
 		os.Exit(3)
 	}
 	retrieve := NewRetrieve(env, diary)
-	n, err := retrieve.DownloadAll()
+	n, err := retrieve.RetrieveAll()
 	if err != nil {
 		fmt.Printf("ERROR: %v.\n", err)
 		os.Exit(4)
@@ -210,5 +210,7 @@ func main() {
 		cmdEstimate()
 	case commandRetrieveAll:
 		cmdRetrieveAll()
+	default:
+		printMainHelp()
 	}
 }

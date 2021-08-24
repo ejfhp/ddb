@@ -25,7 +25,7 @@ func NewRetrieve(env *Environment, diary *ddb.Diary) *Retrieve {
 
 }
 
-func (cr *Retrieve) DownloadAll() (int, error) {
+func (cr *Retrieve) RetrieveAll() (int, error) {
 	tr := trace.New().Source("retrieve.go", "Retrieve", "cmd")
 	n, err := cr.diary.DowloadAll(flagOutputDir)
 	if err != nil {

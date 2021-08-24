@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -94,16 +95,23 @@ func TestTXCache_StoreRetrieveTX(t *testing.T) {
 
 func TestTXCache_StoreRetrieveTXID(t *testing.T) {
 	trail.SetWriter(os.Stdout)
-	address := "address"
-	txid1 := "txid1"
-	txid2 := "txid2"
 	usercache, _ := os.UserCacheDir()
-
 	cache, err := ddb.NewTXCache(filepath.Join(usercache, "trh"))
 	if err != nil {
 		t.Logf("failed to create cache: %v", err)
 		t.FailNow()
 	}
+	address := "address"
+	//RETRIEVE
+	sos, err := cache.GetTXIDs(address)
+	if err != nil {
+		t.Logf("failed to retrieve txid: %v", err)
+		t.Fail()
+	}
+	initialCount := len(sos)
+
+	txid1 := fmt.Sprintf("t1%s", time.Now().Format(time.StampMicro))
+	txid2 := fmt.Sprintf("t2%s", time.Now().Format(time.StampMicro))
 
 	//STORE
 	err = cache.StoreTXIDs(address, []string{txid1})
@@ -118,17 +126,17 @@ func TestTXCache_StoreRetrieveTXID(t *testing.T) {
 	}
 
 	//RETRIEVE
-	sos, err := cache.RetrieveTXIDs(address)
+	sos, err = cache.GetTXIDs(address)
 	if err != nil {
 		t.Logf("failed to retrieve txid: %v", err)
 		t.Fail()
 	}
-	if len(sos) != 2 {
+	if len(sos) != initialCount+2 {
 		t.Logf("unexpected number of txids: %d", len(sos))
 		t.Fail()
 	}
 
-	_, err = cache.RetrieveTXIDs("notexists")
+	_, err = cache.GetTXIDs("notexists")
 	if err != ddb.ErrNotCached {
 		t.Logf("unexpected error for not existent sourceoutput: %v", err)
 		t.Fail()

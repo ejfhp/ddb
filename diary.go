@@ -78,7 +78,7 @@ func (l *Diary) EstimateFee(entry *Entry) (Satoshi, error) {
 		return Satoshi(0), fmt.Errorf("error encrypting entries of file: %w", err)
 	}
 	fakeUtxos := []*UTXO{{TXPos: 0, TXHash: "72124e293287ab0ca20a723edb61b58d6ef89aba05508b92198bd948bfb6da40", Value: 100000000000, ScriptPubKeyHex: "76a914330a97979931a961d1e5f05d3c7ace4217fc7adc88ac"}}
-	dataFee, err := l.Blockchain.Miner.GetDataFee()
+	dataFee, err := l.Blockchain.GetDataFee()
 	if err != nil {
 		trail.Println(trace.Alert("error getting miner data fee").UTC().Error(err).Append(tr))
 		return Satoshi(0), fmt.Errorf("error getting miner data fee: %w", err)
@@ -127,7 +127,7 @@ func (l *Diary) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 		trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", l.bitcoinAdd).Error(err).Append(tr))
 		return nil, fmt.Errorf("error getting UTXO for address %s: %w", l.bitcoinAdd, err)
 	}
-	fee, err := l.Blockchain.Miner.GetDataFee()
+	fee, err := l.Blockchain.GetDataFee()
 	if err != nil {
 		trail.Println(trace.Alert("error miner data fee").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error getting miner data fee: %w", err)
@@ -144,7 +144,7 @@ func (l *Diary) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 func (l *Diary) EncryptEntry(entry *Entry) ([][]byte, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "EncryptEntry")
 	trail.Println(trace.Info("getting parts").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
-	parts, err := entry.Parts(l.MaxDataSize())
+	parts, err := entry.Parts(l.Blockchain.MaxDataSize())
 	if err != nil {
 		trail.Println(trace.Alert("error generating parts of file").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error generating parts of file: %w", err)
@@ -203,7 +203,7 @@ func (l *Diary) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
 func (l *Diary) DowloadAll(outPath string) (int, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "DownloadAll")
 	trail.Println(trace.Info("download all entries locally").Add("outpath", outPath).UTC().Append(tr))
-	history, err := l.Blockchain.Explorer.GetTXIDs(l.bitcoinAdd)
+	history, err := l.ListHistory(l.bitcoinAdd)
 	if err != nil {
 		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
 		return 0, fmt.Errorf("error getting address history: %w", err)
@@ -265,18 +265,10 @@ func (l *Diary) DecryptEntries(crypts [][]byte) ([]*Entry, error) {
 func (l *Diary) ListHistory(address string) ([]string, error) {
 	tr := trace.New().Source("logbook.go", "Logbook", "ListHistory")
 	trail.Println(trace.Info("listing TX history").UTC().Add("address", address).Append(tr))
-	txids, err := l.Blockchain.Explorer.GetTXIDs(address)
+	txids, err := l.Blockchain.ListTXIDs(address)
 	if err != nil {
 		trail.Println(trace.Warning("error while listing TX history").UTC().Add("address", address).Error(err).Append(tr))
 		return nil, fmt.Errorf("error while listing TX history: %w", err)
 	}
 	return txids, nil
-}
-
-func (l *Diary) MaxDataSize() int {
-	//9 is header size and must never be changed
-	avai := l.Blockchain.Miner.MaxOpReturn() - 9
-	cryptFactor := 0.5
-	disp := float64(avai) * cryptFactor
-	return int(disp)
 }

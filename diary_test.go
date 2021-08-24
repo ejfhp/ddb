@@ -419,7 +419,7 @@ func TestDiary_EntryFullCycleImage(t *testing.T) {
 	fm := mime.TypeByExtension(filepath.Ext(name))
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: imageHash, Data: image}
 	txs, err := logbook.ProcessEntry(entry)
-	t.Logf("txs len: %d len(data):%d  maxDataSize:%d", len(txs), len(image), logbook.MaxDataSize())
+	t.Logf("txs len: %d len(data):%d  maxDataSize:%d", len(txs), len(image), logbook.Blockchain.MaxDataSize())
 	if err != nil {
 		t.Logf("txs preparation failed")
 		t.Fail()

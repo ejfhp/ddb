@@ -22,6 +22,7 @@ var (
 	flagOutputDir      string
 	flagCacheDir       string
 	flagDisableCache   bool
+	flagOnlyCache      bool
 	flagBitcoinAddress string
 	flagBitcoinKey     string
 	flagPassword       string
@@ -31,8 +32,8 @@ var (
 func newFlagset(command string) *flag.FlagSet {
 	flagset := flag.NewFlagSet(command, flag.ContinueOnError)
 	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
-	flagset.BoolVar(&flagHelp, "help", false, "print help")
-	flagset.BoolVar(&flagHelp, "h", false, "print help")
+	flagset.BoolVar(&flagHelp, "help", false, "prints help")
+	flagset.BoolVar(&flagHelp, "h", false, "prints help")
 	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
 	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
 	flagset.StringVar(&flagPassword, "password", "", "encryption password")
@@ -44,14 +45,15 @@ func newFlagset(command string) *flag.FlagSet {
 	//RETRIEVE
 	if command == commandRetrieveAll {
 		flagset.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
-		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disable cache")
+		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
+		flagset.BoolVar(&flagOnlyCache, "onlycache", false, "true retrieves only from cache")
 		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
 		return flagset
 	}
 	//STORE
 	if command == commandStore {
 		flagset.StringVar(&flagFile, "file", "", "path of file to store")
-		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disable cache")
+		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
 		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
 		return flagset
 	}
@@ -70,6 +72,7 @@ type Environment struct {
 	outFolder     string
 	cacheFolder   string
 	cacheDisabled bool
+	cacheOnly     bool
 }
 
 func (e *Environment) passwordString() string {
@@ -138,7 +141,12 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	if flagOutputDir != "" {
 		env.outFolder = flagOutputDir
 	}
+	if flagDisableCache && flagOnlyCache {
+		trail.Println(trace.Warning("onlycache and nocache both enabled").Append(tr).UTC())
+		return nil, fmt.Errorf("onlycache and nocache both enabled")
+	}
 	env.cacheDisabled = flagDisableCache
+	env.cacheOnly = flagOnlyCache
 	env.cacheFolder = flagCacheDir
 	trail.Println(trace.Info("environment prepared").Append(tr).UTC().Add("key", env.key).Add("address", env.address).Add("password", env.passwordString()))
 	return &env, nil
@@ -169,7 +177,10 @@ func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.Diary, error) {
 		trail.Println(trace.Alert("bitcoin key and address are both empty").Append(tr).UTC())
 		return nil, fmt.Errorf("cannot prepare diary, bitcoin key and address are both empty")
 	}
-	woc := ddb.NewWOC()
+	var woc ddb.Explorer
+	if !env.cacheOnly {
+		woc = ddb.NewWOC()
+	}
 	taal := ddb.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	var err error

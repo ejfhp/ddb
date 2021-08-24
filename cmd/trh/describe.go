@@ -75,7 +75,7 @@ func (d *Describe) Describe(writer io.Writer) error {
 	fmt.Fprintf(writer, "\n")
 	fmt.Fprintf(writer, "Cache:\n")
 	if !d.env.cacheDisabled {
-		fmt.Fprintf(writer, "cache folder: '%s'\n", d.diary.Blockchain.Cache.DirPath())
+		fmt.Fprintf(writer, "cache folder: '%s'\n", d.diary.Blockchain.CacheDir())
 	}
 	return nil
 }

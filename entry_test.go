@@ -365,7 +365,9 @@ func TestEncodeDecodeSingleEntry2(t *testing.T) {
 		cryParts = append(cryParts, ep)
 	}
 	//pack
-	utxos := []*ddb.UTXO{&ddb.UTXO{TXPos: 1, TXHash: "TXHASH", Value: 1000, ScriptPubKeyHex: "scriptpubkey"}}
+	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
+	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
+	utxos := []*ddb.UTXO{{TXPos: 1, TXHash: txid, Value: 1000, ScriptPubKeyHex: scriptHex}}
 	satoshi500 := ddb.Satoshi(500)
 	fee := &ddb.Fee{
 		FeeType: "data",
