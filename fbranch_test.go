@@ -17,7 +17,7 @@ import (
 var address string
 var key string
 
-func TestDiary_ProcessEntry(t *testing.T) {
+func TestFBranch_ProcessEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -34,13 +34,13 @@ func TestDiary_ProcessEntry(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	for i, v := range passwords {
-		logbook, err := ddb.NewDiary(key, v, blockchain)
+		fbranch, err := ddb.NewFBranch(key, v, blockchain)
 		if err != nil {
-			t.Logf("%d failed to create new Logbook: %v", i, err)
+			t.Logf("%d failed to create new FBranch: %v", i, err)
 			t.Fail()
 		}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		txs, err := logbook.ProcessEntry(&entry)
+		txs, err := fbranch.ProcessEntry(&entry)
 		if err != nil {
 			t.Logf("%d failed to process entry: %v", i, err)
 			t.Fail()
@@ -73,7 +73,7 @@ func TestDiary_ProcessEntry(t *testing.T) {
 	}
 }
 
-func TestDiary_EstimateFee(t *testing.T) {
+func TestFBranch_EstimateFee(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -90,13 +90,13 @@ func TestDiary_EstimateFee(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	for i, v := range passwords {
-		diary, err := ddb.NewDiary(key, v, blockchain)
+		fbranch, err := ddb.NewFBranch(key, v, blockchain)
 		if err != nil {
-			t.Logf("%d failed to create new Diary: %v", i, err)
+			t.Logf("%d failed to create new FBranch: %v", i, err)
 			t.Fail()
 		}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		fee, err := diary.EstimateFee(&entry)
+		fee, err := fbranch.EstimateFee(&entry)
 		if err != nil {
 			t.Logf("%d failed to estimate fee: %v", i, err)
 			t.Fail()
@@ -108,7 +108,7 @@ func TestDiary_EstimateFee(t *testing.T) {
 	}
 }
 
-func TestDiary_EncryptDecryptEntry(t *testing.T) {
+func TestFBranch_EncryptDecryptEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -138,18 +138,18 @@ func TestDiary_EncryptDecryptEntry(t *testing.T) {
 			t.Fail()
 		}
 		pass := k.Password()
-		logbook, err := ddb.NewDiary(wif, pass, blockchain)
+		fbranch, err := ddb.NewFBranch(wif, pass, blockchain)
 		if err != nil {
-			t.Logf("%d failed to create new Logbook: %v", i, err)
+			t.Logf("%d failed to create new FBranch: %v", i, err)
 			t.Fail()
 		}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		encs, err := logbook.EncryptEntry(&entry)
+		encs, err := fbranch.EncryptEntry(&entry)
 		if err != nil {
 			t.Logf("%d failed to process entry: %v", i, err)
 			t.Fail()
 		}
-		entries, err := logbook.DecryptEntries(encs)
+		entries, err := fbranch.DecryptEntries(encs)
 		if err != nil {
 			t.Logf("%d failed to decrypt entry: %v", i, err)
 			t.Fail()
@@ -162,15 +162,15 @@ func TestDiary_EncryptDecryptEntry(t *testing.T) {
 	}
 }
 
-func NO_TestDiary_CastEntry(t *testing.T) {
+func NO_TestFBranch_CastEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Logf("failed to create new Logbook: %v", err)
+		t.Logf("failed to create new FBranch: %v", err)
 		t.Fail()
 	}
 	filename := "Inferno.txt"
@@ -182,7 +182,7 @@ func NO_TestDiary_CastEntry(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	entry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file))
-	ids, err := logbook.CastEntry(entry)
+	ids, err := fbranch.CastEntry(entry)
 	if err != nil {
 		t.Logf("failed to process entry: %v", err)
 		t.Fail()
@@ -196,15 +196,15 @@ func NO_TestDiary_CastEntry(t *testing.T) {
 	}
 }
 
-func NO_TestDiary_CastImageEntry(t *testing.T) {
+func NO_TestFBranch_CastImageEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Logf("failed to create new Logbook: %v", err)
+		t.Logf("failed to create new FBranch: %v", err)
 		t.Fail()
 	}
 	name := "image.png"
@@ -214,7 +214,7 @@ func NO_TestDiary_CastImageEntry(t *testing.T) {
 		t.Logf("failed to create Entry: %v", err)
 		t.Fail()
 	}
-	ids, err := logbook.CastEntry(entry)
+	ids, err := fbranch.CastEntry(entry)
 	if err != nil {
 		t.Logf("failed to process entry: %v", err)
 		t.Fail()
@@ -228,19 +228,19 @@ func NO_TestDiary_CastImageEntry(t *testing.T) {
 	}
 }
 
-func TestDiary_RetrieveAndExtractEntries(t *testing.T) {
+func TestFBranch_RetrieveAndExtractEntries(t *testing.T) {
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Logf("failed to create new Logbook: %v", err)
+		t.Logf("failed to create new FBranch: %v", err)
 		t.Fail()
 	}
-	entries, err := logbook.RetrieveAndExtractEntries([]string{txid})
+	entries, err := fbranch.RetrieveAndExtractEntries([]string{txid})
 	if err != nil {
 		t.Logf("failed to retrieve entry: %v", err)
 		t.Fail()
@@ -277,7 +277,7 @@ func TestDiary_RetrieveAndExtractEntries(t *testing.T) {
 	}
 }
 
-func TestDiary_RetrieveAndExtractImageEntry(t *testing.T) {
+func TestFBranch_RetrieveAndExtractImageEntry(t *testing.T) {
 	txids := []string{
 		"afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426", //EXTRA TX
 		"33c5339f5f942793867898d92c72cdab8fc5ff464f77970fc6fd0cf8dd99f271",
@@ -295,12 +295,12 @@ func TestDiary_RetrieveAndExtractImageEntry(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Logf("failed to create new Logbook: %v", err)
+		t.Logf("failed to create new FBranch: %v", err)
 		t.Fail()
 	}
-	entries, err := logbook.RetrieveAndExtractEntries(txids)
+	entries, err := fbranch.RetrieveAndExtractEntries(txids)
 	if err != nil {
 		t.Logf("failed to retrieve entry: %v", err)
 		t.Fail()
@@ -344,15 +344,15 @@ func TestDiary_RetrieveAndExtractImageEntry(t *testing.T) {
 	}
 }
 
-func TestDiary_EntryFullCycleText(t *testing.T) {
+func TestFBranch_EntryFullCycleText(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Logf("failed to create logbook: %v", err)
+		t.Logf("failed to create fbranch: %v", err)
 		t.Fail()
 	}
 	name := "test.txt"
@@ -361,7 +361,7 @@ func TestDiary_EntryFullCycleText(t *testing.T) {
 	sha := sha256.Sum256(bytes)
 	hash := hex.EncodeToString(sha[:])
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: hash, Data: bytes}
-	txs, err := logbook.ProcessEntry(entry)
+	txs, err := fbranch.ProcessEntry(entry)
 	t.Logf("txs len: %d", len(txs))
 	if err != nil {
 		t.Logf("txs preparation failed")
@@ -369,7 +369,7 @@ func TestDiary_EntryFullCycleText(t *testing.T) {
 	}
 	// here data should be cast to blockchain and then
 	// retrieved trough a blockchain explorer
-	ents, err := logbook.ExtractEntries(txs)
+	ents, err := fbranch.ExtractEntries(txs)
 	if err != nil {
 		t.Logf("entry extraction failed")
 		t.Fail()
@@ -398,15 +398,15 @@ func TestDiary_EntryFullCycleText(t *testing.T) {
 	}
 }
 
-func TestDiary_EntryFullCycleImage(t *testing.T) {
+func TestFBranch_EntryFullCycleImage(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Fatalf("error building Logbook: %v", err)
+		t.Fatalf("error building FBranch: %v", err)
 	}
 	name := "image.png"
 	file := "testdata/image.png"
@@ -418,15 +418,15 @@ func TestDiary_EntryFullCycleImage(t *testing.T) {
 	imageHash := hex.EncodeToString(imageSha[:])
 	fm := mime.TypeByExtension(filepath.Ext(name))
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: imageHash, Data: image}
-	txs, err := logbook.ProcessEntry(entry)
-	t.Logf("txs len: %d len(data):%d  maxDataSize:%d", len(txs), len(image), logbook.Blockchain.MaxDataSize())
+	txs, err := fbranch.ProcessEntry(entry)
+	t.Logf("txs len: %d len(data):%d  maxDataSize:%d", len(txs), len(image), fbranch.Blockchain.MaxDataSize())
 	if err != nil {
 		t.Logf("txs preparation failed")
 		t.Fail()
 	}
 	// here data should be cast to blockchain and then
 	// retrieved trough a blockchain explorer
-	ents, err := logbook.ExtractEntries(txs)
+	ents, err := fbranch.ExtractEntries(txs)
 	if err != nil {
 		t.Logf("entry extraction failed")
 		t.Fail()
@@ -455,22 +455,22 @@ func TestDiary_EntryFullCycleImage(t *testing.T) {
 	}
 }
 
-func TestDiary_RetrieveTXs(t *testing.T) {
+func TestFBranch_RetrieveTXs(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Logf("error building Logbook: %v", err)
+		t.Logf("error building FBranch: %v", err)
 		t.FailNow()
 	}
 	txids := []string{
 		"8686df3af289968bf286023190a0e2aa0cd9fd12bce9e4e7f9763cc16219a114",
 		"4286b420ce6d33da881342697a2ebf19a475817f0bb41547768fe61070e5a42b",
 	}
-	txs, err := logbook.RetrieveTXs(txids)
+	txs, err := fbranch.RetrieveTXs(txids)
 	if err != nil {
 		t.Logf("error retrieving TXs: %v", err)
 		t.FailNow()
@@ -481,19 +481,19 @@ func TestDiary_RetrieveTXs(t *testing.T) {
 	}
 }
 
-func TestDiary_DownloadAll(t *testing.T) {
+func TestFBranch_DownloadAll(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Logf("error building Logbook: %v", err)
+		t.Logf("error building FBranch: %v", err)
 		t.FailNow()
 	}
 	output := "download"
-	n, err := logbook.DowloadAll(output)
+	n, err := fbranch.DowloadAll(output)
 	if err != nil {
 		t.Logf("failed to download all: %v", err)
 		t.FailNow()
@@ -505,18 +505,18 @@ func TestDiary_DownloadAll(t *testing.T) {
 	t.Logf("downloaded entries: %d", n)
 }
 
-func TestDiary_ListHistory(t *testing.T) {
+func TestFBranch_ListHistory(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	logbook, err := ddb.NewDiary(key, password, blockchain)
+	fbranch, err := ddb.NewFBranch(key, password, blockchain)
 	if err != nil {
-		t.Logf("error building Logbook: %v", err)
+		t.Logf("error building FBranch: %v", err)
 		t.FailNow()
 	}
-	txids, err := logbook.ListHistory(address)
+	txids, err := fbranch.ListHistory(address)
 	if err != nil {
 		t.Logf("error: %v", err)
 		t.Fail()
