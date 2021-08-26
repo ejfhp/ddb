@@ -13,9 +13,14 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
+type Results struct {
+	Cost  Satoshi
+	TXIDs []string
+}
+
 type BTrunk struct {
-	bitcoinWif string
-	bitcoinAdd string
+	BitcoinWIF string
+	BitcoinAdd string
 	Blockchain *Blockchain
 	Dry        bool
 }
@@ -27,35 +32,25 @@ func NewBTrunk(wif string, blockchain *Blockchain) (*BTrunk, error) {
 		trail.Println(trace.Alert("cannot get address of key").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot get address of key: %w", err)
 	}
-	d := BTrunk{bitcoinWif: wif, bitcoinAdd: address, Blockchain: blockchain}
-	trail.Println(trace.Debug("new BTrunk built").UTC().Append(tr).Add("wif", wif).Add("address", address).Add("password", d.EncodingPassword()))
+	d := BTrunk{BitcoinWIF: wif, BitcoinAdd: address, Blockchain: blockchain}
+	trail.Println(trace.Debug("new BTrunk built").UTC().Append(tr).Add("wif", wif).Add("address", address))
 	return &d, nil
 }
 
 func NewDryBTrunk(address string, blockchain *Blockchain) (*BTrunk, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "NewDryBTrunk")
-	d := BTrunk{bitcoinWif: "", bitcoinAdd: address, Blockchain: blockchain}
-	trail.Println(trace.Debug("new dry BTrunk").UTC().Append(tr).Add("address", address).Add("password", d.EncodingPassword()))
+	d := BTrunk{BitcoinWIF: "", BitcoinAdd: address, Blockchain: blockchain}
+	trail.Println(trace.Debug("new dry BTrunk").UTC().Append(tr).Add("address", address))
 	return &d, nil
 }
 
-func (bt *BTrunk) BitcoinPrivateKey() string {
-	return bt.bitcoinWif
-}
-
-func (bt *BTrunk) BitcoinPublicAddress() string {
-	return bt.bitcoinAdd
-}
-
-func (bt *BTrunk) IsDry() bool {
-	return bt.bitcoinWif == ""
-}
-
-func (bt *BTrunk) NewFBranch(password string) (*FBranch, error) {
+func (bt *BTrunk) FBranch(password string) (*FBranch, error) {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "FBranch")
+	trail.Println(trace.Debug("generating FBranch with a derived key").UTC().Append(tr))
 	pass := [32]byte{}
 	copy(pass[:], []byte(password))
 	keySeed := []byte{}
-	keySeed = append(keySeed, []byte(bt.bitcoinAdd)...)
+	keySeed = append(keySeed, []byte(bt.BitcoinAdd)...)
 	keySeed = append(keySeed, pass[:]...)
 	keySeedHash := sha256.Sum256(keySeed)
 	branchKey, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
@@ -68,8 +63,32 @@ func (bt *BTrunk) NewFBranch(password string) (*FBranch, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while generating FBranch address: %v", err)
 	}
-
+	trail.Println(trace.Debug("derived key generated").UTC().Append(tr).Add("address", branchAdd))
+	fb := FBranch{BitcoinAdd: branchAdd, CryptoKey: pass, Blockchain: bt.Blockchain}
+	if bt.Dry {
+		fb.Dry = true
+	} else {
+		fb.BitcoinWIF = branchWIF
+		fb.Dry = false
+	}
+	return &fb, nil
 }
+
+func (bt *BTrunk) SameKeyFBranch(password string) *FBranch {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
+	trail.Println(trace.Debug("generating FBranch with the same key").UTC().Append(tr))
+	pass := [32]byte{}
+	copy(pass[:], []byte(password))
+	fb := FBranch{BitcoinAdd: bt.BitcoinAdd, CryptoKey: pass, Blockchain: bt.Blockchain, Dry: bt.Dry, BitcoinWIF: bt.BitcoinWIF}
+	return &fb
+}
+
+//BranchEntry generate a branch and store the entry on the blockchain
+func (bt *BTrunk) BranchEntry(entry *Entry, simulate bool) (*Results, error) {
+	return nil, nil
+}
+
+//TODO refactor down
 
 //CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.
 func (bt *BTrunk) CastEntry(entry *Entry) ([]string, error) {
@@ -103,7 +122,7 @@ func (bt *BTrunk) EstimateFee(entry *Entry) (Satoshi, error) {
 		trail.Println(trace.Alert("error getting miner data fee").UTC().Error(err).Append(tr))
 		return Satoshi(0), fmt.Errorf("error getting miner data fee: %w", err)
 	}
-	txs, err := PackData(VER_AES, bt.bitcoinWif, encryptedEntryParts, fakeUtxos, dataFee)
+	txs, err := PackData(VER_AES, bt.BitcoinWIF, encryptedEntryParts, fakeUtxos, dataFee)
 	if err != nil {
 		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
 		return Satoshi(0), fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
@@ -142,17 +161,17 @@ func (bt *BTrunk) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 		trail.Println(trace.Alert("error encrypting entries of file").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error encrypting entries of file: %w", err)
 	}
-	utxo, err := bt.Blockchain.GetUTXO(bt.bitcoinAdd)
+	utxo, err := bt.Blockchain.GetUTXO(bt.BitcoinAdd)
 	if err != nil {
-		trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", bt.bitcoinAdd).Error(err).Append(tr))
-		return nil, fmt.Errorf("error getting UTXO for address %s: %w", bt.bitcoinAdd, err)
+		trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", bt.BitcoinAdd).Error(err).Append(tr))
+		return nil, fmt.Errorf("error getting UTXO for address %s: %w", bt.BitcoinAdd, err)
 	}
 	fee, err := bt.Blockchain.GetDataFee()
 	if err != nil {
 		trail.Println(trace.Alert("error miner data fee").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error getting miner data fee: %w", err)
 	}
-	txs, err := PackData(VER_AES, bt.bitcoinWif, encryptedEntryParts, utxo, fee)
+	txs, err := PackData(VER_AES, bt.BitcoinWIF, encryptedEntryParts, utxo, fee)
 	if err != nil {
 		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
@@ -176,7 +195,7 @@ func (bt *BTrunk) EncryptEntry(entry *Entry) ([][]byte, error) {
 			trail.Println(trace.Alert("error encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error encrypting entry part: %w", err)
 		}
-		cryptedp, err := AESEncrypt(bt.cryptoKey, encodedp)
+		cryptedp, err := AESEncrypt(bt.ccc, encodedp)
 		if err != nil {
 			trail.Println(trace.Alert("error encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error encrypting entry part: %w", err)
@@ -223,7 +242,7 @@ func (bt *BTrunk) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
 func (bt *BTrunk) DowloadAll(outPath string) (int, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "DownloadAll")
 	trail.Println(trace.Info("download all entries locally").Add("outpath", outPath).UTC().Append(tr))
-	history, err := bt.ListHistory(bt.bitcoinAdd)
+	history, err := bt.ListHistory(bt.BitcoinAdd)
 	if err != nil {
 		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
 		return 0, fmt.Errorf("error getting address history: %w", err)

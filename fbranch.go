@@ -10,27 +10,15 @@ import (
 )
 
 type FBranch struct {
-	bitcoinWif string
-	bitcoinAdd string
-	cryptoKey  [32]byte
-	dry        bool
+	BitcoinWIF string
+	BitcoinAdd string
+	CryptoKey  [32]byte
+	Dry        bool
 	Blockchain *Blockchain
 }
 
-func (fb *FBranch) BitcoinPrivateKey() string {
-	return fb.bitcoinWif
-}
-
-func (fb *FBranch) BitcoinPublicAddress() string {
-	return fb.bitcoinAdd
-}
-
 func (fb *FBranch) EncodingPassword() string {
-	return string(fb.cryptoKey[:])
-}
-
-func (fb *FBranch) ReadOnly() bool {
-	return fb.bitcoinWif == ""
+	return string(fb.CryptoKey[:])
 }
 
 //CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.
@@ -65,7 +53,7 @@ func (fb *FBranch) EstimateFee(entry *Entry) (Satoshi, error) {
 		trail.Println(trace.Alert("error getting miner data fee").UTC().Error(err).Append(tr))
 		return Satoshi(0), fmt.Errorf("error getting miner data fee: %w", err)
 	}
-	txs, err := PackData(VER_AES, fb.bitcoinWif, encryptedEntryParts, fakeUtxos, dataFee)
+	txs, err := PackData(VER_AES, fb.BitcoinWIF, encryptedEntryParts, fakeUtxos, dataFee)
 	if err != nil {
 		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
 		return Satoshi(0), fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
@@ -104,17 +92,17 @@ func (fb *FBranch) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 		trail.Println(trace.Alert("error encrypting entries of file").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error encrypting entries of file: %w", err)
 	}
-	utxo, err := fb.Blockchain.GetUTXO(fb.bitcoinAdd)
+	utxo, err := fb.Blockchain.GetUTXO(fb.BitcoinAdd)
 	if err != nil {
-		trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", fb.bitcoinAdd).Error(err).Append(tr))
-		return nil, fmt.Errorf("error getting UTXO for address %s: %w", fb.bitcoinAdd, err)
+		trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", fb.BitcoinAdd).Error(err).Append(tr))
+		return nil, fmt.Errorf("error getting UTXO for address %s: %w", fb.BitcoinAdd, err)
 	}
 	fee, err := fb.Blockchain.GetDataFee()
 	if err != nil {
 		trail.Println(trace.Alert("error miner data fee").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error getting miner data fee: %w", err)
 	}
-	txs, err := PackData(VER_AES, fb.bitcoinWif, encryptedEntryParts, utxo, fee)
+	txs, err := PackData(VER_AES, fb.BitcoinWIF, encryptedEntryParts, utxo, fee)
 	if err != nil {
 		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
@@ -138,7 +126,7 @@ func (fb *FBranch) EncryptEntry(entry *Entry) ([][]byte, error) {
 			trail.Println(trace.Alert("error encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error encrypting entry part: %w", err)
 		}
-		cryptedp, err := AESEncrypt(fb.cryptoKey, encodedp)
+		cryptedp, err := AESEncrypt(fb.CryptoKey, encodedp)
 		if err != nil {
 			trail.Println(trace.Alert("error encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error encrypting entry part: %w", err)
@@ -185,7 +173,7 @@ func (fb *FBranch) RetrieveAndExtractEntries(txids []string) ([]*Entry, error) {
 func (fb *FBranch) DowloadAll(outPath string) (int, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "DownloadAll")
 	trail.Println(trace.Info("download all entries fb.cally").Add("outpath", outPath).UTC().Append(tr))
-	history, err := fb.ListHistory(fb.bitcoinAdd)
+	history, err := fb.ListHistory(fb.BitcoinAdd)
 	if err != nil {
 		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
 		return 0, fmt.Errorf("error getting address history: %w", err)
@@ -224,7 +212,7 @@ func (fb *FBranch) DecryptEntries(crypts [][]byte) ([]*Entry, error) {
 	trail.Println(trace.Info("decrypting data").UTC().Append(tr))
 	parts := make([]*EntryPart, 0, len(crypts))
 	for _, cry := range crypts {
-		enco, err := AESDecrypt(fb.cryptoKey, cry)
+		enco, err := AESDecrypt(fb.CryptoKey, cry)
 		if err != nil {
 			trail.Println(trace.Warning("error decrypting OP_RETURN data").UTC().Error(err).Append(tr))
 			// return nil, fmt.Errorf("error decrypting OP_RETURN data: %w", err)

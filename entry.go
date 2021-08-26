@@ -17,11 +17,21 @@ const (
 	noncesize = 12
 )
 
+type MetaEntry struct {
+	Name   string   `json:"n"`
+	Labels []string `json:"l"`
+	Mime   string   `json:"m"`
+	Hash   string   `json:"h"`
+	Date   string   `json:"e"`
+	Notes  string   `json:"o,omitempty"`
+}
+
 type Entry struct {
-	Name string
-	Mime string
-	Hash string
-	Data []byte
+	Name   string
+	Labels []string
+	Mime   string
+	Hash   string
+	Data   []byte
 }
 
 func NewEntryFromFile(name string, file string) (*Entry, error) {
@@ -103,13 +113,14 @@ func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 
 //EntryPart is the payload of a single transaction, it can contains an entire file or be a single part of a multi entry file.
 type EntryPart struct {
-	Name    string `json:"n"` //name of file
-	Hash    string `json:"h"` //hash of file
-	Mime    string `json:"m"` //mime type of file
-	IdxPart int    `json:"i"` //index of part idx of numpart
-	NumPart int    `json:"t"` //total number of parts that compose the entire file
-	Size    int    `json:"s"` //size of data
-	Data    []byte `json:"d"` //data part of the file
+	Name    string   `json:"n"` //name of file
+	Labels  []string `json:"l"` //labels
+	Hash    string   `json:"h"` //hash of file
+	Mime    string   `json:"m"` //mime type of file
+	IdxPart int      `json:"i"` //index of part idx of numpart
+	NumPart int      `json:"t"` //total number of parts that compose the entire file
+	Size    int      `json:"s"` //size of data
+	Data    []byte   `json:"d"` //data part of the file
 }
 
 //EntryPartFromEncodedData return the EntryPart decoded from the given json
