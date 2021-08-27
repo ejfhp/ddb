@@ -111,6 +111,47 @@ func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
 	return entries, nil
 }
 
+//EncryptedParts decompose the Entry in an array of EntryPart.
+//The size of the encrypted EntryPart is guarantee to be less than maxPartSize
+func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
+	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
+	trail.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxSize when encrypted", fmt.Sprintf("%d", maxSize)).Append(t))
+
+	fits := false
+	numPart := (len(e.Data) / maxSize)
+	for fits == false {
+		for i := 0; i < numPart; i++ {
+			start := i * maxSize
+			end := start + maxSize
+			if end > len(e.Data)-1 {
+				end = len(e.Data)
+			}
+			e := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
+			encdata, err := e.Encrypt(password)
+			if err != nil {
+				return nil, fmt.Errorf("error while encrypting EntryPart: %w", err)
+			}
+			if len(encdata) > maxSize {
+				fits = false
+				numPart++
+				break
+			}
+			fits = true
+		}
+	}
+	entries := make([]*EntryPart, 0, numPart)
+	for i := 0; i < numPart; i++ {
+		start := i * maxSize
+		end := start + maxSize
+		if end > len(e.Data)-1 {
+			end = len(e.Data)
+		}
+		e := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
+		entries = append(entries, &e)
+	}
+	return entries, nil
+}
+
 //EntryPart is the payload of a single transaction, it can contains an entire file or be a single part of a multi entry file.
 type EntryPart struct {
 	Name    string   `json:"n"` //name of file
@@ -124,34 +165,45 @@ type EntryPart struct {
 }
 
 //EntryPartFromEncodedData return the EntryPart decoded from the given json
-func EntryPartFromEncodedData(encoded []byte) (*EntryPart, error) {
+func EntryPartFromJSON(encoded []byte) (*EntryPart, error) {
 	var entry EntryPart
-	//fmt.Printf("encoded data: %s\n", string(encoded))
 	err := json.Unmarshal(encoded, &entry)
-	// mt.Printf("entry  entryPart name: %s\n", entry.Name)
-	return &entry, err
+	if err != nil {
+		return nil, fmt.Errorf("cannot unmarshal data: %w", err)
+	}
+	return &entry, nil
 }
 
-// func EntryPartsFromEncodedData(encs [][]byte) ([]*EntryPart, error) {
-// 	tr := trace.New().Source("entry.go", "EntryPart", "EntryPartsFromEncryptedData")
-// 	trail.Println(trace.Debug("decrypting and decoding").UTC().Append(tr))
-// 	entryParts := make([]*EntryPart, 0, len(encs))
-// 	for _, ep := range encs {
-// 		entryPart, err := EntryPartFromEncodedData(ep)
-// 		if err != nil {
-// 			trail.Println(trace.Alert("EntryPart decode failed").UTC().Error(err).Append(tr))
-// 			return nil, fmt.Errorf("EntryPart decode failed: %w", err)
-// 		}
-// 		entryParts = append(entryParts, entryPart)
-// 	}
-// 	return entryParts, nil
-// }
+func EntryPartFromEncrypted(password [32]byte, encrypted []byte) (*EntryPart, error) {
+	encoded, err := AESDecrypt(password, encrypted)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decrypt data: %w", err)
+	}
+	var entry EntryPart
+	err = json.Unmarshal(encoded, &entry)
+	if err != nil {
+		return nil, fmt.Errorf("cannot unmarshal data: %w", err)
+	}
+	return &entry, nil
+}
 
 //Encode return the json encoded form of rhe EntryPart
-func (e *EntryPart) Encode() ([]byte, error) {
+func (e *EntryPart) ToJSON() ([]byte, error) {
 	data, err := json.Marshal(e)
 	if err != nil {
 		return nil, fmt.Errorf("cannot encode to json: %w", err)
 	}
 	return data, nil
+}
+
+func (e *EntryPart) Encrypt(password [32]byte) ([]byte, error) {
+	data, err := json.Marshal(e)
+	if err != nil {
+		return nil, fmt.Errorf("cannot encode EntryPart to JSON: %w", err)
+	}
+	enc, err := AESEncrypt(password, data)
+	if err != nil {
+		return nil, fmt.Errorf("cannot encrypt EntryPart: %w", err)
+	}
+	return enc, nil
 }

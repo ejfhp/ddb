@@ -121,7 +121,7 @@ func (fb *FBranch) EncryptEntry(entry *Entry) ([][]byte, error) {
 	}
 	encryptedEntryParts := make([][]byte, 0, len(parts))
 	for _, p := range parts {
-		encodedp, err := p.Encode()
+		encodedp, err := p.ToJSON()
 		if err != nil {
 			trail.Println(trace.Alert("error encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error encrypting entry part: %w", err)

@@ -127,19 +127,18 @@ func DataTXFromBytes(b []byte) (*DataTX, error) {
 	return &dtx, nil
 }
 
-//OpReturn returns data inside OP_RETURN and version of TX
-func (t *DataTX) OpReturn() ([]byte, string, error) {
+//OpReturn returns OP_RETURN data
+func (t *DataTX) OpReturn() ([]byte, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Data")
 	trail.Println(trace.Info("reading OP_RETURN from DataTX").UTC().Append(tr))
 	var data []byte
-	version := ""
 	for _, o := range t.Outputs {
 		if o.LockingScript.IsData() {
 			// fmt.Println(o.ToBytes())
 			ops, err := bscript.DecodeStringParts(o.GetLockingScriptHexString())
 			if err != nil {
-				trail.Println(trace.Alert("cannot decode output parts").UTC().Error(err).Append(tr))
-				return nil, version, fmt.Errorf("cannot decode output parts: %w", err)
+				trail.Println(trace.Alert("error decoding output parts").UTC().Error(err).Append(tr))
+				return nil, fmt.Errorf("error decoding output parts: %w", err)
 			}
 			for _, v := range ops {
 				if v[0] == bscript.OpFALSE {
@@ -150,15 +149,25 @@ func (t *DataTX) OpReturn() ([]byte, string, error) {
 					//fmt.Printf("%d OP_RETURN %d  %v %d\n", i, v[0], v, len(v))
 					continue
 				}
-				//fmt.Printf("%d DATA %v  %v %d\n", i, v[0], string(v), len(v))
-				version, data, err = stripDataHeader(v)
-				if err != nil {
-					trail.Println(trace.Alert("cannot decode header").UTC().Error(err).Append(tr))
-					continue
-					// return nil, version, fmt.Errorf("cannot decode header: %w", err)
-				}
+				data = v
 			}
 		}
+	}
+	return data, nil
+}
+
+//OpReturn returns data inside OP_RETURN and version of TX
+func (t *DataTX) Data() ([]byte, string, error) {
+	tr := trace.New().Source("transaction.go", "DataTX", "Data")
+	trail.Println(trace.Info("reading encrypted data from DataTX").UTC().Append(tr))
+	opret, err := t.OpReturn()
+	if err != nil {
+		trail.Println(trace.Alert("error extracting OP_RETURN").UTC().Error(err).Append(tr))
+		return nil, "", fmt.Errorf("error extracting OP_RETURN: %w", err)
+	}
+	version, data, err := stripDataHeader(opret)
+	if err != nil {
+		trail.Println(trace.Alert("error while stripping header from data").UTC().Error(err).Append(tr))
 	}
 	return data, version, nil
 }
