@@ -88,8 +88,6 @@ func (bt *BTrunk) BranchEntry(entry *Entry, simulate bool) (*Results, error) {
 	return nil, nil
 }
 
-//TODO refactor down
-
 //CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.
 func (bt *BTrunk) CastEntry(entry *Entry) ([]string, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "CastEntry")
@@ -195,7 +193,7 @@ func (bt *BTrunk) EncryptEntry(entry *Entry) ([][]byte, error) {
 			trail.Println(trace.Alert("error encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error encrypting entry part: %w", err)
 		}
-		cryptedp, err := AESEncrypt(bt.ccc, encodedp)
+		cryptedp, err := AESEncrypt([32]byte{}, encodedp)
 		if err != nil {
 			trail.Println(trace.Alert("error encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error encrypting entry part: %w", err)
@@ -281,7 +279,7 @@ func (bt *BTrunk) DecryptEntries(crypts [][]byte) ([]*Entry, error) {
 	trail.Println(trace.Info("decrypting data").UTC().Append(tr))
 	parts := make([]*EntryPart, 0, len(crypts))
 	for _, cry := range crypts {
-		enco, err := AESDecrypt(bt.cryptoKey, cry)
+		enco, err := AESDecrypt([32]byte{}, cry)
 		if err != nil {
 			trail.Println(trace.Warning("error decrypting OP_RETURN data").UTC().Error(err).Append(tr))
 			// return nil, fmt.Errorf("error decrypting OP_RETURN data: %w", err)

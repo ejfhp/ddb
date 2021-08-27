@@ -18,13 +18,13 @@ func PackData(version string, ownerKey string, data [][]byte, utxos []*UTXO, dat
 	}
 	dataTXs := make([]*DataTX, len(data))
 	for i, ep := range data {
-		tempTx, err := BuildDataTX(address, utxos, ownerKey, Bitcoin(0), ep, version)
+		tempTx, err := NewDataTX(ownerKey, address, utxos, Bitcoin(0), ep, version)
 		if err != nil {
 			trail.Println(trace.Alert("cannot build 0 fee DataTX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build 0 fee DataTX: %w", err)
 		}
 		fee := dataFee.CalculateFee(tempTx.ToBytes())
-		dataTx, err := BuildDataTX(address, utxos, ownerKey, fee, ep, version)
+		dataTx, err := NewDataTX(ownerKey, address, utxos, fee, ep, version)
 		if err != nil {
 			trail.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build TX: %w", err)
@@ -39,12 +39,12 @@ func PackData(version string, ownerKey string, data [][]byte, utxos []*UTXO, dat
 }
 
 //UnpackData extract the OP_RETURN data from the given transaxtions byte arrays
-func UnpackData(txs []*DataTX) ([][]byte, error) {
+func OldUnpackData(txs []*DataTX) ([][]byte, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "UnpackEncryptedEntriesPart")
 	trail.Println(trace.Info("opening TXs").UTC().Append(tr))
 	data := make([][]byte, 0, len(txs))
 	for _, tx := range txs {
-		opr, ver, err := tx.Data()
+		opr, ver, err := tx.OpReturn()
 		// trail.Println(trace.Info("DataTX version").Add("version", ver).UTC().Error(err).Append(tr))
 		if err != nil {
 			trail.Println(trace.Alert("error while getting OpReturn data from DataTX").UTC().Add("version", ver).Error(err).Append(tr))

@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	APP_NAME = "ddb"  //3 bytes, this must not be changed
-	VER_AES  = "0001" //4 bytes
+	APP_NAME  = "ddb"  //3 bytes, this must not be changed
+	VER_AES   = "0001" //4 bytes
+	headerLen = 9
 )
 
 type SourceOutput struct {
@@ -44,17 +45,13 @@ type DataTX struct {
 	*bt.Tx
 }
 
-func NewDataTX(utxo []*SourceOutput, tx *bt.Tx) *DataTX {
-	return &DataTX{SourceOutputs: utxo, Tx: tx}
-}
-
-//BuildDataTX builds a DataTX with the given params. The values in the arrays must be correlated. Generated TX UTXO is in position 0.
-func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []byte, version string) (*DataTX, error) {
-	t := trace.New().Source("transaction.go", "DataTX", "BuildDataTX")
-	trail.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("address", address).Add("num UTXO", fmt.Sprintf("%d", len(inutxo))).Append(t))
-	payload, err := addDataHeader(version, data)
+//NewDataTX builds a DataTX with the given params. The values in the arrays must be correlated. Generated TX UTXO is in position 0.
+func NewDataTX(sourceKey string, destinationAddress string, inutxo []*UTXO, fee Token, data []byte, header string) (*DataTX, error) {
+	t := trace.New().Source("transaction.go", "DataTX", "NewDataTX")
+	trail.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("destinationAddress", destinationAddress).Add("num UTXO", fmt.Sprintf("%d", len(inutxo))).Append(t))
+	payload, err := addDataHeader(header, data)
 	if err != nil {
-		trail.Println(trace.Alert("cannot add header").UTC().Add("version", version).Error(err).Append(t))
+		trail.Println(trace.Alert("cannot add header").UTC().Add("header", header).Error(err).Append(t))
 		return nil, fmt.Errorf("cannot add header: %w", err)
 	}
 	tx := bt.NewTx()
@@ -73,21 +70,21 @@ func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []b
 	}
 	satOutput := satInput.Sub(fee)
 	trail.Println(trace.Info("calculating output values").UTC().Add("input", fmt.Sprintf("%0.8f", satInput.Bitcoin())).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Append(t))
-	outputS, err := bt.NewP2PKHOutputFromAddress(address, uint64(satOutput.Satoshi()))
+	outputS, err := bt.NewP2PKHOutputFromAddress(destinationAddress, uint64(satOutput.Satoshi()))
 	if err != nil {
-		trail.Println(trace.Alert("cannot create output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))
-		return nil, fmt.Errorf("cannot create output, address %s amount %0.8f: %w", address, satOutput.Bitcoin(), err)
+		trail.Println(trace.Alert("cannot create output").UTC().Add("destinationAddress", destinationAddress).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))
+		return nil, fmt.Errorf("cannot create output, destinationAddress %s amount %0.8f: %w", destinationAddress, satOutput.Bitcoin(), err)
 	}
 	outputD, err := bt.NewOpReturnOutput(payload)
 	if err != nil {
-		trail.Println(trace.Alert("cannot create OP_RETURN output").UTC().Add("address", address).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))
+		trail.Println(trace.Alert("cannot create OP_RETURN output").UTC().Add("destinationAddress", destinationAddress).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))
 		return nil, fmt.Errorf("cannot create OP_RETURN output: %w", err)
 	}
 	tx.AddOutput(outputS)
 	tx.AddOutput(outputD)
-	k, err := DecodeWIF(key)
+	k, err := DecodeWIF(sourceKey)
 	if err != nil {
-		trail.Println(trace.Alert("error decoding key").UTC().Error(err).Append(t))
+		trail.Println(trace.Alert("error decoding sourcKey").UTC().Error(err).Append(t))
 		return nil, fmt.Errorf("error decoding key: %w", err)
 	}
 	signer := &bt.InternalSigner{PrivateKey: k, SigHashFlag: 0x40 | 0x01}
@@ -98,8 +95,8 @@ func BuildDataTX(address string, inutxo []*UTXO, key string, fee Token, data []b
 			return nil, fmt.Errorf("cannot sign input %d: %w", i, err)
 		}
 	}
-	dtx := NewDataTX(sourceOutputs, tx)
-	return dtx, nil
+	dtx := DataTX{SourceOutputs: sourceOutputs, Tx: tx}
+	return &dtx, nil
 }
 
 func DataTXFromHex(h string) (*DataTX, error) {
@@ -130,8 +127,8 @@ func DataTXFromBytes(b []byte) (*DataTX, error) {
 	return &dtx, nil
 }
 
-//Data returns data inside OP_RETURN and version of TX
-func (t *DataTX) Data() ([]byte, string, error) {
+//OpReturn returns data inside OP_RETURN and version of TX
+func (t *DataTX) OpReturn() ([]byte, string, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Data")
 	trail.Println(trace.Info("reading OP_RETURN from DataTX").UTC().Append(tr))
 	var data []byte
@@ -190,31 +187,34 @@ func (t *DataTX) Fee() (Token, error) {
 	return fee, nil
 }
 
-func addDataHeader(version string, data []byte) ([]byte, error) {
+func BuildDataHeader(version string) (string, error) {
 	//header size: len(APP_NAME) + len(";") + len(VER_x) + len(";")
 	// ex.  "ddb;0001;"
 	if len(version) != 4 {
-		return nil, fmt.Errorf("version len must be 4")
+		return "", fmt.Errorf("version len must be 4")
 	}
-	header := []byte(fmt.Sprintf("%s;%s;", APP_NAME, version))
+	header := fmt.Sprintf("%s;%s;", APP_NAME, version)
 	if len(header) != 9 {
-		return nil, fmt.Errorf("header len must be 9")
-
+		return "", fmt.Errorf("header len must be 9")
 	}
-	payload := make([]byte, len(data)+9)
-	copy(payload[9:], data)
-	copy(payload, header)
-	return payload, nil
+	return header, nil
 }
 
 func stripDataHeader(data []byte) (string, []byte, error) {
 	if len(data) < 9 {
 		return "", nil, fmt.Errorf("data is shorter than header")
 	}
-	appname := data[:3]
-	version := data[4:8]
-	if string(appname) != APP_NAME {
-		return "", nil, fmt.Errorf("appname doensn't match: '%s'", appname)
+	header := data[:8]
+	return string(header), data[9:], nil
+}
+
+func addDataHeader(header string, data []byte) ([]byte, error) {
+	if len(header) != 9 {
+		return nil, fmt.Errorf("header len must be 9")
+
 	}
-	return string(version), data[9:], nil
+	payload := make([]byte, len(data)+9)
+	copy(payload, header)
+	copy(payload[9:], data)
+	return payload, nil
 }

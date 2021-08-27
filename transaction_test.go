@@ -16,9 +16,9 @@ func TestTransaction_BuildDataTX(t *testing.T) {
 	payload := []byte("ddb - Remind My... by ejfhp")
 	bsv := ddb.Bitcoin(0.000402740)
 	fee := ddb.Satoshi(170)
-	version := "test"
+	header, _ := ddb.BuildDataHeader("test")
 	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
-	datatx, err := ddb.BuildDataTX(address, utxos, key, fee, payload, version)
+	datatx, err := ddb.NewDataTX(key, address, utxos, fee, payload, header)
 	if err != nil {
 		t.Fatalf("failed to create tx: %v", err)
 	}
