@@ -91,32 +91,33 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 }
 
 //EntriesOfFile returns an array of entries for the given file.
-func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
-	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
-	trail.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
-	hash := make([]byte, 64)
-	sha := sha256.Sum256(e.Data)
-	hex.Encode(hash, sha[:])
-	numPart := (len(e.Data) / maxPartSize) + 1
-	entries := make([]*EntryPart, 0, numPart)
-	for i := 0; i < numPart; i++ {
-		start := i * maxPartSize
-		end := start + maxPartSize
-		if end > len(e.Data)-1 {
-			end = len(e.Data)
-		}
-		e := EntryPart{Name: e.Name, Hash: string(hash), Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
-		entries = append(entries, &e)
-	}
-	return entries, nil
-}
+// func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
+// 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
+// 	trail.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
+// 	hash := make([]byte, 64)
+// 	sha := sha256.Sum256(e.Data)
+// 	hex.Encode(hash, sha[:])
+// 	numPart := (len(e.Data) / maxPartSize) + 1
+// 	entries := make([]*EntryPart, 0, numPart)
+// 	for i := 0; i < numPart; i++ {
+// 		start := i * maxPartSize
+// 		end := start + maxPartSize
+// 		if end > len(e.Data)-1 {
+// 			end = len(e.Data)
+// 		}
+// 		e := EntryPart{Name: e.Name, Hash: string(hash), Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
+// 		entries = append(entries, &e)
+// 	}
+// 	return entries, nil
+// }
 
-//EncryptedParts decompose the Entry in an array of EntryPart.
+//ToParts decompose the Entry in an array of EntryPart.
 //The size of the encrypted EntryPart is guarantee to be less than maxPartSize
 func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
 	trail.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxSize when encrypted", fmt.Sprintf("%d", maxSize)).Append(t))
 
+	//Find the correct size for entry data
 	fits := false
 	numPart := (len(e.Data) / maxSize)
 	for fits == false {

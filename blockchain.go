@@ -130,6 +130,21 @@ func (b *Blockchain) GetTX(id string) (*DataTX, error) {
 	return dataTX, nil
 }
 
+func (b *Blockchain) GetTXs(ids []string) ([]*DataTX, error) {
+	tr := trace.New().Source("blockchain.go", "Blockchain", "GetTXs")
+	trail.Println(trace.Debug("get TXs").Append(tr).UTC().Add("len(txids)", fmt.Sprintf("%d", len(ids))))
+	txs := make([]*DataTX, 0, len(ids))
+	for _, id := range ids {
+		tx, err := b.GetTX(id)
+		if err != nil {
+			trail.Println(trace.Alert("error while gettin TX").UTC().Add("id", id).Error(err).Append(tr))
+			return nil, fmt.Errorf("error while getting TX with id:%s: %w", id, err)
+		}
+		txs = append(txs, tx)
+	}
+	return txs, nil
+}
+
 func (b *Blockchain) ListTXIDs(address string) ([]string, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXID")
 	trail.Println(trace.Debug("listing TXIDs").UTC().Add("address", address).Append(tr))
