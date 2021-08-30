@@ -36,40 +36,34 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 	for i, v := range passwords {
 		fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, CryptoKey: v, Dry: false, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		txs, err := fbranch.ProcessEntry(&entry)
+		txs, err := fbranch.ProcessEntry(&entry, true)
 		if err != nil {
 			t.Logf("%d failed to process entry: %v", i, err)
 			t.Fail()
 		}
+		if len(txs) < 3 {
+			t.Logf("%d unexpected number of transactions: %d", i, len(txs))
+			t.Fail()
+		}
 		for _, tx := range txs {
-			opr, ver, err := tx.Data()
+			opr, header, err := tx.Data()
 			if err != nil {
 				t.Logf("failed to get OP_RETURN: %v", err)
 				t.FailNow()
 			}
-			if ver != ddb.VER_AES {
-				t.Logf("wrong version: %s", ver)
-				t.FailNow()
+			if len(opr) == 0 {
+				t.Logf("unexpected len of OP_RETURN: %d", len(opr))
+				t.Fail()
 			}
-			decrypt, err := ddb.AESDecrypt(v, opr)
-			if err != nil {
-				t.Logf("failed to decrypt: %v", err)
-				t.FailNow()
-			}
-			ep, err := ddb.EntryPartFromEncodedData(decrypt)
-			if err != nil {
-				t.Logf("failed to decode EntryPart: %v", err)
-				t.FailNow()
-			}
-			if ep.Name != filename {
-				t.Logf("unexpected name: %s != %s", ep.Name, filename)
-				t.FailNow()
+			if len(header) != 9 {
+				t.Logf("unexpected len of header: %d", len(header))
+				t.Fail()
 			}
 		}
 	}
 }
 
-func TestFBranch_EstimateFee(t *testing.T) {
+func TestFBranch_CastSimulateFee(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -88,14 +82,41 @@ func TestFBranch_EstimateFee(t *testing.T) {
 	for i, v := range passwords {
 		fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, CryptoKey: v, Dry: false, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		fee, err := fbranch.EstimateFee(&entry)
+		result, err := fbranch.CastEntry(&entry, ddb.Satoshi(10000), true)
 		if err != nil {
 			t.Logf("%d failed to estimate fee: %v", i, err)
 			t.Fail()
 		}
-		if fee < 300 {
-			t.Logf("%d fee too cheap: %d", i, fee.Satoshi())
+		if result.Cost.Satoshi() < 300 {
+			t.Logf("%d fee too cheap: %d", i, result.Cost.Satoshi())
 			t.Fail()
+		}
+	}
+}
+
+func TestFBranch_CastSimulateSpendingLimit(t *testing.T) {
+	trail.SetWriter(os.Stdout)
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	passwords := [][32]byte{
+		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
+	}
+	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	filename := "Inferno"
+	file := `Nel mezzo del cammin di nostra vita
+		mi ritrovai per una selva oscura,
+		ché la diritta via era smarrita.
+		
+		Ahi quanto a dir qual era è cosa dura
+		esta selva selvaggia e aspra e forte
+		che nel pensier rinova la paura!`
+	for i, v := range passwords {
+		fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, CryptoKey: v, Dry: false, Blockchain: blockchain}
+		entry := ddb.Entry{Name: filename, Data: []byte(file)}
+		_, err := fbranch.CastEntry(&entry, ddb.Satoshi(100), true)
+		if err == nil {
+			t.Logf("%d expected error for exceeding spending limit is nil", i)
+			t.FailNow()
 		}
 	}
 }
@@ -167,7 +188,7 @@ func TestFBranch_CastEntry(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	entry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file))
-	ids, err := fbranch.CastEntry(entry)
+	ids, err := fbranch.CastEntry(entry, true)
 	if err != nil {
 		t.Logf("failed to process entry: %v", err)
 		t.Fail()

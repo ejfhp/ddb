@@ -17,74 +17,54 @@ type FBranch struct {
 	Blockchain *Blockchain
 }
 
+type BResult struct {
+	Cost  Satoshi
+	TXIDs []string
+}
+
 func (fb *FBranch) EncodingPassword() string {
 	return string(fb.CryptoKey[:])
 }
 
 //CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.
-func (fb *FBranch) CastEntry(entry *Entry) ([]string, error) {
+func (fb *FBranch) CastEntry(entry *Entry, spendLimit Satoshi, simulate bool) (*BResult, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "CastEntry")
 	trail.Println(trace.Info("casting entry to the blockcchain").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
-	txs, err := fb.ProcessEntry(entry)
+	txs, err := fb.ProcessEntry(entry, simulate)
 	if err != nil {
 		trail.Println(trace.Alert("error during TXs preparation").UTC().Add("file", entry.Name).Error(err).Append(tr))
 		return nil, fmt.Errorf("error during TXs preparation: %w", err)
-	}
-	ids, err := fb.Submit(txs)
-	if err != nil {
-		trail.Println(trace.Alert("error while sending transactions").UTC().Add("file", entry.Name).Error(err).Append(tr))
-		return nil, fmt.Errorf("error while sending transactions: %w", err)
-	}
-	return ids, nil
-}
-
-//EstimateFee returns an estimation in satoshi of the fee necessary to store the entry on the blockchain.
-func (fb *FBranch) EstimateFee(entry *Entry) (Satoshi, error) {
-	tr := trace.New().Source("fbranch.go", "FBranch", "EstimateFee")
-	trail.Println(trace.Info("estimate fee to cast entry").UTC().Append(tr).Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))))
-	encryptedEntryParts, err := fb.EncryptEntry(entry)
-	if err != nil {
-		trail.Println(trace.Alert("error encrypting entries of file").UTC().Error(err).Append(tr))
-		return Satoshi(0), fmt.Errorf("error encrypting entries of file: %w", err)
-	}
-	fakeUtxos := []*UTXO{{TXPos: 0, TXHash: "72124e293287ab0ca20a723edb61b58d6ef89aba05508b92198bd948bfb6da40", Value: 100000000000, ScriptPubKeyHex: "76a914330a97979931a961d1e5f05d3c7ace4217fc7adc88ac"}}
-	dataFee, err := fb.Blockchain.GetDataFee()
-	if err != nil {
-		trail.Println(trace.Alert("error getting miner data fee").UTC().Error(err).Append(tr))
-		return Satoshi(0), fmt.Errorf("error getting miner data fee: %w", err)
-	}
-	txs, err := PackData(VER_AES, fb.BitcoinWIF, encryptedEntryParts, fakeUtxos, dataFee)
-	if err != nil {
-		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
-		return Satoshi(0), fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
 	}
 	fee := Satoshi(0)
 	for _, tx := range txs {
 		f, err := tx.Fee()
 		if err != nil {
 			trail.Println(trace.Alert("error getting fee from DataTXs").UTC().Error(err).Append(tr))
-			return Satoshi(0), fmt.Errorf("error getting fee DataTXs: %w", err)
+			return nil, fmt.Errorf("error getting fee DataTXs: %w", err)
 		}
 		fee = fee.Add(f)
 	}
-	return fee, nil
-}
+	if fee > spendLimit {
+		trail.Println(trace.Alert("total cost of transaction exceeds the spending limit").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("total cost of transaction exceeds the spending limit: %w", err)
 
-//Submit push the transactions to the blockchain, returns the TXID of the transactions sent.
-func (fb *FBranch) Submit(txs []*DataTX) ([]string, error) {
-	tr := trace.New().Source("fbranch.go", "FBranch", "Submit")
-	trail.Println(trace.Info("submitting transactions to the blockcchain").Add("num txs", fmt.Sprintf("%d", len(txs))).UTC().Append(tr))
+	}
+	if simulate {
+		trail.Println(trace.Info("simulation mode is on").UTC().Error(err).Append(tr))
+		res := BResult{Cost: fee}
+		return &res, nil
+	}
 	ids, err := fb.Blockchain.Submit(txs)
 	if err != nil {
-		trail.Println(trace.Alert("error while sending transactions").UTC().Error(err).Append(tr))
+		trail.Println(trace.Alert("error while sending transactions").UTC().Add("file", entry.Name).Error(err).Append(tr))
 		return nil, fmt.Errorf("error while sending transactions: %w", err)
 	}
-	return ids, nil
-
+	res := BResult{TXIDs: ids}
+	return &res, nil
 }
 
 //ProcessEntry prepares all the TXs required to store the entry on the blockchain.
-func (fb *FBranch) ProcessEntry(entry *Entry) ([]*DataTX, error) {
+func (fb *FBranch) ProcessEntry(entry *Entry, simulate bool) ([]*DataTX, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "ProcessEntry")
 	trail.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
 	// entryParts, err := fb.EncryptEntry(entry)
@@ -93,10 +73,15 @@ func (fb *FBranch) ProcessEntry(entry *Entry) ([]*DataTX, error) {
 		trail.Println(trace.Alert("error making parts of entry").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error making parts of entry: %w", err)
 	}
-	utxo, err := fb.Blockchain.GetUTXO(fb.BitcoinAdd)
-	if err != nil {
-		trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", fb.BitcoinAdd).Error(err).Append(tr))
-		return nil, fmt.Errorf("error getting UTXO for address %s: %w", fb.BitcoinAdd, err)
+	var utxo []*UTXO
+	if simulate {
+		utxo = fb.Blockchain.GetFakeUTXO()
+	} else {
+		utxo, err = fb.Blockchain.GetUTXO(fb.BitcoinAdd)
+		if err != nil {
+			trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", fb.BitcoinAdd).Error(err).Append(tr))
+			return nil, fmt.Errorf("error getting UTXO for address %s: %w", fb.BitcoinAdd, err)
+		}
 	}
 	fee, err := fb.Blockchain.GetDataFee()
 	if err != nil {
@@ -122,12 +107,12 @@ func (fb *FBranch) packEntryParts(version string, parts []*EntryPart, utxos []*U
 			trail.Println(trace.Alert("error while encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error while encrypting entry part: %w", err)
 		}
-		tempTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, utxos, Bitcoin(0), encbytes, version)
-		if err != nil {
-			trail.Println(trace.Alert("cannot build 0 fee DataTX").UTC().Error(err).Append(tr))
-			return nil, fmt.Errorf("cannot build 0 fee DataTX: %w", err)
-		}
-		fee := dataFee.CalculateFee(tempTx.ToBytes())
+		// tempTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, utxos, Bitcoin(0), encbytes, version)
+		// if err != nil {
+		// 	trail.Println(trace.Alert("cannot build 0 fee DataTX").UTC().Error(err).Append(tr))
+		// 	return nil, fmt.Errorf("cannot build 0 fee DataTX: %w", err)
+		// }
+		fee := dataFee.CalculateFee(len(encbytes) + 150) //150 bytes for header
 		dataTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, utxos, fee, encbytes, version)
 		if err != nil {
 			trail.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
@@ -142,48 +127,15 @@ func (fb *FBranch) packEntryParts(version string, parts []*EntryPart, utxos []*U
 	return dataTXs, nil
 }
 
-//RetrieveAndExtractEntries retrieve the TX with the given IDs and extracts all the Entries fully contained.
-func (fb *FBranch) RetrieveEntries(txids []string) ([]*Entry, error) {
+//GetEntriesFromTXID retrieve all the Entries fully contained in the transactions with the given IDs.
+func (fb *FBranch) GetEntriesFromTXID(txids []string, cacheOnly bool) ([]*Entry, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "RetrievingEntries")
 	trail.Println(trace.Info("retrieving TXs from the blockchain and extracting entries").Add("len txids", fmt.Sprintf("%d", len(txids))).UTC().Append(tr))
-	txs, err := fb.Blockchain.GetTXs(txids)
+	txs, err := fb.Blockchain.GetTXs(txids, cacheOnly)
 	if err != nil {
 		trail.Println(trace.Alert("error retrieving DataTXs").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error retrieving DataTXs: %w", err)
 	}
-	entries, err := fb.ExtractEntries(txs)
-	if err != nil {
-		trail.Println(trace.Alert("error extracting Entries").UTC().Error(err).Append(tr))
-		return nil, fmt.Errorf("error extracting Entries: %w", err)
-	}
-	return entries, nil
-}
-
-//DownloadAll saves fb.cally all the files connected to the address. Return the number of entries saved.
-func (fb *FBranch) DowloadAll(outPath string) (int, error) {
-	tr := trace.New().Source("fbranch.go", "FBranch", "DownloadAll")
-	trail.Println(trace.Info("download all entries fb.cally").Add("outpath", outPath).UTC().Append(tr))
-	history, err := fb.Blockchain.ListTXIDs(fb.BitcoinAdd)
-	if err != nil {
-		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
-		return 0, fmt.Errorf("error getting address history: %w", err)
-	}
-	entries, err := fb.RetrieveEntries(history)
-	if err != nil {
-		trail.Println(trace.Alert("error retrieving entries").UTC().Error(err).Append(tr))
-		return 0, fmt.Errorf("error retrieving entries: %w", err)
-	}
-	for _, e := range entries {
-		ioutil.WriteFile(filepath.Join(outPath, e.Name), e.Data, 0444)
-	}
-	return len(entries), nil
-
-}
-
-//ExtractEntries gets entries from the given transactions.
-func (fb *FBranch) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
-	tr := trace.New().Source("fbranch.go", "FBranch", "ExtractEntries")
-	trail.Println(trace.Info("decrypting data").UTC().Append(tr))
 	parts, err := fb.unpackEntryParts(txs)
 	if err != nil {
 		trail.Println(trace.Warning("error while unpacking entry parts").UTC().Error(err).Append(tr))
@@ -194,6 +146,27 @@ func (fb *FBranch) ExtractEntries(txs []*DataTX) ([]*Entry, error) {
 		return nil, fmt.Errorf("error while reassembling Entries: %w", err)
 	}
 	return entries, nil
+}
+
+//DownloadAll saves fb.cally all the files connected to the address. Return the number of entries saved.
+func (fb *FBranch) DowloadAll(outPath string, cacheOnly bool) (int, error) {
+	tr := trace.New().Source("fbranch.go", "FBranch", "DownloadAll")
+	trail.Println(trace.Info("download all entries fb.cally").Add("outpath", outPath).UTC().Append(tr))
+	history, err := fb.Blockchain.ListTXIDs(fb.BitcoinAdd)
+	if err != nil {
+		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
+		return 0, fmt.Errorf("error getting address history: %w", err)
+	}
+	entries, err := fb.GetEntriesFromTXID(history, cacheOnly)
+	if err != nil {
+		trail.Println(trace.Alert("error retrieving entries").UTC().Error(err).Append(tr))
+		return 0, fmt.Errorf("error retrieving entries: %w", err)
+	}
+	for _, e := range entries {
+		ioutil.WriteFile(filepath.Join(outPath, e.Name), e.Data, 0444)
+	}
+	return len(entries), nil
+
 }
 
 //UnpackEntryParts builds EntryPart from the OP_RETURN encrypted data of the given transactions

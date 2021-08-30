@@ -156,7 +156,7 @@ func (t *DataTX) OpReturn() ([]byte, error) {
 	return data, nil
 }
 
-//OpReturn returns data inside OP_RETURN and version of TX
+//OpReturn returns data and header of the OP_RETURN data
 func (t *DataTX) Data() ([]byte, string, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Data")
 	trail.Println(trace.Info("reading encrypted data from DataTX").UTC().Append(tr))
@@ -165,11 +165,11 @@ func (t *DataTX) Data() ([]byte, string, error) {
 		trail.Println(trace.Alert("error extracting OP_RETURN").UTC().Error(err).Append(tr))
 		return nil, "", fmt.Errorf("error extracting OP_RETURN: %w", err)
 	}
-	version, data, err := stripDataHeader(opret)
+	header, data, err := stripDataHeader(opret)
 	if err != nil {
 		trail.Println(trace.Alert("error while stripping header from data").UTC().Error(err).Append(tr))
 	}
-	return data, version, nil
+	return data, header, nil
 }
 
 //Data returns data inside OP_RETURN and version of TX
