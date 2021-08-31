@@ -41,7 +41,7 @@ func TestCalculateFee(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to calculate fee: %v", err)
 	}
-	fee := stdFee.CalculateFee(tx)
+	fee := stdFee.CalculateFee(len(tx))
 	expected := ddb.Satoshi(340)
 	if fee != expected {
 		t.Fatalf("fee should be %d but is %d", expected, fee)
@@ -81,7 +81,7 @@ func TestCalculateFee1035(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to calculate fee: %v", err)
 	}
-	fee := stdFee.CalculateFee(tx)
+	fee := stdFee.CalculateFee(len(tx))
 	expected := ddb.Satoshi(519)
 	if fee != expected {
 		t.Fatalf("fee should be %d but is %d", expected, fee)

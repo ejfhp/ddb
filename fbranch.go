@@ -152,7 +152,7 @@ func (fb *FBranch) GetEntriesFromTXID(txids []string, cacheOnly bool) ([]*Entry,
 func (fb *FBranch) DowloadAll(outPath string, cacheOnly bool) (int, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "DownloadAll")
 	trail.Println(trace.Info("download all entries fb.cally").Add("outpath", outPath).UTC().Append(tr))
-	history, err := fb.Blockchain.ListTXIDs(fb.BitcoinAdd)
+	history, err := fb.Blockchain.ListTXIDs(fb.BitcoinAdd, cacheOnly)
 	if err != nil {
 		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
 		return 0, fmt.Errorf("error getting address history: %w", err)

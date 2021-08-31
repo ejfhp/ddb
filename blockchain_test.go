@@ -39,7 +39,7 @@ func TestBlockchain_GetTX(t *testing.T) {
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, nil)
-	dataTx, err := blk.GetTX(txid)
+	dataTx, err := blk.GetTX(txid, false)
 	if err != nil {
 		t.Logf("failed to get data TXs: %v", err)
 		t.Fail()
@@ -49,7 +49,7 @@ func TestBlockchain_GetTX(t *testing.T) {
 		t.Fail()
 	}
 }
-func TestBlockchain_GetTXCache(t *testing.T) {
+func TestBlockchain_GetTXOnlyCache(t *testing.T) {
 	log.SetWriter(os.Stdout)
 	cache, _ := os.UserCacheDir()
 	cacheDir := filepath.Join(cache, "trh")
@@ -62,7 +62,7 @@ func TestBlockchain_GetTXCache(t *testing.T) {
 	miner := ddb.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, txCache)
-	dataTx, err := blk.GetTX(txid)
+	dataTx, err := blk.GetTX(txid, true)
 	if err != nil {
 		t.Logf("failed to get data TXs: %v", err)
 		t.Fail()
@@ -71,7 +71,7 @@ func TestBlockchain_GetTXCache(t *testing.T) {
 		t.Logf("unexpected ID: %s", dataTx.GetTxID())
 		t.Fail()
 	}
-	dataTx, err = blk.GetTX(txid)
+	dataTx, err = blk.GetTX(txid, true)
 	if err != nil {
 		t.Logf("failed to get data TXs: %v", err)
 		t.Fail()
@@ -82,27 +82,27 @@ func TestBlockchain_GetTXCache(t *testing.T) {
 	}
 }
 
-func TestBlockchain_ListTXHistoryBackward(t *testing.T) {
-	log.SetWriter(os.Stdout)
-	txid := "8c4e50050f1a82e14765f4a79b2bdac700967e592486dcaa9eedb4f8bf441d16"
-	miner := ddb.NewTAAL()
-	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl, nil)
-	limit := 23
-	path, err := blk.ListTXHistoryBackward(txid, address, limit)
-	if err != nil {
-		t.Logf("search backward failed: %v", err)
-		t.FailNow()
-	}
-	if len(path) != limit {
-		t.Logf("Unexpected path len: %d", len(path))
-		t.Fail()
-	}
-	if path[limit-1] != "4f438cf8954a475684f460461b3a66955e9ced065dbd74c00deae4dd12f7843d" {
-		t.Logf("Unexpected first TXID")
-		t.Fail()
-	}
-	for i, p := range path {
-		t.Logf("%d: %s", i, p)
-	}
-}
+// func TestBlockchain_ListTXHistoryBackward(t *testing.T) {
+// 	log.SetWriter(os.Stdout)
+// 	txid := "8c4e50050f1a82e14765f4a79b2bdac700967e592486dcaa9eedb4f8bf441d16"
+// 	miner := ddb.NewTAAL()
+// 	expl := ddb.NewWOC()
+// 	blk := ddb.NewBlockchain(miner, expl, nil)
+// 	limit := 23
+// 	path, err := blk.ListTXHistoryBackward(txid, address, limit)
+// 	if err != nil {
+// 		t.Logf("search backward failed: %v", err)
+// 		t.FailNow()
+// 	}
+// 	if len(path) != limit {
+// 		t.Logf("Unexpected path len: %d", len(path))
+// 		t.Fail()
+// 	}
+// 	if path[limit-1] != "4f438cf8954a475684f460461b3a66955e9ced065dbd74c00deae4dd12f7843d" {
+// 		t.Logf("Unexpected first TXID")
+// 		t.Fail()
+// 	}
+// 	for i, p := range path {
+// 		t.Logf("%d: %s", i, p)
+// 	}
+// }

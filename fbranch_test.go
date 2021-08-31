@@ -121,56 +121,6 @@ func TestFBranch_CastSimulateSpendingLimit(t *testing.T) {
 	}
 }
 
-func TestFBranch_EncryptDecryptEntry(t *testing.T) {
-	trail.SetWriter(os.Stdout)
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	phrases := []string{
-		"tanto va la gatta al lardo che ci lascia lo zampino",
-		"ciao",
-	}
-	nums := []int{5, 5}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	filename := "Inferno"
-	file := `Nel mezzo del cammin di nostra vita
-		mi ritrovai per una selva oscura,
-		ché la diritta via era smarrita.
-		
-		Ahi quanto a dir qual era è cosa dura
-		esta selva selvaggia e aspra e forte
-		che nel pensier rinova la paura!`
-	for i, phrase := range phrases {
-		k, err := ddb.NewKeygen2(nums[i], phrase)
-		if err != nil {
-			t.Logf("cannot generate Keygen2: %v", err)
-			t.Fail()
-		}
-		wif, err := k.WIF()
-		if err != nil {
-			t.Logf("cannot generate WIF: %v", err)
-			t.Fail()
-		}
-		pass := k.Password()
-		fbranch := &ddb.FBranch{BitcoinWIF: wif, BitcoinAdd: address, CryptoKey: pass, Dry: false, Blockchain: blockchain}
-		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		encs, err := fbranch.EncryptEntry(&entry)
-		if err != nil {
-			t.Logf("%d failed to process entry: %v", i, err)
-			t.Fail()
-		}
-		entries, err := fbranch.DecryptEntries(encs)
-		if err != nil {
-			t.Logf("%d failed to decrypt entry: %v", i, err)
-			t.Fail()
-		}
-		if len(entries) != 1 {
-			t.Logf("%d unexpected nuber of entries %d", i, len(entries))
-			t.Fail()
-
-		}
-	}
-}
-
 func TestFBranch_CastEntry(t *testing.T) {
 	t.SkipNow()
 	trail.SetWriter(os.Stdout)
@@ -188,16 +138,16 @@ func TestFBranch_CastEntry(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	entry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file))
-	ids, err := fbranch.CastEntry(entry, true)
+	res, err := fbranch.CastEntry(entry, 300, true)
 	if err != nil {
 		t.Logf("failed to process entry: %v", err)
 		t.Fail()
 	}
-	if len(ids) != 1 {
-		t.Logf("unexpected number of TX ID: %d", len(ids))
+	if len(res.TXIDs) != 1 {
+		t.Logf("unexpected number of TX ID: %d", len(res.TXIDs))
 		t.Fail()
 	}
-	for _, id := range ids {
+	for _, id := range res.TXIDs {
 		t.Logf("TX ID: %s\n", id)
 	}
 }
@@ -217,16 +167,16 @@ func TestFBranch_CastImageEntry(t *testing.T) {
 		t.Logf("failed to create Entry: %v", err)
 		t.Fail()
 	}
-	ids, err := fbranch.CastEntry(entry)
+	res, err := fbranch.CastEntry(entry, 300, true)
 	if err != nil {
 		t.Logf("failed to process entry: %v", err)
 		t.Fail()
 	}
-	if len(ids) != 1 {
-		t.Logf("unexpected number of TX ID: %d", len(ids))
+	if len(res.TXIDs) != 1 {
+		t.Logf("unexpected number of TX ID: %d", len(res.TXIDs))
 		t.Fail()
 	}
-	for _, id := range ids {
+	for _, id := range res.TXIDs {
 		t.Logf("TX ID: %s\n", id)
 	}
 }
@@ -239,7 +189,7 @@ func TestFBranch_RetrieveAndExtractEntries(t *testing.T) {
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, CryptoKey: password, Dry: false, Blockchain: blockchain}
-	entries, err := fbranch.RetrieveAndExtractEntries([]string{txid})
+	entries, err := fbranch.GetEntriesFromTXID([]string{txid}, true)
 	if err != nil {
 		t.Logf("failed to retrieve entry: %v", err)
 		t.Fail()
@@ -295,7 +245,7 @@ func TestFBranch_RetrieveAndExtractImageEntry(t *testing.T) {
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, CryptoKey: password, Dry: false, Blockchain: blockchain}
-	entries, err := fbranch.RetrieveAndExtractEntries(txids)
+	entries, err := fbranch.GetEntriesFromTXID(txids, false)
 	if err != nil {
 		t.Logf("failed to retrieve entry: %v", err)
 		t.Fail()
@@ -352,15 +302,20 @@ func TestFBranch_EntryFullCycleText(t *testing.T) {
 	sha := sha256.Sum256(bytes)
 	hash := hex.EncodeToString(sha[:])
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: hash, Data: bytes}
-	txs, err := fbranch.ProcessEntry(entry)
+	txs, err := fbranch.ProcessEntry(entry, true)
 	t.Logf("txs len: %d", len(txs))
 	if err != nil {
 		t.Logf("txs preparation failed")
 		t.Fail()
 	}
+	txids := make([]string, len(txs))
+	for i, t := range txs {
+		txids[i] = t.GetTxID()
+		fbranch.Blockchain.Cache.StoreTX(t.GetTxID(), t.ToBytes())
+	}
 	// here data should be cast to blockchain and then
 	// retrieved trough a blockchain explorer
-	ents, err := fbranch.ExtractEntries(txs)
+	ents, err := fbranch.GetEntriesFromTXID(txids, true)
 	if err != nil {
 		t.Logf("entry extraction failed")
 		t.Fail()
@@ -406,7 +361,12 @@ func TestFBranch_EntryFullCycleImage(t *testing.T) {
 	imageHash := hex.EncodeToString(imageSha[:])
 	fm := mime.TypeByExtension(filepath.Ext(name))
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: imageHash, Data: image}
-	txs, err := fbranch.ProcessEntry(entry)
+	txs, err := fbranch.ProcessEntry(entry, true)
+	txids := make([]string, len(txs))
+	for i, t := range txs {
+		txids[i] = t.GetTxID()
+		fbranch.Blockchain.Cache.StoreTX(t.GetTxID(), t.ToBytes())
+	}
 	t.Logf("txs len: %d len(data):%d  maxDataSize:%d", len(txs), len(image), fbranch.Blockchain.MaxDataSize())
 	if err != nil {
 		t.Logf("txs preparation failed")
@@ -414,7 +374,7 @@ func TestFBranch_EntryFullCycleImage(t *testing.T) {
 	}
 	// here data should be cast to blockchain and then
 	// retrieved trough a blockchain explorer
-	ents, err := fbranch.ExtractEntries(txs)
+	ents, err := fbranch.GetEntriesFromTXID(txids, true)
 	if err != nil {
 		t.Logf("entry extraction failed")
 		t.Fail()
@@ -443,28 +403,6 @@ func TestFBranch_EntryFullCycleImage(t *testing.T) {
 	}
 }
 
-func TestFBranch_RetrieveTXs(t *testing.T) {
-	trail.SetWriter(os.Stdout)
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, CryptoKey: password, Dry: false, Blockchain: blockchain}
-	txids := []string{
-		"8686df3af289968bf286023190a0e2aa0cd9fd12bce9e4e7f9763cc16219a114",
-		"4286b420ce6d33da881342697a2ebf19a475817f0bb41547768fe61070e5a42b",
-	}
-	txs, err := fbranch.RetrieveTXs(txids)
-	if err != nil {
-		t.Logf("error retrieving TXs: %v", err)
-		t.FailNow()
-	}
-	if len(txs) != len(txids) {
-		t.Logf("unexpected number of txs: %d", len(txs))
-		t.Fail()
-	}
-}
-
 func TestFBranch_DownloadAll(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
@@ -473,7 +411,7 @@ func TestFBranch_DownloadAll(t *testing.T) {
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, CryptoKey: password, Dry: false, Blockchain: blockchain}
 	output := "download"
-	n, err := fbranch.DowloadAll(output)
+	n, err := fbranch.DowloadAll(output, true)
 	if err != nil {
 		t.Logf("failed to download all: %v", err)
 		t.FailNow()
@@ -483,22 +421,4 @@ func TestFBranch_DownloadAll(t *testing.T) {
 		t.FailNow()
 	}
 	t.Logf("downloaded entries: %d", n)
-}
-
-func TestFBranch_ListHistory(t *testing.T) {
-	trail.SetWriter(os.Stdout)
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, CryptoKey: password, Dry: false, Blockchain: blockchain}
-	txids, err := fbranch.ListHistory(address)
-	if err != nil {
-		t.Logf("error: %v", err)
-		t.Fail()
-	}
-	if len(txids) < 23 {
-		t.Logf("tx history too short: %d", len(txids))
-		t.Fail()
-	}
 }
