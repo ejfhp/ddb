@@ -64,7 +64,7 @@ func (bt *BTrunk) newFBranch(password string) (*FBranch, error) {
 		return nil, fmt.Errorf("error while generating FBranch address: %v", err)
 	}
 	trail.Println(trace.Debug("derived key generated").UTC().Append(tr).Add("address", branchAdd))
-	fb := FBranch{BitcoinAdd: branchAdd, CryptoKey: pass, Blockchain: bt.Blockchain}
+	fb := FBranch{BitcoinAdd: branchAdd, Password: pass, Blockchain: bt.Blockchain}
 	if bt.Dry {
 		fb.Dry = true
 	} else {
@@ -79,23 +79,38 @@ func (bt *BTrunk) newSameKeyFBranch(password string) *FBranch {
 	trail.Println(trace.Debug("generating FBranch with the same key").UTC().Append(tr))
 	pass := [32]byte{}
 	copy(pass[:], []byte(password))
-	fb := FBranch{BitcoinAdd: bt.BitcoinAdd, CryptoKey: pass, Blockchain: bt.Blockchain, Dry: bt.Dry, BitcoinWIF: bt.BitcoinWIF}
+	fb := FBranch{BitcoinAdd: bt.BitcoinAdd, Password: pass, Blockchain: bt.Blockchain, Dry: bt.Dry, BitcoinWIF: bt.BitcoinWIF}
 	return &fb
 }
 
 //BranchEntry store the entry on the blockchain encrypted with the given password.
-func (bt *BTrunk) BranchEntry(entry *Entry, password string, simulate bool) (*Results, error) {
+func (bt *BTrunk) BranchEntry(entry *Entry, password string, sameKey bool, simulate bool) (*Results, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "BranchEntry")
 	trail.Println(trace.Info("casting entry to the blockcchain").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
-
+	var fBranch *FBranch
+	var err error
+	if sameKey {
+		fBranch = bt.newSameKeyFBranch(password)
+	} else {
+		fBranch, err = bt.newFBranch(password)
+		if err != nil {
+			trail.Println(trace.Alert("error while creating a new branch").UTC().Error(err).Append(tr))
+			return nil, fmt.Errorf("error while creating a new branch: %w", err)
+		}
+	}
+	mentry := NewMetaEntry(entry)
+	res, err := bt.castMetaEntry(mentry, simulate)
+	fmt.Println(res)
 	return nil, nil
 }
 
 //CastEntry store the entry on the blockchain. Returns the TXID of the transactions generated.
-func (bt *BTrunk) CastEntry(entry *Entry, simulate bool) (*Results, error) {
+func (bt *BTrunk) castMetaEntry(mentry *MetaEntry, fbranch FBranch, simulate bool) (*Results, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "CastEntry")
-	trail.Println(trace.Info("casting entry to the blockcchain").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
-	txs, err := bt.ProcessEntry(entry)
+	trail.Println(trace.Info("casting meta entry to the blockcchain").Add("file", mentry.Name).UTC().Append(tr))
+	encData, err := mentry.Encrypt(fbranch.Password)
+
+	txs, err := bt.ProcessMetaEntry(entry)
 	if err != nil {
 		trail.Println(trace.Alert("error during TXs preparation").UTC().Add("file", entry.Name).Error(err).Append(tr))
 		return nil, fmt.Errorf("error during TXs preparation: %w", err)
@@ -106,6 +121,38 @@ func (bt *BTrunk) CastEntry(entry *Entry, simulate bool) (*Results, error) {
 		return nil, fmt.Errorf("error while sending transactions: %w", err)
 	}
 	return ids, nil
+}
+
+func (fb *BTrunk) ProcessEntry(entry *Entry, simulate bool) ([]*DataTX, error) {
+	tr := trace.New().Source("fbranch.go", "FBranch", "ProcessEntry")
+	trail.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
+	// entryParts, err := fb.EncryptEntry(entry)
+	entryParts, err := entry.ToParts(fb.Password, fb.Blockchain.miner.MaxOpReturn())
+	if err != nil {
+		trail.Println(trace.Alert("error making parts of entry").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("error making parts of entry: %w", err)
+	}
+	var utxo []*UTXO
+	if simulate {
+		utxo = fb.Blockchain.GetFakeUTXO()
+	} else {
+		utxo, err = fb.Blockchain.GetUTXO(fb.BitcoinAdd)
+		if err != nil {
+			trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", fb.BitcoinAdd).Error(err).Append(tr))
+			return nil, fmt.Errorf("error getting UTXO for address %s: %w", fb.BitcoinAdd, err)
+		}
+	}
+	fee, err := fb.Blockchain.GetDataFee()
+	if err != nil {
+		trail.Println(trace.Alert("error miner data fee").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("error getting miner data fee: %w", err)
+	}
+	txs, err := fb.packEntryParts(VER_AES, entryParts, utxo, fee)
+	if err != nil {
+		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
+	}
+	return txs, nil
 }
 
 //EstimateFee returns an estimation in satoshi of the fee necessary to store the entry on the blockchain.

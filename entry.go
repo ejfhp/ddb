@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"path/filepath"
+	"time"
 
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -18,12 +19,34 @@ const (
 )
 
 type MetaEntry struct {
-	Name   string   `json:"n"`
-	Labels []string `json:"l"`
-	Mime   string   `json:"m"`
-	Hash   string   `json:"h"`
-	Date   string   `json:"e"`
-	Notes  string   `json:"o,omitempty"`
+	Name      string   `json:"n"`
+	Labels    []string `json:"l"`
+	Mime      string   `json:"m"`
+	Hash      string   `json:"h"`
+	Timestamp int64    `json:"e"`
+	Notes     string   `json:"o,omitempty"`
+}
+
+func NewMetaEntry(entry *Entry) *MetaEntry {
+	if entry == nil {
+		return nil
+	}
+	requestTime := time.Now().Unix()
+	meta := MetaEntry{Name: entry.Name, Labels: entry.Labels, Mime: entry.Mime, Hash: entry.Hash, Timestamp: requestTime, Notes: entry.Notes}
+	return &meta
+}
+
+//Encrypt returns the EntryPart JSON encrypted.
+func (me *MetaEntry) Encrypt(password [32]byte) ([]byte, error) {
+	data, err := json.Marshal(me)
+	if err != nil {
+		return nil, fmt.Errorf("cannot encode MetaEntry to JSON: %w", err)
+	}
+	enc, err := AESEncrypt(password, data)
+	if err != nil {
+		return nil, fmt.Errorf("cannot encrypt MetaEntry: %w", err)
+	}
+	return enc, nil
 }
 
 type Entry struct {
@@ -32,21 +55,22 @@ type Entry struct {
 	Mime   string
 	Hash   string
 	Data   []byte
+	Notes  string
 }
 
-func NewEntryFromFile(name string, file string) (*Entry, error) {
+func NewEntryFromFile(name string, file string, labels []string, notes string) (*Entry, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("error while reading file %s: %w", file, err)
 	}
 	fm := mime.TypeByExtension(filepath.Ext(file))
-	return NewEntryFromData(name, fm, data), nil
+	return NewEntryFromData(name, fm, data, labels, notes), nil
 }
 
-func NewEntryFromData(name string, mime string, data []byte) *Entry {
+func NewEntryFromData(name string, mime string, data []byte, labels []string, notes string) *Entry {
 	sha := sha256.Sum256(data)
 	hash := hex.EncodeToString(sha[:])
-	ent := Entry{Name: name, Mime: mime, Hash: hash, Data: data}
+	ent := Entry{Name: name, Mime: mime, Hash: hash, Data: data, Labels: labels, Notes: notes}
 	return &ent
 
 }
@@ -89,27 +113,6 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 	}
 	return entries, nil
 }
-
-//EntriesOfFile returns an array of entries for the given file.
-// func (e *Entry) Parts(maxPartSize int) ([]*EntryPart, error) {
-// 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
-// 	trail.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxPartSize", fmt.Sprintf("%d", maxPartSize)).Append(t))
-// 	hash := make([]byte, 64)
-// 	sha := sha256.Sum256(e.Data)
-// 	hex.Encode(hash, sha[:])
-// 	numPart := (len(e.Data) / maxPartSize) + 1
-// 	entries := make([]*EntryPart, 0, numPart)
-// 	for i := 0; i < numPart; i++ {
-// 		start := i * maxPartSize
-// 		end := start + maxPartSize
-// 		if end > len(e.Data)-1 {
-// 			end = len(e.Data)
-// 		}
-// 		e := EntryPart{Name: e.Name, Hash: string(hash), Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
-// 		entries = append(entries, &e)
-// 	}
-// 	return entries, nil
-// }
 
 //ToParts decompose the Entry in an array of EntryPart.
 //The size of the encrypted EntryPart is guarantee to be less than maxPartSize
@@ -188,7 +191,7 @@ func EntryPartFromEncrypted(password [32]byte, encrypted []byte) (*EntryPart, er
 	return &entry, nil
 }
 
-//Encode return the json encoded form of rhe EntryPart
+//ToJSON returns the EntryPart JSON.
 func (e *EntryPart) ToJSON() ([]byte, error) {
 	data, err := json.Marshal(e)
 	if err != nil {
@@ -197,6 +200,7 @@ func (e *EntryPart) ToJSON() ([]byte, error) {
 	return data, nil
 }
 
+//Encrypt returns the EntryPart JSON encrypted.
 func (e *EntryPart) Encrypt(password [32]byte) ([]byte, error) {
 	data, err := json.Marshal(e)
 	if err != nil {

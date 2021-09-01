@@ -11,11 +11,11 @@ import (
 )
 
 type Describe struct {
-	diary *ddb.Diary
+	diary *ddb.FBranch
 	env   *Environment
 }
 
-func NewDescribe(env *Environment, diary *ddb.Diary) *Describe {
+func NewDescribe(env *Environment, diary *ddb.FBranch) *Describe {
 	describe := Describe{diary: diary, env: env}
 	return &describe
 

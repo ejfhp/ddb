@@ -171,7 +171,7 @@ func prepareCache(env *Environment) (*ddb.TXCache, error) {
 	return cache, nil
 }
 
-func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.Diary, error) {
+func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.FBranch, error) {
 	tr := trace.New().Source("setup.go", "", "prepareCache")
 	if env.key == "" && env.address == "" {
 		trail.Println(trace.Alert("bitcoin key and address are both empty").Append(tr).UTC())
@@ -184,10 +184,10 @@ func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.Diary, error) {
 	taal := ddb.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	var err error
-	var diary *ddb.Diary
+	var diary *ddb.FBranch
 	if env.key != "" {
 		trail.Println(trace.Info("building Diary").Append(tr).UTC())
-		diary, err = ddb.NewDiary(env.key, env.password, blockchain)
+		diary, err = ddb.NewFBranch(env.key, env.password, blockchain)
 		if err != nil {
 			return nil, fmt.Errorf("error while creating a new Diary: %w", err)
 		}

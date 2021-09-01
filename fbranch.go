@@ -12,7 +12,7 @@ import (
 type FBranch struct {
 	BitcoinWIF string
 	BitcoinAdd string
-	CryptoKey  [32]byte
+	Password   [32]byte
 	Dry        bool
 	Blockchain *Blockchain
 }
@@ -23,7 +23,7 @@ type BResult struct {
 }
 
 func (fb *FBranch) EncodingPassword() string {
-	return string(fb.CryptoKey[:])
+	return string(fb.Password[:])
 }
 
 //CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.
@@ -68,7 +68,7 @@ func (fb *FBranch) ProcessEntry(entry *Entry, simulate bool) ([]*DataTX, error) 
 	tr := trace.New().Source("fbranch.go", "FBranch", "ProcessEntry")
 	trail.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
 	// entryParts, err := fb.EncryptEntry(entry)
-	entryParts, err := entry.ToParts(fb.CryptoKey, fb.Blockchain.miner.MaxOpReturn())
+	entryParts, err := entry.ToParts(fb.Password, fb.Blockchain.miner.MaxOpReturn())
 	if err != nil {
 		trail.Println(trace.Alert("error making parts of entry").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error making parts of entry: %w", err)
@@ -102,7 +102,7 @@ func (fb *FBranch) packEntryParts(version string, parts []*EntryPart, utxos []*U
 	trail.Println(trace.Info("packing bytes in an array of DataTX").UTC().Append(tr))
 	dataTXs := make([]*DataTX, len(parts))
 	for i, ep := range parts {
-		encbytes, err := ep.Encrypt(fb.CryptoKey)
+		encbytes, err := ep.Encrypt(fb.Password)
 		if err != nil {
 			trail.Println(trace.Alert("error while encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error while encrypting entry part: %w", err)
@@ -181,7 +181,7 @@ func (fb *FBranch) unpackEntryParts(txs []*DataTX) ([]*EntryPart, error) {
 			trail.Println(trace.Alert("error while getting OpReturn data from DataTX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error while getting OpReturn data from DataTX ver%s: %w", ver, err)
 		}
-		ep, err := EntryPartFromEncrypted(fb.CryptoKey, opr)
+		ep, err := EntryPartFromEncrypted(fb.Password, opr)
 		if err != nil {
 			trail.Println(trace.Alert("error while making entry part from encrypted bytes").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error while making entry part from encrypted bytes: %w", err)

@@ -10,11 +10,11 @@ import (
 )
 
 type Store struct {
-	diary *ddb.Diary
+	diary *ddb.FBranch
 	env   *Environment
 }
 
-func NewStore(env *Environment, diary *ddb.Diary) *Store {
+func NewStore(env *Environment, diary *ddb.FBranch) *Store {
 	store := Store{diary: diary, env: env}
 	return &store
 }

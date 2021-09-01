@@ -9,12 +9,12 @@ import (
 )
 
 type Retrieve struct {
-	diary     *ddb.Diary
+	diary     *ddb.FBranch
 	env       *Environment
 	outfolder string
 }
 
-func NewRetrieve(env *Environment, diary *ddb.Diary) *Retrieve {
+func NewRetrieve(env *Environment, diary *ddb.FBranch) *Retrieve {
 	tr := trace.New().Source("retrieve.go", "Retrieve", "newRetrieve")
 	if env.outFolder == "" {
 		trail.Println(trace.Info("Output dir not set, using local flolder").Append(tr).UTC())
