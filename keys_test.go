@@ -6,6 +6,12 @@ import (
 	"github.com/ejfhp/ddb"
 )
 
+//TO BE SET IF REAL ONCHAIN TEST ARE GOING TO BE EXECUTED
+var destinationAddress string
+var destinationKey string
+var changeAddress string
+var changeKey string
+
 func TestDecodeWIF(t *testing.T) {
 	wif := "L2Aoi3Zk9oQhiEBwH9tcqnTTRErh7J3bVWoxLDzYa8nw2bWktG6M"
 	k, err := ddb.DecodeWIF(wif)

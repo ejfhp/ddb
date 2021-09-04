@@ -13,10 +13,6 @@ import (
 	"github.com/ejfhp/trail"
 )
 
-//TO BE SET IF REAL ONCHAIN TEST ARE GOING TO BE EXECUTED
-var address string
-var key string
-
 func TestFBranch_ProcessEntry(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
@@ -34,7 +30,7 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	for i, v := range passwords {
-		fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: v, Dry: false, Blockchain: blockchain}
+		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
 		txs, err := fbranch.ProcessEntry(&entry, true)
 		if err != nil {
@@ -80,7 +76,7 @@ func TestFBranch_CastSimulateFee(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	for i, v := range passwords {
-		fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: v, Dry: false, Blockchain: blockchain}
+		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
 		result, err := fbranch.CastEntry(&entry, ddb.Satoshi(10000), true)
 		if err != nil {
@@ -111,7 +107,7 @@ func TestFBranch_CastSimulateSpendingLimit(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	for i, v := range passwords {
-		fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: v, Dry: false, Blockchain: blockchain}
+		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
 		_, err := fbranch.CastEntry(&entry, ddb.Satoshi(100), true)
 		if err == nil {
@@ -128,7 +124,7 @@ func TestFBranch_CastEntry(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: password, Dry: false, Blockchain: blockchain}
+	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	filename := "Inferno.txt"
 	file := `Nel mezzo del cammin di nostra vita
 		mi ritrovai per una selva oscura,
@@ -137,7 +133,7 @@ func TestFBranch_CastEntry(t *testing.T) {
 		Ahi quanto a dir qual era è cosa dura
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
-	entry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file))
+	entry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file), []string{"label1", "label2"}, "notes")
 	res, err := fbranch.CastEntry(entry, 300, true)
 	if err != nil {
 		t.Logf("failed to process entry: %v", err)
@@ -159,10 +155,10 @@ func TestFBranch_CastImageEntry(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: password, Dry: false, Blockchain: blockchain}
+	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	name := "image.png"
 	filename := "testdata/image.png"
-	entry, err := ddb.NewEntryFromFile(name, filename)
+	entry, err := ddb.NewEntryFromFile(name, filename, []string{"label1", "label2"}, "notes")
 	if err != nil {
 		t.Logf("failed to create Entry: %v", err)
 		t.Fail()
@@ -188,7 +184,7 @@ func TestFBranch_RetrieveAndExtractEntries(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: password, Dry: false, Blockchain: blockchain}
+	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	entries, err := fbranch.GetEntriesFromTXID([]string{txid}, true)
 	if err != nil {
 		t.Logf("failed to retrieve entry: %v", err)
@@ -207,7 +203,7 @@ func TestFBranch_RetrieveAndExtractEntries(t *testing.T) {
 		Ahi quanto a dir qual era è cosa dura
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
-	expEntry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file))
+	expEntry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file), []string{"label1", "label2"}, "notes")
 	if entry.Name != expEntry.Name {
 		t.Logf("unexpected name for retrieved entry: %s", entry.Name)
 		t.Fail()
@@ -244,7 +240,7 @@ func TestFBranch_RetrieveAndExtractImageEntry(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: password, Dry: false, Blockchain: blockchain}
+	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	entries, err := fbranch.GetEntriesFromTXID(txids, false)
 	if err != nil {
 		t.Logf("failed to retrieve entry: %v", err)
@@ -258,7 +254,7 @@ func TestFBranch_RetrieveAndExtractImageEntry(t *testing.T) {
 	entry := entries[1]
 	name := "image.png"
 	filename := "testdata/image.png"
-	expEntry, err := ddb.NewEntryFromFile(name, filename)
+	expEntry, err := ddb.NewEntryFromFile(name, filename, []string{"label1", "label2"}, "notes")
 	if err != nil {
 		t.Logf("failed to build entry: %v", err)
 		t.Fail()
@@ -295,7 +291,7 @@ func TestFBranch_EntryFullCycleText(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: password, Dry: false, Blockchain: blockchain}
+	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	name := "test.txt"
 	fm := mime.TypeByExtension(filepath.Ext(name))
 	bytes := []byte("just a test")
@@ -350,7 +346,7 @@ func TestFBranch_EntryFullCycleImage(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: password, Dry: false, Blockchain: blockchain}
+	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	name := "image.png"
 	file := "testdata/image.png"
 	image, err := ioutil.ReadFile(file)
@@ -409,7 +405,7 @@ func TestFBranch_DownloadAll(t *testing.T) {
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: key, BitcoinAdd: address, Password: password, Dry: false, Blockchain: blockchain}
+	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	output := "download"
 	n, err := fbranch.DowloadAll(output, true)
 	if err != nil {

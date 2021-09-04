@@ -13,7 +13,7 @@ type FBranch struct {
 	BitcoinWIF string
 	BitcoinAdd string
 	Password   [32]byte
-	Dry        bool
+	SpendLimit Satoshi
 	Blockchain *Blockchain
 }
 
@@ -113,7 +113,7 @@ func (fb *FBranch) packEntryParts(version string, parts []*EntryPart, utxos []*U
 		// 	return nil, fmt.Errorf("cannot build 0 fee DataTX: %w", err)
 		// }
 		fee := dataFee.CalculateFee(len(encbytes) + 150) //150 bytes for header
-		dataTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, utxos, fee, encbytes, version)
+		dataTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, fb.BitcoinAdd, utxos, fee, Bitcoin(-1), encbytes, version)
 		if err != nil {
 			trail.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build TX: %w", err)

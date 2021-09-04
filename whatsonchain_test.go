@@ -70,7 +70,7 @@ func TestWOCGetRAWTXHEX(t *testing.T) {
 func TestWOCGetTXIDs(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	txids, err := woc.GetTXIDs(address)
+	txids, err := woc.GetTXIDs(destinationAddress)
 	if err != nil {
 		t.Logf("error: %v", err)
 		t.Fail()

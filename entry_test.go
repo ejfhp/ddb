@@ -24,7 +24,7 @@ func TestNewEntryFromFile(t *testing.T) {
 		{"/", "error"},
 	}
 	for i, f := range inputs {
-		e, err := ddb.NewEntryFromFile(filepath.Base(f[0]), f[0])
+		e, err := ddb.NewEntryFromFile(filepath.Base(f[0]), f[0], []string{"label1", "label2"}, "notes")
 		if err != nil && f[1] != "error" {
 			t.Logf("%d NewEntry failed: %s", i, f)
 		}
@@ -56,7 +56,7 @@ func TestEntryOfFile(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%d: error reading test file: %v", in, err)
 		}
-		entry, err := ddb.NewEntryFromFile(fil[0], fil[0])
+		entry, err := ddb.NewEntryFromFile(fil[0], fil[0], []string{"label1", "label2"}, "notes")
 		if err != nil {
 			t.Fatalf("%d: error making entry of test file: %v", in, err)
 		}
@@ -248,7 +248,7 @@ func TestEncodeDecodeSingleEntry1(t *testing.T) {
 	utxos := []*ddb.UTXO{{TXPos: 1, TXHash: txid, Value: ddb.Bitcoin(1), ScriptPubKeyHex: scriptHex}}
 	txs := make([]*ddb.DataTX, 0, len(cryParts))
 	for _, p := range cryParts {
-		tx, err := ddb.NewDataTX(key, address, utxos, ddb.Satoshi(10), p, "test")
+		tx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, ddb.Satoshi(10), ddb.Satoshi(200), p, "test")
 		if err != nil {
 			t.Logf("EntryPart packing failed: %v", err)
 			t.Fail()
