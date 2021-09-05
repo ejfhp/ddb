@@ -26,6 +26,26 @@ func (b *Blockchain) CacheDir() string {
 	return b.Cache.path
 }
 
+func (b *Blockchain) NewDataTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, fee Token, amount Token, data []byte, header string) (*DataTX, error) {
+	return NewDataTX(sourceKey, destinationAddress, changeAddress, inutxo, fee, amount, data, header)
+}
+
+func (b *Blockchain) EstimateDataTXFee(numUTXO int, data []byte, header string) (Satoshi, error) {
+	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
+	key, add, utxos := fakeKeyAddUTXO(numUTXO)
+	dataTX, err := NewDataTX(key, add, add, utxos, Satoshi(1), Satoshi(1), data, header)
+	if err != nil {
+		trail.Println(trace.Alert("cannot build fake DataTX").UTC().Append(tr).Error(err))
+		return 0, fmt.Errorf("cannot submit TX to miner: %w", err)
+	}
+	fee, err := b.GetDataFee()
+	if err != nil {
+		trail.Println(trace.Alert("cannot get Fee").UTC().Append(tr).Error(err))
+		return 0, fmt.Errorf("cannot get Fee: %w", err)
+	}
+	return fee.CalculateFee(len(dataTX.ToBytes())), nil
+}
+
 //Submit submits all the transactions to the miner to be included in the blockchain, returns the TX IDs
 func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")

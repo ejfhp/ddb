@@ -6,11 +6,11 @@ import (
 	"github.com/ejfhp/ddb"
 )
 
-//TO BE SET IF REAL ONCHAIN TEST ARE GOING TO BE EXECUTED
-var destinationAddress string
-var destinationKey string
-var changeAddress string
-var changeKey string
+//EMPTY TEST ADDRESS
+var destinationAddress string = "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+var destinationKey string = "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+var changeAddress string = "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
+var changeKey string = "L2mk9qzXebT1gfwUuALMJrbqBtrJxGUN5JnVeqQTGRXytqpXsPr8"
 
 func TestDecodeWIF(t *testing.T) {
 	wif := "L2Aoi3Zk9oQhiEBwH9tcqnTTRErh7J3bVWoxLDzYa8nw2bWktG6M"

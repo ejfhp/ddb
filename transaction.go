@@ -45,8 +45,7 @@ type DataTX struct {
 	*bt.Tx
 }
 
-//TODO refactor NewDataTX to use NewTX and extract output info
-//NewDataTX builds a DataTX with the given params. The values in the arrays must be correlated. Output order is: 1:destination, 2:opreturn, 3:change.
+//NewDataTX builds a DataTX with the given params. Output order is: 1:destination, 2:opreturn, 3:change.
 func NewDataTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, fee Token, amount Token, data []byte, header string) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "DataTX", "NewDataTX")
 	trail.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("destinationAddress", destinationAddress).Add("num UTXO", fmt.Sprintf("%d", len(inutxo))).Append(t))
@@ -55,13 +54,18 @@ func NewDataTX(sourceKey string, destinationAddress string, changeAddress string
 		trail.Println(trace.Alert("cannot add header").UTC().Add("header", header).Error(err).Append(t))
 		return nil, fmt.Errorf("cannot add header: %w", err)
 	}
-	_, err = NewTX(sourceKey, destinationAddress, changeAddress, inutxo, Satoshi(0), amount, payload)
+	tx, err := NewTX(sourceKey, destinationAddress, changeAddress, inutxo, amount, fee, payload)
 	if err != nil {
 		trail.Println(trace.Alert("error creating a new transaction").UTC().Append(t).Error(err))
 		return nil, fmt.Errorf("error creating a new transaction: %w", err)
 	}
-	// dtx := DataTX{SourceOutputs: sourceOutputs, Tx: tx}
-	return nil, nil
+	sourceOutputs := []*SourceOutput{}
+	for _, utx := range inutxo {
+		sourceOutput := SourceOutput{TXPos: utx.TXPos, TXHash: utx.TXHash, Value: utx.Value.Satoshi(), ScriptPubKeyHex: utx.ScriptPubKeyHex}
+		sourceOutputs = append(sourceOutputs, &sourceOutput)
+	}
+	dtx := DataTX{SourceOutputs: sourceOutputs, Tx: tx}
+	return &dtx, nil
 }
 
 //NewTX builds a bt.TX transaction with the given params. The optional OP_RETURN data is in position 0. A negative amount means all the available.
@@ -256,4 +260,18 @@ func addDataHeader(header string, data []byte) ([]byte, error) {
 	copy(payload, header)
 	copy(payload[9:], data)
 	return payload, nil
+}
+
+func fakeKeyAddUTXO(num int) (string, string, []*UTXO) {
+	address := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	key := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	// var changeAddress string = "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
+	// var changeKey string = "L2mk9qzXebT1gfwUuALMJrbqBtrJxGUN5JnVeqQTGRXytqpXsPr8"
+	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
+	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
+	utxos := make([]*UTXO, 0, num)
+	for i := 0; i < num; i++ {
+		utxos = append(utxos, &UTXO{TXHash: txid, TXPos: uint32(i), Value: 1000000000, ScriptPubKeyHex: scriptHex})
+	}
+	return key, address, utxos
 }
