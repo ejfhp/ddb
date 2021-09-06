@@ -26,10 +26,6 @@ func (b *Blockchain) CacheDir() string {
 	return b.Cache.path
 }
 
-func (b *Blockchain) NewDataTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, fee Token, amount Token, data []byte, header string) (*DataTX, error) {
-	return NewDataTX(sourceKey, destinationAddress, changeAddress, inutxo, fee, amount, data, header)
-}
-
 func (b *Blockchain) EstimateDataTXFee(numUTXO int, data []byte, header string) (Satoshi, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
 	key, add, utxos := fakeKeyAddUTXO(numUTXO)

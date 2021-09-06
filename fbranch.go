@@ -35,23 +35,23 @@ func (fb *FBranch) CastEntry(entry *Entry, spendLimit Satoshi, simulate bool) (*
 		trail.Println(trace.Alert("error during TXs preparation").UTC().Add("file", entry.Name).Error(err).Append(tr))
 		return nil, fmt.Errorf("error during TXs preparation: %w", err)
 	}
-	fee := Satoshi(0)
+	totalFeeRequired := Satoshi(0)
 	for _, tx := range txs {
 		f, err := tx.Fee()
 		if err != nil {
 			trail.Println(trace.Alert("error getting fee from DataTXs").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error getting fee DataTXs: %w", err)
 		}
-		fee = fee.Add(f)
+		totalFeeRequired = totalFeeRequired.Add(f)
 	}
-	if fee > spendLimit {
+	if totalFeeRequired > spendLimit {
 		trail.Println(trace.Alert("total cost of transaction exceeds the spending limit").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("total cost of transaction exceeds the spending limit: %w", err)
 
 	}
 	if simulate {
 		trail.Println(trace.Info("simulation mode is on").UTC().Error(err).Append(tr))
-		res := BResult{Cost: fee}
+		res := BResult{Cost: totalFeeRequired}
 		return &res, nil
 	}
 	ids, err := fb.Blockchain.Submit(txs)
@@ -59,7 +59,7 @@ func (fb *FBranch) CastEntry(entry *Entry, spendLimit Satoshi, simulate bool) (*
 		trail.Println(trace.Alert("error while sending transactions").UTC().Add("file", entry.Name).Error(err).Append(tr))
 		return nil, fmt.Errorf("error while sending transactions: %w", err)
 	}
-	res := BResult{TXIDs: ids}
+	res := BResult{TXIDs: ids, Cost: totalFeeRequired}
 	return &res, nil
 }
 
@@ -83,12 +83,7 @@ func (fb *FBranch) ProcessEntry(entry *Entry, simulate bool) ([]*DataTX, error) 
 			return nil, fmt.Errorf("error getting UTXO for address %s: %w", fb.BitcoinAdd, err)
 		}
 	}
-	fee, err := fb.Blockchain.GetDataFee()
-	if err != nil {
-		trail.Println(trace.Alert("error miner data fee").UTC().Error(err).Append(tr))
-		return nil, fmt.Errorf("error getting miner data fee: %w", err)
-	}
-	txs, err := fb.packEntryParts(VER_AES, entryParts, utxo, fee)
+	txs, err := fb.packEntryParts(VER_AES, entryParts, utxo)
 	if err != nil {
 		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error packing encrrypted parts into DataTXs: %w", err)
@@ -97,28 +92,32 @@ func (fb *FBranch) ProcessEntry(entry *Entry, simulate bool) ([]*DataTX, error) 
 }
 
 //PackEncryptedEntriesPart writes each []data on a single TX chained with the others, returns the TXIDs and the hex encoded TXs
-func (fb *FBranch) packEntryParts(version string, parts []*EntryPart, utxos []*UTXO, dataFee *Fee) ([]*DataTX, error) {
+func (fb *FBranch) packEntryParts(version string, parts []*EntryPart, utxos []*UTXO) ([]*DataTX, error) {
 	tr := trace.New().Source("fbranch.go", "", "packEntryParts")
 	trail.Println(trace.Info("packing bytes in an array of DataTX").UTC().Append(tr))
 	dataTXs := make([]*DataTX, len(parts))
+	header, err := BuildDataHeader(version)
+	if err != nil {
+		trail.Println(trace.Alert("cannot make header").UTC().Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot make header: %w", err)
+	}
 	for i, ep := range parts {
 		encbytes, err := ep.Encrypt(fb.Password)
 		if err != nil {
 			trail.Println(trace.Alert("error while encrypting entry part").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error while encrypting entry part: %w", err)
 		}
-		// tempTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, utxos, Bitcoin(0), encbytes, version)
-		// if err != nil {
-		// 	trail.Println(trace.Alert("cannot build 0 fee DataTX").UTC().Error(err).Append(tr))
-		// 	return nil, fmt.Errorf("cannot build 0 fee DataTX: %w", err)
-		// }
-		fee := dataFee.CalculateFee(len(encbytes) + 150) //150 bytes for header
+		fee, err := fb.Blockchain.EstimateDataTXFee(len(utxos), encbytes, header)
+		if err != nil {
+			trail.Println(trace.Alert("cannot calculate DataTX fee").UTC().Error(err).Append(tr))
+			return nil, fmt.Errorf("cannot calculate DataTX fee: %w", err)
+		}
 		dataTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, fb.BitcoinAdd, utxos, fee, Bitcoin(-1), encbytes, version)
 		if err != nil {
 			trail.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build TX: %w", err)
 		}
-		trail.Println(trace.Info("got estimated fee").UTC().Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Add("txid", dataTx.GetTxID()).Append(tr))
+		trail.Println(trace.Info("DataTX built").UTC().Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Add("txid", dataTx.GetTxID()).Append(tr))
 		//UTXO in TX built by BuildDataTX is in position 0
 		inPos := 0
 		utxos = []*UTXO{{TXPos: 0, TXHash: dataTx.GetTxID(), Value: Satoshi(dataTx.Outputs[inPos].Satoshis).Bitcoin(), ScriptPubKeyHex: dataTx.Outputs[inPos].GetLockingScriptHexString()}}
@@ -176,7 +175,6 @@ func (fb *FBranch) unpackEntryParts(txs []*DataTX) ([]*EntryPart, error) {
 	parts := make([]*EntryPart, 0, len(txs))
 	for _, tx := range txs {
 		opr, ver, err := tx.Data()
-		// trail.Println(trace.Info("DataTX version").Add("version", ver).UTC().Error(err).Append(tr))
 		if err != nil {
 			trail.Println(trace.Alert("error while getting OpReturn data from DataTX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("error while getting OpReturn data from DataTX ver%s: %w", ver, err)

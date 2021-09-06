@@ -59,7 +59,7 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 	}
 }
 
-func TestFBranch_CastSimulateFee(t *testing.T) {
+func TestFBranch_CastEntry_CheckingFee(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -90,7 +90,7 @@ func TestFBranch_CastSimulateFee(t *testing.T) {
 	}
 }
 
-func TestFBranch_CastSimulateSpendingLimit(t *testing.T) {
+func TestFBranch_CastEntry_SpendingLimit(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -117,7 +117,7 @@ func TestFBranch_CastSimulateSpendingLimit(t *testing.T) {
 	}
 }
 
-func TestFBranch_CastEntry(t *testing.T) {
+func TestFBranch_CastEntry_Text(t *testing.T) {
 	t.SkipNow()
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
@@ -148,7 +148,7 @@ func TestFBranch_CastEntry(t *testing.T) {
 	}
 }
 
-func TestFBranch_CastImageEntry(t *testing.T) {
+func TestFBranch_CastEntry_Image(t *testing.T) {
 	t.SkipNow()
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
@@ -177,7 +177,7 @@ func TestFBranch_CastImageEntry(t *testing.T) {
 	}
 }
 
-func TestFBranch_RetrieveAndExtractEntries(t *testing.T) {
+func TestFBranch_GetEntryFromTXID_Text(t *testing.T) {
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
@@ -222,7 +222,7 @@ func TestFBranch_RetrieveAndExtractEntries(t *testing.T) {
 	}
 }
 
-func TestFBranch_RetrieveAndExtractImageEntry(t *testing.T) {
+func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 	txids := []string{
 		"afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426", //EXTRA TX
 		"33c5339f5f942793867898d92c72cdab8fc5ff464f77970fc6fd0cf8dd99f271",
@@ -285,7 +285,7 @@ func TestFBranch_RetrieveAndExtractImageEntry(t *testing.T) {
 	}
 }
 
-func TestFBranch_EntryFullCycleText(t *testing.T) {
+func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -340,7 +340,7 @@ func TestFBranch_EntryFullCycleText(t *testing.T) {
 	}
 }
 
-func TestFBranch_EntryFullCycleImage(t *testing.T) {
+func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()

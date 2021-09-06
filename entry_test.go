@@ -3,7 +3,6 @@ package ddb_test
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"mime"
 	"os"
@@ -14,7 +13,7 @@ import (
 	"github.com/ejfhp/trail"
 )
 
-func TestNewEntryFromFile(t *testing.T) {
+func TestEntry_NewEntryFromFile(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	inputs := [][]string{
 		{"testdata/test.txt", ""},
@@ -37,15 +36,15 @@ func TestNewEntryFromFile(t *testing.T) {
 	}
 
 }
-func TestEntryOfFile(t *testing.T) {
+func TestEntry_ToParts(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	inputs := [][]string{
 		{"testdata/test.txt", "text/plain; charset=utf-8"},
 		{"testdata/image.png", "image/png"},
 	}
 	partsizes := [][]int{
-		{100, 9},
-		{1000, 4},
+		{1000, 9},
+		{2000, 4},
 	}
 	for in, fil := range inputs {
 		bytes, err := ioutil.ReadFile(fil[0])
@@ -110,11 +109,11 @@ func TestEntryOfFile(t *testing.T) {
 			t.Logf("the read file has wrong hash \nexp %s\n got %s", string(hash), string(readhash))
 			t.Fail()
 		}
-		ioutil.WriteFile(fmt.Sprintf("/tmp/%d.%s", in, fil[1]), data, 0664)
+		// ioutil.WriteFile(fmt.Sprintf("/tmp/%d.%s", in, fil[1]), data, 0664)
 	}
 }
 
-func TestEntriesFromParts(t *testing.T) {
+func TestEntry_EntriesFromParts(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	inputs := []string{
 		"testdata/test.txt",
@@ -170,7 +169,7 @@ func TestEntriesFromParts(t *testing.T) {
 	}
 }
 
-func TestEncodeDecodeEntryPart(t *testing.T) {
+func TestEntry_ToJSON_EntryPartFromJSON(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	name := "test.txt"
 	hash := "hhhhhhhhhhhhhhhh"
@@ -204,7 +203,7 @@ func TestEncodeDecodeEntryPart(t *testing.T) {
 	}
 }
 
-func TestEncodeDecodeSingleEntry1(t *testing.T) {
+func TestEntry_EncodedToAndReadFromDataTX(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	name := "image.png"
@@ -221,16 +220,6 @@ func TestEncodeDecodeSingleEntry1(t *testing.T) {
 	if err != nil {
 		t.Logf("Entry to parts failed: %v", err)
 		t.Fail()
-	}
-	//JSON encode
-	encParts := make([][]byte, 0, len(parts))
-	for _, p := range parts {
-		ep, err := p.ToJSON()
-		if err != nil {
-			t.Logf("EntryPart encoding failed: %v", err)
-			t.Fail()
-		}
-		encParts = append(encParts, ep)
 	}
 	//encrypting
 	cryParts := make([][]byte, 0, len(parts))
