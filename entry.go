@@ -80,46 +80,55 @@ func NewEntryFromData(name string, mime string, data []byte, labels []string, no
 //The size of the encrypted EntryPart is guarantee to be less than maxPartSize
 func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
+	if maxSize < 300 {
+		trail.Println(trace.Alert("maxSize excessively small (<300)").UTC().Append(t).Add("maxSize", fmt.Sprintf("%d", maxSize)))
+		return nil, fmt.Errorf("maxSize excessively small (<300): %d", maxSize)
+
+	}
 	trail.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxSize when encrypted", fmt.Sprintf("%d", maxSize)).Append(t))
 
 	//Find the correct size for entry data
 	fits := false
-	numPart := math.Ceil(float64(len(e.Data)) / float64(maxSize))
-	fmt.Printf("Start Parts: %d\n", numPart)
-	for !fits && numPart < 1000 {
-		partSize := int64(math.Ceil(float64(len(e.Data)) / numPart))
-		fmt.Printf("Parts: %d   PartSize: %d\n", numPart, partSize)
-		for i := int64(0); i < numPart; i++ {
-			start := i * int64(partSize)
+	division := int(math.Ceil(float64(len(e.Data)) / float64(maxSize)))
+	numParts := division + 1
+	entryParts := make([]*EntryPart, 0, numParts)
+	fmt.Printf("Start Parts: %d\n", numParts)
+	for !fits && division < 1000 {
+		partSize := len(e.Data) / division
+		fmt.Printf("Division: %d   PartSize: %d len(data): %d  MaxSize: %d\n", division, partSize, len(e.Data), maxSize)
+		for i := 0; i < numParts; i++ {
+			start := i * partSize
 			end := start + partSize
 			if end > len(e.Data)-1 {
 				end = len(e.Data)
 			}
-			ep := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
+			ep := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numParts, Size: (end - start), Data: e.Data[start:end]}
 			encData, err := ep.Encrypt(password)
 			if err != nil {
 				return nil, fmt.Errorf("error while encrypting EntryPart: %w", err)
 			}
-			fmt.Printf("len(encdata) > maxsize - %d > %d\n", len(encData), maxSize)
+			fmt.Printf("encodedData: %d  maxSize: %d\n", len(encData), maxSize)
 			if len(encData) > maxSize {
 				fits = false
-				numPart++
+				division++
+				numParts = division + 1
+				entryParts = entryParts[:0]
 				break
 			}
+			entryParts = append(entryParts, &ep)
 			fits = true
 		}
 	}
-	entries := make([]*EntryPart, 0, numPart)
-	for i := 0; i < numPart; i++ {
-		start := i * maxSize
-		end := start + maxSize
-		if end > len(e.Data)-1 {
-			end = len(e.Data)
-		}
-		e := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
-		entries = append(entries, &e)
-	}
-	return entries, nil
+	// for i := 0; i < numPart; i++ {
+	// 	start := i * maxSize
+	// 	end := start + maxSize
+	// 	if end > len(e.Data)-1 {
+	// 		end = len(e.Data)
+	// 	}
+	// 	e := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
+	// 	entries = append(entries, &e)
+	// }
+	return entryParts, nil
 }
 
 func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {

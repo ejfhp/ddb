@@ -43,7 +43,7 @@ func TestEntry_ToParts(t *testing.T) {
 		{"testdata/image.png", "image/png"},
 	}
 	partsizes := [][]int{
-		{1000, 9},
+		{500, 5},
 		{2000, 4},
 	}
 	for in, fil := range inputs {
@@ -72,28 +72,28 @@ func TestEntry_ToParts(t *testing.T) {
 				data = make([]byte, 0)
 			}
 			if f.Mime != fil[1] {
-				t.Logf("wrong mime, should be %s but is %s ", fil[1], f.Mime)
+				t.Logf("%d - wrong mime, should be %s but is %s ", i, fil[1], f.Mime)
 				t.Fail()
 			}
 			if f.IdxPart != i {
-				t.Logf("wrong idxpart, should be %d but is %d ", i, f.IdxPart)
+				t.Logf("%d - wrong idxpart, should be %d but is %d ", i, i, f.IdxPart)
 				t.Fail()
 			}
 			if f.NumPart != partsizes[in][1] {
-				t.Logf("wrong numpart, should be %d but is %d ", partsizes[in][1], f.NumPart)
+				t.Logf("%d - wrong numpart, should be %d but is %d ", i, partsizes[in][1], f.NumPart)
 				t.Fail()
 			}
 			if f.Hash != string(hash) {
-				t.Logf("wrong hash, \nexp %s \ngot %s ", string(hash), f.Hash)
+				t.Logf("%d - wrong hash, \nexp %s \ngot %s ", i, string(hash), f.Hash)
 				t.Fail()
 			}
 			if len(f.Data) != f.Size {
-				t.Logf("wrong size, %d but len data is %d ", f.Size, len(f.Data))
+				t.Logf("%d - wrong size, %d but len data is %d ", i, f.Size, len(f.Data))
 				t.Fail()
 
 			}
 			//fmt.Printf("'%s'\n", hex.EncodeToString(f.Data))
-			t.Logf("%d name:%s mime:%s part:%d/%d size:%d len(data):%d hash:%s\n", i, f.Name, f.Mime, f.IdxPart, f.NumPart, f.Size, len(f.Data), f.Hash)
+			// t.Logf("%d name:%s mime:%s part:%d/%d size:%d len(data):%d hash:%s\n", i, f.Name, f.Mime, f.IdxPart, f.NumPart, f.Size, len(f.Data), f.Hash)
 			data = append(data, f.Data...)
 		}
 		endLen := len(data)
@@ -105,11 +105,11 @@ func TestEntry_ToParts(t *testing.T) {
 		readhash := make([]byte, 64)
 		readsha := sha256.Sum256(data)
 		hex.Encode(readhash, readsha[:])
+		// fmt.Println(string(data))
 		if string(string(readhash)) != string(hash) {
 			t.Logf("the read file has wrong hash \nexp %s\n got %s", string(hash), string(readhash))
 			t.Fail()
 		}
-		// ioutil.WriteFile(fmt.Sprintf("/tmp/%d.%s", in, fil[1]), data, 0664)
 	}
 }
 
