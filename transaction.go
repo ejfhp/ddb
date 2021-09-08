@@ -207,7 +207,7 @@ func (t *DataTX) Data() ([]byte, string, error) {
 	return data, header, nil
 }
 
-//Data returns data inside OP_RETURN and version of TX
+//Fee returns fee of TX
 func (t *DataTX) Fee() (Token, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Fee")
 	if t.SourceOutputs == nil || len(t.SourceOutputs) == 0 {

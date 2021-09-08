@@ -22,8 +22,8 @@ type BTrunk struct {
 	Blockchain *Blockchain
 }
 
-func (bt *BTrunk) getGreenBud(simulate bool) ([]*UTXO, error) {
-	tr := trace.New().Source("btrunk.go", "BTrunk", "getGreenBud")
+func (bt *BTrunk) getUTXOs(simulate bool) ([]*UTXO, error) {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "getUTXOs")
 	trail.Println(trace.Info("getting green bud UTXO of the btrunk").Append(tr).UTC())
 	var utxo []*UTXO
 	var err error
@@ -39,14 +39,11 @@ func (bt *BTrunk) getGreenBud(simulate bool) ([]*UTXO, error) {
 	return utxo, nil
 }
 
-func (bt *BTrunk) newFBranch(password string) (*FBranch, error) {
-	tr := trace.New().Source("btrunk.go", "BTrunk", "FBranch")
-	trail.Println(trace.Debug("generating FBranch with a derived key").UTC().Append(tr))
-	pass := [32]byte{}
-	copy(pass[:], []byte(password))
+func (bt *BTrunk) newFBranch(password [32]byte) (*FBranch, error) {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "newFBranch")
 	keySeed := []byte{}
 	keySeed = append(keySeed, []byte(bt.BitcoinAdd)...)
-	keySeed = append(keySeed, pass[:]...)
+	keySeed = append(keySeed, password[:]...)
 	keySeedHash := sha256.Sum256(keySeed)
 	branchKey, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
 	fbwif, err := bsvutil.NewWIF(branchKey, &chaincfg.MainNetParams, true)
@@ -58,25 +55,47 @@ func (bt *BTrunk) newFBranch(password string) (*FBranch, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while generating FBranch address: %v", err)
 	}
-	trail.Println(trace.Debug("derived key generated").UTC().Append(tr).Add("address", branchAdd))
-	fb := FBranch{BitcoinWIF: branchWIF, BitcoinAdd: branchAdd, Password: pass, Blockchain: bt.Blockchain}
+	trail.Println(trace.Debug("generating new FBranch").UTC().Append(tr).Add("address", branchAdd))
+	fb := FBranch{BitcoinWIF: branchWIF, BitcoinAdd: branchAdd, Password: password, Blockchain: bt.Blockchain}
 	return &fb, nil
 }
 
-func (bt *BTrunk) newSameKeyFBranch(password string) *FBranch {
+func (bt *BTrunk) newSameKeyFBranch(password [32]byte) *FBranch {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
-	trail.Println(trace.Debug("generating FBranch with the same key").UTC().Append(tr))
-	pass := [32]byte{}
-	copy(pass[:], []byte(password))
-	fb := FBranch{BitcoinWIF: bt.BitcoinWIF, BitcoinAdd: bt.BitcoinAdd, Password: pass, Blockchain: bt.Blockchain}
+	trail.Println(trace.Debug("generating FBranch with the same key").UTC().Add("address", bt.BitcoinAdd).Append(tr))
+	fb := FBranch{BitcoinWIF: bt.BitcoinWIF, BitcoinAdd: bt.BitcoinAdd, Password: password, Blockchain: bt.Blockchain}
 	return &fb
 }
 
-func (bt *BTrunk) prepareFBranchBud(fBranch *FBranch, entry *Entry, spendingLimit Satoshi, simulate bool) (*UTXO, error) {
-	tr := trace.New().Source("btrunk.go", "BTrunk", "prepareBud")
-	trail.Println(trace.Debug("generating UTXO bud for a new entry").UTC().Append(tr))
-
-	// mentry := NewMetaEntry(entry)
+func (bt *BTrunk) BranchEntry(entry *Entry, password [32]byte, header string, amountToSpend Satoshi, simulate bool) (*Results, error) {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
+	fBranch, err := bt.newFBranch(password)
+	if err != nil {
+		trail.Println(trace.Debug("error while generating new FBranch").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while generating new FBranch: %v", err)
+	}
+	metaEntry := NewMetaEntry(entry)
+	metaEntryData, err := metaEntry.Encrypt(password)
+	if err != nil {
+		trail.Println(trace.Debug("error while encrypting metaEntry").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while encrypting metaEntry: %v", err)
+	}
+	utxo, err := bt.getUTXOs(simulate)
+	if err != nil {
+		trail.Println(trace.Debug("error while getting UTXOs").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while getting UTXOs: %v", err)
+	}
+	fee, err := bt.Blockchain.EstimateDataTXFee(len(utxo), metaEntryData, header)
+	if err != nil {
+		trail.Println(trace.Debug("error while estimating fee").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while estimating fee: %v", err)
+	}
+	// fBranch.EstimateEntryFee(entry)
+	_, err = NewDataTX(bt.BitcoinWIF, fBranch.BitcoinAdd, bt.BitcoinAdd, utxo, fee, amountToSpend, metaEntryData, header)
+	if err != nil {
+		trail.Println(trace.Debug("error while making new DataTX").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while making new DataTX: %v", err)
+	}
 	return nil, nil
 }
 

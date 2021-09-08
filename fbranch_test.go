@@ -59,6 +59,23 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 	}
 }
 
+func TestFBranch_EstimateEntryFee(t *testing.T) {
+	t.SkipNow()
+	trail.SetWriter(os.Stdout)
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
+	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
+	name := "image.png"
+	filename := "testdata/image.png"
+	entry, err := ddb.NewEntryFromFile(name, filename, []string{"label1", "label2"}, "notes")
+	if err != nil {
+		t.Logf("failed to create Entry: %v", err)
+		t.Fail()
+	}
+}
+
 func TestFBranch_CastEntry_CheckingFee(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()

@@ -97,7 +97,7 @@ func TestTransaction_DataTXFromHex_Data(t *testing.T) {
 		t.Logf("failed to get data: %v", err)
 		t.Fail()
 	}
-	if version != "test" {
+	if len(version) != 9 {
 		t.Logf("version is not correct: %v", version)
 		t.Fail()
 	}

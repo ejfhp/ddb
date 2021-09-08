@@ -91,6 +91,32 @@ func (fb *FBranch) ProcessEntry(header string, entry *Entry, simulate bool) ([]*
 	return txs, nil
 }
 
+func (fb *FBranch) EstimateEntryFee(header string, entry *Entry) (Satoshi, error) {
+	tr := trace.New().Source("fbranch.go", "FBranch", "EstimateEntryFee")
+	entryParts, err := entry.ToParts(fb.Password, fb.Blockchain.miner.MaxOpReturn())
+	if err != nil {
+		trail.Println(trace.Alert("error making parts of entry").UTC().Error(err).Append(tr))
+		return 0, fmt.Errorf("error making parts of entry: %w", err)
+	}
+	utxo := fb.Blockchain.GetFakeUTXO()
+	txs, err := fb.packEntryParts(header, entryParts, utxo)
+	if err != nil {
+		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
+		return 0, fmt.Errorf("error packing encrypted parts into DataTXs: %w", err)
+	}
+	fee := Satoshi(0)
+	for _, t := range txs {
+		f, err := t.Fee()
+		if err != nil {
+			trail.Println(trace.Alert("error getting fee of TX").UTC().Error(err).Append(tr))
+			return 0, fmt.Errorf("error getting fee of TX: %w", err)
+		}
+		fee.Add(f)
+	}
+	return fee, nil
+
+}
+
 //PackEncryptedEntriesPart writes each []data on a single TX chained with the others, returns the TXIDs and the hex encoded TXs
 func (fb *FBranch) packEntryParts(header string, parts []*EntryPart, utxos []*UTXO) ([]*DataTX, error) {
 	tr := trace.New().Source("fbranch.go", "", "packEntryParts")
