@@ -48,26 +48,26 @@ func TestKeygen2(t *testing.T) {
 	}
 }
 
-func TestKeygen2ManyWIF(t *testing.T) {
+func BenchmarkKeygen2ManyWIF(b *testing.B) {
 	template := "this is the phrase number %d, let's hope"
-	for i := 0; i < 200000; i += 1791 {
+	for i := 0; i < b.N; i += 1791 {
 		ph := fmt.Sprintf(template, i)
 		k, err := ddb.NewKeygen2(i, ph)
 		if err != nil {
-			t.Logf("cannot generate Keygen2 %s: %v", ph, err)
-			t.Fail()
+			b.Logf("cannot generate Keygen2 %s: %v", ph, err)
+			b.Fail()
 		}
 		wif, err := k.WIF()
 		if err != nil {
-			t.Logf("cannot generate WIF %s: %v", ph, err)
-			t.FailNow()
+			b.Logf("cannot generate WIF %s: %v", ph, err)
+			b.FailNow()
 		}
 		address, err := ddb.AddressOf(wif)
 		if err != nil {
-			t.Logf("cannot get address %s %s: %v", wif, ph, err)
-			t.FailNow()
+			b.Logf("cannot get address %s %s: %v", wif, ph, err)
+			b.FailNow()
 		}
-		t.Logf("Phrase: %s  WIF: %s  Address: %s \n", ph, wif, address)
+		b.Logf("Phrase: %s  WIF: %s  Address: %s \n", ph, wif, address)
 	}
 }
 

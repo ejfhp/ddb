@@ -164,7 +164,7 @@ func DataTXFromBytes(b []byte) (*DataTX, error) {
 //OpReturn returns OP_RETURN data
 func (t *DataTX) OpReturn() ([]byte, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Data")
-	trail.Println(trace.Info("reading OP_RETURN from DataTX").UTC().Append(tr))
+	// trail.Println(trace.Info("reading OP_RETURN from DataTX").UTC().Append(tr))
 	var data []byte
 	for _, o := range t.Outputs {
 		if o.LockingScript.IsData() {
@@ -193,7 +193,7 @@ func (t *DataTX) OpReturn() ([]byte, error) {
 //OpReturn returns data and header of the OP_RETURN data
 func (t *DataTX) Data() ([]byte, string, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Data")
-	trail.Println(trace.Info("reading encrypted data from DataTX").UTC().Append(tr))
+	// trail.Println(trace.Info("reading encrypted data from DataTX").UTC().Append(tr))
 	opret, err := t.OpReturn()
 	if err != nil {
 		trail.Println(trace.Alert("error extracting OP_RETURN").UTC().Error(err).Append(tr))
@@ -202,6 +202,7 @@ func (t *DataTX) Data() ([]byte, string, error) {
 	header, data, err := stripDataHeader(opret)
 	if err != nil {
 		trail.Println(trace.Alert("error while stripping header from data").UTC().Error(err).Append(tr))
+		return nil, "", fmt.Errorf("error stripping header from data: %w", err)
 	}
 	return data, header, nil
 }
@@ -247,7 +248,7 @@ func stripDataHeader(data []byte) (string, []byte, error) {
 	if len(data) < 9 {
 		return "", nil, fmt.Errorf("data is shorter than header")
 	}
-	header := data[:8]
+	header := data[:9]
 	return string(header), data[9:], nil
 }
 

@@ -92,10 +92,10 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 	division := int(math.Ceil(float64(len(e.Data)) / float64(maxSize)))
 	numParts := division + 1
 	entryParts := make([]*EntryPart, 0, numParts)
-	fmt.Printf("Start Parts: %d\n", numParts)
+	// fmt.Printf("Start Parts: %d\n", numParts)
 	for !fits && division < 1000 {
 		partSize := len(e.Data) / division
-		fmt.Printf("Division: %d   PartSize: %d len(data): %d  MaxSize: %d\n", division, partSize, len(e.Data), maxSize)
+		// fmt.Printf("Division: %d   PartSize: %d len(data): %d  MaxSize: %d\n", division, partSize, len(e.Data), maxSize)
 		for i := 0; i < numParts; i++ {
 			start := i * partSize
 			end := start + partSize
@@ -107,7 +107,7 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error while encrypting EntryPart: %w", err)
 			}
-			fmt.Printf("encodedData: %d  maxSize: %d\n", len(encData), maxSize)
+			// fmt.Printf("encodedData: %d  maxSize: %d\n", len(encData), maxSize)
 			if len(encData) > maxSize {
 				fits = false
 				division++
@@ -116,18 +116,11 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 				break
 			}
 			entryParts = append(entryParts, &ep)
+			// fmt.Printf("appended entry: %d\n", ep.IdxPart)
+
 			fits = true
 		}
 	}
-	// for i := 0; i < numPart; i++ {
-	// 	start := i * maxSize
-	// 	end := start + maxSize
-	// 	if end > len(e.Data)-1 {
-	// 		end = len(e.Data)
-	// 	}
-	// 	e := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numPart, Size: (end - start), Data: e.Data[start:end]}
-	// 	entries = append(entries, &e)
-	// }
 	return entryParts, nil
 }
 
@@ -137,10 +130,10 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 	entries := make([]*Entry, 0)
 	partsDict := make(map[string][]*EntryPart)
 	for _, p := range parts {
-		if _, ok := partsDict[p.Name+p.Hash]; ok == false {
+		if _, ok := partsDict[p.Name+p.Hash]; !ok {
 			partsDict[p.Name+p.Hash] = make([]*EntryPart, p.NumPart)
 		}
-		//fmt.Printf("entriesFromPart filling '%s' %d/%d\n", p.Name, p.IdxPart+1, p.NumPart)
+		// fmt.Printf("entriesFromPart filling '%s' %d/%d\n", p.Name, p.IdxPart, p.NumPart)
 		partsDict[p.Name+p.Hash][p.IdxPart] = p
 	}
 	for _, pa := range partsDict {

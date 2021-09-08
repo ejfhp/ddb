@@ -119,53 +119,56 @@ func TestEntry_EntriesFromParts(t *testing.T) {
 		"testdata/test.txt",
 		"testdata/image.png",
 	}
-	partLen := 133
+	partLen := 433
 	parts := make([]*ddb.EntryPart, 0)
+	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	for in, fil := range inputs {
 		bytes, err := ioutil.ReadFile(fil)
 		if err != nil {
 			t.Fatalf("%d: error reading test file: %v", in, err)
 		}
-		ent := ddb.Entry{Name: fil, Data: bytes}
-		pts, err := ent.ToParts([32]byte{}, partLen)
+		eh := sha256.Sum256(bytes)
+		ehash := hex.EncodeToString(eh[:])
+		ent := ddb.Entry{Name: fil, Data: bytes, Hash: ehash}
+		pts, err := ent.ToParts(password, partLen)
 		if err != nil {
 			t.Logf("cannot get entry parts: %v", err)
-			t.Fail()
+			t.FailNow()
 		}
 		parts = append(parts, pts...)
 	}
 	//Normal case
 	entries1, err := ddb.EntriesFromParts(parts)
 	if err != nil {
-		t.Logf("cannot rebuild entries: %v", err)
-		t.Fail()
+		t.Logf("normal - cannot rebuild entries: %v", err)
+		t.FailNow()
 	}
 	if len(entries1) != 2 {
-		t.Logf("wrong num of entries: %d", len(entries1))
-		t.Fail()
+		t.Logf("normal - wrong num of entries: %d", len(entries1))
+		t.FailNow()
 	}
 
 	//Incomplete case
 	entries2, err := ddb.EntriesFromParts(parts[1:])
 	if err != nil {
-		t.Logf("cannot rebuild entries: %v", err)
-		t.Fail()
+		t.Logf("incomplete - cannot rebuild entries: %v", err)
+		t.FailNow()
 	}
 	if len(entries2) != 1 {
-		t.Logf("wrong num of entries: %d", len(entries2))
-		t.Fail()
+		t.Logf("incomplete - wrong num of entries: %d", len(entries2))
+		t.FailNow()
 	}
 
 	//Mixed case
 	parts3 := append(parts[4:13], append(parts[:23], parts[18:]...)...)
 	entries3, err := ddb.EntriesFromParts(parts3)
 	if err != nil {
-		t.Logf("cannot rebuild entries: %v", err)
-		t.Fail()
+		t.Logf("mixed - cannot rebuild entries: %v", err)
+		t.FailNow()
 	}
 	if len(entries3) != 2 {
-		t.Logf("wrong num of entries: %d", len(entries3))
-		t.Fail()
+		t.Logf("mixed - wrong num of entries: %d", len(entries3))
+		t.FailNow()
 	}
 }
 
@@ -237,7 +240,7 @@ func TestEntry_EncodedToAndReadFromDataTX(t *testing.T) {
 	utxos := []*ddb.UTXO{{TXPos: 1, TXHash: txid, Value: ddb.Bitcoin(1), ScriptPubKeyHex: scriptHex}}
 	txs := make([]*ddb.DataTX, 0, len(cryParts))
 	for _, p := range cryParts {
-		tx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, ddb.Satoshi(10), ddb.Satoshi(200), p, "test")
+		tx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, ddb.Satoshi(10), ddb.Satoshi(200), p, "123456789")
 		if err != nil {
 			t.Logf("EntryPart packing failed: %v", err)
 			t.Fail()
@@ -265,13 +268,13 @@ func TestEntry_EncodedToAndReadFromDataTX(t *testing.T) {
 	//unpacking
 	oprets := make([][]byte, 0, len(datatxs))
 	for _, tx := range datatxs {
-		de, ver, err := tx.Data()
+		de, header, err := tx.Data()
 		if err != nil {
 			t.Logf("OP_RETURN retrieval failed: %v", err)
 			t.Fail()
 		}
-		if ver != "test" {
-			t.Logf("Wrong version: %s", ver)
+		if len(header) != 9 {
+			t.Logf("Wrong headerl len(9): %s", header)
 			t.Fail()
 		}
 		oprets = append(oprets, de)

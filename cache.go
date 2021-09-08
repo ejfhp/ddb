@@ -96,7 +96,7 @@ func (c *TXCache) StoreTXIDs(address string, txids []string) error {
 		}
 	}
 	err = c.storeAddressInfo(addinfo)
-	fmt.Println(addinfo)
+	// fmt.Println(addinfo)
 	if err != nil {
 		trail.Println(trace.Alert("error storing txid to cache").UTC().Add("path", c.path).Add("address", address).Error(err).Append(tr))
 		return fmt.Errorf("error storing txid for address '%s' to cache dir '%s': %w", address, c.path, err)

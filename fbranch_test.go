@@ -32,14 +32,14 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 	for i, v := range passwords {
 		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		txs, err := fbranch.ProcessEntry(&entry, true)
+		txs, err := fbranch.ProcessEntry("123456789", &entry, true)
 		if err != nil {
 			t.Logf("%d failed to process entry: %v", i, err)
 			t.Fail()
 		}
-		if len(txs) < 3 {
+		if len(txs) < 2 {
 			t.Logf("%d unexpected number of transactions: %d", i, len(txs))
-			t.Fail()
+			t.FailNow()
 		}
 		for _, tx := range txs {
 			opr, header, err := tx.Data()
@@ -49,11 +49,11 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 			}
 			if len(opr) == 0 {
 				t.Logf("unexpected len of OP_RETURN: %d", len(opr))
-				t.Fail()
+				t.FailNow()
 			}
 			if len(header) != 9 {
 				t.Logf("unexpected len of header: %d", len(header))
-				t.Fail()
+				t.FailNow()
 			}
 		}
 	}
@@ -78,7 +78,7 @@ func TestFBranch_CastEntry_CheckingFee(t *testing.T) {
 	for i, v := range passwords {
 		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		result, err := fbranch.CastEntry(&entry, ddb.Satoshi(10000), true)
+		result, err := fbranch.CastEntry("123456789", &entry, ddb.Satoshi(10000), true)
 		if err != nil {
 			t.Logf("%d failed to estimate fee: %v", i, err)
 			t.Fail()
@@ -109,7 +109,7 @@ func TestFBranch_CastEntry_SpendingLimit(t *testing.T) {
 	for i, v := range passwords {
 		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		_, err := fbranch.CastEntry(&entry, ddb.Satoshi(100), true)
+		_, err := fbranch.CastEntry("123456789", &entry, ddb.Satoshi(100), true)
 		if err == nil {
 			t.Logf("%d expected error for exceeding spending limit is nil", i)
 			t.FailNow()
@@ -134,7 +134,7 @@ func TestFBranch_CastEntry_Text(t *testing.T) {
 		esta selva selvaggia e aspra e forte
 		che nel pensier rinova la paura!`
 	entry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file), []string{"label1", "label2"}, "notes")
-	res, err := fbranch.CastEntry(entry, 300, true)
+	res, err := fbranch.CastEntry("123456789", entry, 300, true)
 	if err != nil {
 		t.Logf("failed to process entry: %v", err)
 		t.Fail()
@@ -163,7 +163,7 @@ func TestFBranch_CastEntry_Image(t *testing.T) {
 		t.Logf("failed to create Entry: %v", err)
 		t.Fail()
 	}
-	res, err := fbranch.CastEntry(entry, 300, true)
+	res, err := fbranch.CastEntry("123456789", entry, 300, true)
 	if err != nil {
 		t.Logf("failed to process entry: %v", err)
 		t.Fail()
@@ -185,7 +185,7 @@ func TestFBranch_GetEntryFromTXID_Text(t *testing.T) {
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
-	entries, err := fbranch.GetEntriesFromTXID([]string{txid}, true)
+	entries, err := fbranch.GetEntriesFromTXID([]string{txid}, false)
 	if err != nil {
 		t.Logf("failed to retrieve entry: %v", err)
 		t.Fail()
@@ -278,19 +278,24 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 		t.Fail()
 	}
 
-	err = ioutil.WriteFile("imagefromblockchain.png", entry.Data, 0644)
-	if err != nil {
-		t.Logf("failed to create file: %v", err)
-		t.Fail()
-	}
+	// err = ioutil.WriteFile("imagefromblockchain.png", entry.Data, 0644)
+	// if err != nil {
+	// 	t.Logf("failed to create file: %v", err)
+	// 	t.Fail()
+	// }
 }
 
 func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
+	cache, err := ddb.NewTXCache("/tmp")
+	if err != nil {
+		t.Logf("cache preparation failed: %v", err)
+		t.FailNow()
+	}
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	name := "test.txt"
 	fm := mime.TypeByExtension(filepath.Ext(name))
@@ -298,11 +303,11 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	sha := sha256.Sum256(bytes)
 	hash := hex.EncodeToString(sha[:])
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: hash, Data: bytes}
-	txs, err := fbranch.ProcessEntry(entry, true)
+	txs, err := fbranch.ProcessEntry("123456789", entry, true)
 	t.Logf("txs len: %d", len(txs))
 	if err != nil {
 		t.Logf("txs preparation failed")
-		t.Fail()
+		t.FailNow()
 	}
 	txids := make([]string, len(txs))
 	for i, t := range txs {
@@ -313,8 +318,8 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	// retrieved trough a blockchain explorer
 	ents, err := fbranch.GetEntriesFromTXID(txids, true)
 	if err != nil {
-		t.Logf("entry extraction failed")
-		t.Fail()
+		t.Logf("entry extraction failed: %v", err)
+		t.FailNow()
 	}
 	if len(ents) != 1 {
 		t.Logf("len(entries) should be 1: %d", len(ents))
@@ -322,21 +327,21 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	}
 	if ents[0].Name != name {
 		t.Logf("unexpected name: %s != %s", name, ents[0].Name)
-		t.Fail()
+		t.FailNow()
 	}
 	if ents[0].Mime != fm {
 		t.Logf("unexpected mime: %s != %s", fm, ents[0].Mime)
-		t.Fail()
+		t.FailNow()
 	}
 	if ents[0].Hash != hash {
 		t.Logf("unexpected hash: %s != %s", hash, ents[0].Hash)
-		t.Fail()
+		t.FailNow()
 	}
 	shaOut := sha256.Sum256(ents[0].Data)
 	hashOut := hex.EncodeToString(shaOut[:])
 	if hashOut != hash {
 		t.Logf("unexpected hash of extracted data: %s != %s", hash, hashOut)
-		t.Fail()
+		t.FailNow()
 	}
 }
 
@@ -344,8 +349,13 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
+	cache, err := ddb.NewTXCache("/tmp")
+	if err != nil {
+		t.Logf("cache preparation failed: %v", err)
+		t.FailNow()
+	}
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	name := "image.png"
 	file := "testdata/image.png"
@@ -357,7 +367,7 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 	imageHash := hex.EncodeToString(imageSha[:])
 	fm := mime.TypeByExtension(filepath.Ext(name))
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: imageHash, Data: image}
-	txs, err := fbranch.ProcessEntry(entry, true)
+	txs, err := fbranch.ProcessEntry("123456789", entry, true)
 	txids := make([]string, len(txs))
 	for i, t := range txs {
 		txids[i] = t.GetTxID()
@@ -403,8 +413,13 @@ func TestFBranch_DownloadAll(t *testing.T) {
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
+	cache, err := ddb.NewTXCache("/tmp")
+	if err != nil {
+		t.Logf("cache preparation failed: %v", err)
+		t.FailNow()
+	}
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	output := "download"
 	n, err := fbranch.DowloadAll(output, true)
