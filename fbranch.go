@@ -26,43 +26,6 @@ func (fb *FBranch) EncodingPassword() string {
 	return string(fb.Password[:])
 }
 
-//CastEntry store the entry on the blockchain. This method is the concatenation of ProcessEntry and Submit. Returns the TXID of the transactions generated.
-func (fb *FBranch) CastEntry(header string, entry *Entry, spendLimit Satoshi, simulate bool) (*BResult, error) {
-	tr := trace.New().Source("fbranch.go", "FBranch", "CastEntry")
-	trail.Println(trace.Info("casting entry to the blockcchain").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
-	txs, err := fb.ProcessEntry(header, entry, simulate)
-	if err != nil {
-		trail.Println(trace.Alert("error during TXs preparation").UTC().Add("file", entry.Name).Error(err).Append(tr))
-		return nil, fmt.Errorf("error during TXs preparation: %w", err)
-	}
-	totalFeeRequired := Satoshi(0)
-	for _, tx := range txs {
-		f, err := tx.Fee()
-		if err != nil {
-			trail.Println(trace.Alert("error getting fee from DataTXs").UTC().Error(err).Append(tr))
-			return nil, fmt.Errorf("error getting fee DataTXs: %w", err)
-		}
-		totalFeeRequired = totalFeeRequired.Add(f)
-	}
-	if totalFeeRequired > spendLimit {
-		trail.Println(trace.Alert("total cost of transaction exceeds the spending limit").UTC().Error(err).Append(tr))
-		return nil, fmt.Errorf("total cost of transaction exceeds the spending limit: %w", err)
-
-	}
-	if simulate {
-		trail.Println(trace.Info("simulation mode is on").UTC().Error(err).Append(tr))
-		res := BResult{Cost: totalFeeRequired}
-		return &res, nil
-	}
-	ids, err := fb.Blockchain.Submit(txs)
-	if err != nil {
-		trail.Println(trace.Alert("error while sending transactions").UTC().Add("file", entry.Name).Error(err).Append(tr))
-		return nil, fmt.Errorf("error while sending transactions: %w", err)
-	}
-	res := BResult{TXIDs: ids, Cost: totalFeeRequired}
-	return &res, nil
-}
-
 //ProcessEntry prepares all the TXs required to store the entry on the blockchain.
 func (fb *FBranch) ProcessEntry(header string, entry *Entry, simulate bool) ([]*DataTX, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "ProcessEntry")
@@ -111,7 +74,7 @@ func (fb *FBranch) EstimateEntryFee(header string, entry *Entry) (Satoshi, error
 			trail.Println(trace.Alert("error getting fee of TX").UTC().Error(err).Append(tr))
 			return 0, fmt.Errorf("error getting fee of TX: %w", err)
 		}
-		fee.Add(f)
+		fee = fee.Add(f)
 	}
 	return fee, nil
 

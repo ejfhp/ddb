@@ -67,7 +67,7 @@ func (bt *BTrunk) newSameKeyFBranch(password [32]byte) *FBranch {
 	return &fb
 }
 
-func (bt *BTrunk) BranchEntry(entry *Entry, password [32]byte, header string, amountToSpend Satoshi, simulate bool) (*Results, error) {
+func (bt *BTrunk) TXOfBranchedEntry(entry *Entry, password [32]byte, header string, amountToSpend Satoshi, simulate bool) ([]*DataTX, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
 	fBranch, err := bt.newFBranch(password)
 	if err != nil {
@@ -85,18 +85,36 @@ func (bt *BTrunk) BranchEntry(entry *Entry, password [32]byte, header string, am
 		trail.Println(trace.Debug("error while getting UTXOs").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while getting UTXOs: %v", err)
 	}
-	fee, err := bt.Blockchain.EstimateDataTXFee(len(utxo), metaEntryData, header)
+	mefee, err := bt.Blockchain.EstimateDataTXFee(len(utxo), metaEntryData, header)
 	if err != nil {
-		trail.Println(trace.Debug("error while estimating fee").Append(tr).UTC().Error(err))
-		return nil, fmt.Errorf("error while estimating fee: %v", err)
+		trail.Println(trace.Debug("error while estimating metaEntry TX fee").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while estimating metaEntry TX fee: %v", err)
 	}
-	// fBranch.EstimateEntryFee(entry)
-	_, err = NewDataTX(bt.BitcoinWIF, fBranch.BitcoinAdd, bt.BitcoinAdd, utxo, fee, amountToSpend, metaEntryData, header)
+	efee, err := fBranch.EstimateEntryFee(header, entry)
 	if err != nil {
-		trail.Println(trace.Debug("error while making new DataTX").Append(tr).UTC().Error(err))
-		return nil, fmt.Errorf("error while making new DataTX: %v", err)
+		trail.Println(trace.Debug("error while estimating entry TXs fee").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while estimating entry TXs fee: %v", err)
 	}
-	return nil, nil
+	totalFee := mefee.Add(efee)
+	if totalFee > amountToSpend {
+		trail.Println(trace.Debug("given amount is less than estimated required fee").Append(tr).UTC().Add("fee/amount", fmt.Sprintf("%d/%d", totalFee, amountToSpend)))
+		return nil, fmt.Errorf("given amount (%d) is less than estimated required fee (%d)", amountToSpend, totalFee)
+	}
+	allTXs := make([]*DataTX, 0)
+	meTX, err := NewDataTX(bt.BitcoinWIF, fBranch.BitcoinAdd, bt.BitcoinAdd, utxo, mefee, amountToSpend, metaEntryData, header)
+	if err != nil {
+		trail.Println(trace.Debug("error while making metaEntry DataTX").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while making metaEntry DataTX: %v", err)
+	}
+	allTXs = append(allTXs, meTX)
+	entryTXs, err := fBranch.ProcessEntry(header, entry, simulate)
+	if err != nil {
+		trail.Println(trace.Debug("error while making entry DataTXs").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while making entry DataTXs: %v", err)
+	}
+	allTXs = append(allTXs, entryTXs...)
+	//IT MISS THE LAST TX TO MOVE MONEY BACK TO TRUNK
+	return allTXs, nil
 }
 
 //BranchEntry store the entry on the blockchain encrypted with the given password.

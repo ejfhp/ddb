@@ -60,7 +60,6 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 }
 
 func TestFBranch_EstimateEntryFee(t *testing.T) {
-	t.SkipNow()
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
@@ -72,127 +71,136 @@ func TestFBranch_EstimateEntryFee(t *testing.T) {
 	entry, err := ddb.NewEntryFromFile(name, filename, []string{"label1", "label2"}, "notes")
 	if err != nil {
 		t.Logf("failed to create Entry: %v", err)
-		t.Fail()
+		t.FailNow()
 	}
-}
-
-func TestFBranch_CastEntry_CheckingFee(t *testing.T) {
-	trail.SetWriter(os.Stdout)
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	passwords := [][32]byte{
-		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
-	}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	filename := "Inferno"
-	file := `Nel mezzo del cammin di nostra vita
-		mi ritrovai per una selva oscura,
-		ché la diritta via era smarrita.
-		
-		Ahi quanto a dir qual era è cosa dura
-		esta selva selvaggia e aspra e forte
-		che nel pensier rinova la paura!`
-	for i, v := range passwords {
-		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
-		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		result, err := fbranch.CastEntry("123456789", &entry, ddb.Satoshi(10000), true)
-		if err != nil {
-			t.Logf("%d failed to estimate fee: %v", i, err)
-			t.Fail()
-		}
-		if result.Cost.Satoshi() < 300 {
-			t.Logf("%d fee too cheap: %d", i, result.Cost.Satoshi())
-			t.Fail()
-		}
-	}
-}
-
-func TestFBranch_CastEntry_SpendingLimit(t *testing.T) {
-	trail.SetWriter(os.Stdout)
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	passwords := [][32]byte{
-		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
-	}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	filename := "Inferno"
-	file := `Nel mezzo del cammin di nostra vita
-		mi ritrovai per una selva oscura,
-		ché la diritta via era smarrita.
-		
-		Ahi quanto a dir qual era è cosa dura
-		esta selva selvaggia e aspra e forte
-		che nel pensier rinova la paura!`
-	for i, v := range passwords {
-		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
-		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		_, err := fbranch.CastEntry("123456789", &entry, ddb.Satoshi(100), true)
-		if err == nil {
-			t.Logf("%d expected error for exceeding spending limit is nil", i)
-			t.FailNow()
-		}
-	}
-}
-
-func TestFBranch_CastEntry_Text(t *testing.T) {
-	t.SkipNow()
-	trail.SetWriter(os.Stdout)
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
-	filename := "Inferno.txt"
-	file := `Nel mezzo del cammin di nostra vita
-		mi ritrovai per una selva oscura,
-		ché la diritta via era smarrita.
-		
-		Ahi quanto a dir qual era è cosa dura
-		esta selva selvaggia e aspra e forte
-		che nel pensier rinova la paura!`
-	entry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file), []string{"label1", "label2"}, "notes")
-	res, err := fbranch.CastEntry("123456789", entry, 300, true)
+	fee, err := fbranch.EstimateEntryFee("123456789", entry)
 	if err != nil {
-		t.Logf("failed to process entry: %v", err)
-		t.Fail()
+		t.Logf("failed to estimate required fee to cast entry: %v", err)
+		t.FailNow()
 	}
-	if len(res.TXIDs) != 1 {
-		t.Logf("unexpected number of TX ID: %d", len(res.TXIDs))
-		t.Fail()
-	}
-	for _, id := range res.TXIDs {
-		t.Logf("TX ID: %s\n", id)
+	if fee != 2847 {
+		t.Logf("fee seems to be different from the past: %d", fee)
+		t.FailNow()
 	}
 }
 
-func TestFBranch_CastEntry_Image(t *testing.T) {
-	t.SkipNow()
-	trail.SetWriter(os.Stdout)
-	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
-	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
-	name := "image.png"
-	filename := "testdata/image.png"
-	entry, err := ddb.NewEntryFromFile(name, filename, []string{"label1", "label2"}, "notes")
-	if err != nil {
-		t.Logf("failed to create Entry: %v", err)
-		t.Fail()
-	}
-	res, err := fbranch.CastEntry("123456789", entry, 300, true)
-	if err != nil {
-		t.Logf("failed to process entry: %v", err)
-		t.Fail()
-	}
-	if len(res.TXIDs) != 1 {
-		t.Logf("unexpected number of TX ID: %d", len(res.TXIDs))
-		t.Fail()
-	}
-	for _, id := range res.TXIDs {
-		t.Logf("TX ID: %s\n", id)
-	}
-}
+// func TestFBranch_CastEntry_CheckingFee(t *testing.T) {
+// 	trail.SetWriter(os.Stdout)
+// 	woc := ddb.NewWOC()
+// 	taal := ddb.NewTAAL()
+// 	passwords := [][32]byte{
+// 		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
+// 	}
+// 	blockchain := ddb.NewBlockchain(taal, woc, nil)
+// 	filename := "Inferno"
+// 	file := `Nel mezzo del cammin di nostra vita
+// 		mi ritrovai per una selva oscura,
+// 		ché la diritta via era smarrita.
+
+// 		Ahi quanto a dir qual era è cosa dura
+// 		esta selva selvaggia e aspra e forte
+// 		che nel pensier rinova la paura!`
+// 	for i, v := range passwords {
+// 		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
+// 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
+// 		result, err := fbranch.CastEntry("123456789", &entry, ddb.Satoshi(10000), true)
+// 		if err != nil {
+// 			t.Logf("%d failed to estimate fee: %v", i, err)
+// 			t.Fail()
+// 		}
+// 		if result.Cost.Satoshi() < 300 {
+// 			t.Logf("%d fee too cheap: %d", i, result.Cost.Satoshi())
+// 			t.Fail()
+// 		}
+// 	}
+// }
+
+// func TestFBranch_CastEntry_SpendingLimit(t *testing.T) {
+// 	trail.SetWriter(os.Stdout)
+// 	woc := ddb.NewWOC()
+// 	taal := ddb.NewTAAL()
+// 	passwords := [][32]byte{
+// 		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
+// 	}
+// 	blockchain := ddb.NewBlockchain(taal, woc, nil)
+// 	filename := "Inferno"
+// 	file := `Nel mezzo del cammin di nostra vita
+// 		mi ritrovai per una selva oscura,
+// 		ché la diritta via era smarrita.
+
+// 		Ahi quanto a dir qual era è cosa dura
+// 		esta selva selvaggia e aspra e forte
+// 		che nel pensier rinova la paura!`
+// 	for i, v := range passwords {
+// 		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
+// 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
+// 		_, err := fbranch.CastEntry("123456789", &entry, ddb.Satoshi(100), true)
+// 		if err == nil {
+// 			t.Logf("%d expected error for exceeding spending limit is nil", i)
+// 			t.FailNow()
+// 		}
+// 	}
+// }
+
+// func TestFBranch_CastEntry_Text(t *testing.T) {
+// 	t.SkipNow()
+// 	trail.SetWriter(os.Stdout)
+// 	woc := ddb.NewWOC()
+// 	taal := ddb.NewTAAL()
+// 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
+// 	blockchain := ddb.NewBlockchain(taal, woc, nil)
+// 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
+// 	filename := "Inferno.txt"
+// 	file := `Nel mezzo del cammin di nostra vita
+// 		mi ritrovai per una selva oscura,
+// 		ché la diritta via era smarrita.
+
+// 		Ahi quanto a dir qual era è cosa dura
+// 		esta selva selvaggia e aspra e forte
+// 		che nel pensier rinova la paura!`
+// 	entry := ddb.NewEntryFromData(filename, mime.TypeByExtension(".txt"), []byte(file), []string{"label1", "label2"}, "notes")
+// 	res, err := fbranch.CastEntry("123456789", entry, 300, true)
+// 	if err != nil {
+// 		t.Logf("failed to process entry: %v", err)
+// 		t.Fail()
+// 	}
+// 	if len(res.TXIDs) != 1 {
+// 		t.Logf("unexpected number of TX ID: %d", len(res.TXIDs))
+// 		t.Fail()
+// 	}
+// 	for _, id := range res.TXIDs {
+// 		t.Logf("TX ID: %s\n", id)
+// 	}
+// }
+
+// func TestFBranch_CastEntry_Image(t *testing.T) {
+// 	t.SkipNow()
+// 	trail.SetWriter(os.Stdout)
+// 	woc := ddb.NewWOC()
+// 	taal := ddb.NewTAAL()
+// 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
+// 	blockchain := ddb.NewBlockchain(taal, woc, nil)
+// 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
+// 	name := "image.png"
+// 	filename := "testdata/image.png"
+// 	entry, err := ddb.NewEntryFromFile(name, filename, []string{"label1", "label2"}, "notes")
+// 	if err != nil {
+// 		t.Logf("failed to create Entry: %v", err)
+// 		t.Fail()
+// 	}
+// 	res, err := fbranch.CastEntry("123456789", entry, 300, true)
+// 	if err != nil {
+// 		t.Logf("failed to process entry: %v", err)
+// 		t.Fail()
+// 	}
+// 	if len(res.TXIDs) != 1 {
+// 		t.Logf("unexpected number of TX ID: %d", len(res.TXIDs))
+// 		t.Fail()
+// 	}
+// 	for _, id := range res.TXIDs {
+// 		t.Logf("TX ID: %s\n", id)
+// 	}
+// }
 
 func TestFBranch_GetEntryFromTXID_Text(t *testing.T) {
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"

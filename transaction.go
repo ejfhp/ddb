@@ -90,12 +90,16 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		return nil, fmt.Errorf("requested input amount %0.8f exceeds the available input %0.8f", amount.Bitcoin(), satOutput.Bitcoin())
 	}
 	satOutput = amount.Satoshi()
-	satChange = satInput.Sub(amount.Satoshi().Add(fee))
+	if amount.Bitcoin() < 0 {
+		satOutput = satInput.Sub(fee)
+	}
+	satChange = satInput.Sub(satOutput.Satoshi().Add(fee))
 	outputDest, err := bt.NewP2PKHOutputFromAddress(destinationAddress, uint64(satOutput.Satoshi()))
 	if err != nil {
 		trail.Println(trace.Alert("cannot create output").UTC().Add("destinationAddress", destinationAddress).Append(t).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err))
 		return nil, fmt.Errorf("cannot create output, destinationAddress %s amount %0.8f: %w", destinationAddress, satOutput.Bitcoin(), err)
 	}
+	fmt.Printf("CHANGE: %d\n", satChange.Satoshi())
 	var outputChange *bt.Output
 	if satChange.Satoshi() > 0 {
 		outputChange, err = bt.NewP2PKHOutputFromAddress(changeAddress, uint64(satChange.Satoshi()))
