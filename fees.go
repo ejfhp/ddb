@@ -2,6 +2,7 @@ package ddb
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -45,10 +46,11 @@ func (f Fees) GetDataFee() (*Fee, error) {
 //CalculateFee return the amount of satoshi to set as fee for the given TX
 func (f *Fee) CalculateFee(numBytes int) Satoshi {
 	t := trace.New().Source("fees.go", "Fee", "CalculateFee")
-	feebuffer := 3
+	feebuffer := 4
 	size := numBytes + feebuffer
-	miningFeeSat := Satoshi((float64(size) / float64(f.MiningFee.Bytes)) * float64(*f.MiningFee.Satoshis))
-	// relayFee := (float64(size) / float64(standardFee.RelayFee.Bytes)) * float64(standardFee.RelayFee.Satoshis)
+	feeMulti := float64(size) / float64(f.MiningFee.Bytes)
+	miningFeeSat := Satoshi(math.Ceil(feeMulti * float64(*f.MiningFee.Satoshis)))
+	// relayFeeSat := math.Ceil(feeMulti * float64(standardFee.RelayFee.Satoshis))
 	relayFeeSat := Satoshi(0)
 	totalFeeSat := miningFeeSat.Add(relayFeeSat)
 	trail.Println(trace.Info("calculated fee").UTC().Add("size", fmt.Sprintf("%d", size)).Add("miningFeeSat", fmt.Sprintf("%d", miningFeeSat)).Add("relayFee", fmt.Sprintf("%d", relayFeeSat)).Add("totalFee", fmt.Sprintf("%d", totalFeeSat)).Append(t))

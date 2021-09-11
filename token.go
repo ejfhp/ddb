@@ -5,6 +5,8 @@ import (
 	"math"
 )
 
+const EmptyWallet = Satoshi(math.MaxUint64)
+
 type Token interface {
 	Bitcoin() Bitcoin
 	Satoshi() Satoshi

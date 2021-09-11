@@ -5,16 +5,14 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"mime"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/ejfhp/ddb"
-	"github.com/ejfhp/trail"
 )
 
 func TestEntry_NewEntryFromFile(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	inputs := [][]string{
 		{"testdata/test.txt", ""},
 		{"testdata/image.png", ""},
@@ -37,7 +35,7 @@ func TestEntry_NewEntryFromFile(t *testing.T) {
 
 }
 func TestEntry_ToParts(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	inputs := [][]string{
 		{"testdata/test.txt", "text/plain; charset=utf-8"},
 		{"testdata/image.png", "image/png"},
@@ -114,7 +112,7 @@ func TestEntry_ToParts(t *testing.T) {
 }
 
 func TestEntry_EntriesFromParts(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	inputs := []string{
 		"testdata/test.txt",
 		"testdata/image.png",
@@ -173,7 +171,7 @@ func TestEntry_EntriesFromParts(t *testing.T) {
 }
 
 func TestEntry_ToJSON_EntryPartFromJSON(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	name := "test.txt"
 	hash := "hhhhhhhhhhhhhhhh"
 	mime := "text/plain"
@@ -207,7 +205,7 @@ func TestEntry_ToJSON_EntryPartFromJSON(t *testing.T) {
 }
 
 func TestEntry_EncodedToAndReadFromDataTX(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	name := "image.png"
 	file := "testdata/image.png"

@@ -96,7 +96,7 @@ func (fb *FBranch) packEntryParts(header string, parts []*EntryPart, utxos []*UT
 			trail.Println(trace.Alert("cannot calculate DataTX fee").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot calculate DataTX fee: %w", err)
 		}
-		dataTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, fb.BitcoinAdd, utxos, fee, Bitcoin(-1), encbytes, header)
+		dataTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, fb.BitcoinAdd, utxos, EmptyWallet, fee, encbytes, header)
 		if err != nil {
 			trail.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build TX: %w", err)

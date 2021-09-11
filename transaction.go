@@ -46,7 +46,7 @@ type DataTX struct {
 }
 
 //NewDataTX builds a DataTX with the given params. Output order is: 1:destination, 2:opreturn, 3:change.
-func NewDataTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, fee Token, amount Token, data []byte, header string) (*DataTX, error) {
+func NewDataTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, amount Token, fee Token, data []byte, header string) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "DataTX", "NewDataTX")
 	trail.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("destinationAddress", destinationAddress).Add("num UTXO", fmt.Sprintf("%d", len(inutxo))).Append(t))
 	payload, err := addDataHeader(header, data)
@@ -68,7 +68,7 @@ func NewDataTX(sourceKey string, destinationAddress string, changeAddress string
 	return &dtx, nil
 }
 
-//NewTX builds a bt.TX transaction with the given params. The optional OP_RETURN data is in position 0. A negative amount means all the available.
+//NewTX builds a bt.TX transaction with the given params. The optional OP_RETURN data is in position 0. To move all the amount connected to the address use put EmptyWallet as amount.
 //No nil field allowed.
 func NewTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, amount Token, fee Token, opreturn []byte) (*bt.Tx, error) {
 	t := trace.New().Source("transaction.go", "", "NewTX")
@@ -85,13 +85,19 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 	}
 	satOutput := Satoshi(0)
 	satChange := Satoshi(0)
-	if amount.Satoshi() > satInput.Satoshi() {
-		trail.Println(trace.Alert("requested input amount exceeds the available input").Append(t).UTC().Add("input", fmt.Sprintf("%0.8f", satInput.Bitcoin())).Add("amount", fmt.Sprintf("%0.8f", amount.Bitcoin())))
-		return nil, fmt.Errorf("requested input amount %0.8f exceeds the available input %0.8f", amount.Bitcoin(), satOutput.Bitcoin())
-	}
-	satOutput = amount.Satoshi()
 	if amount.Bitcoin() < 0 {
+		trail.Println(trace.Alert("requested output amount is negative").Append(t).UTC())
+		return nil, fmt.Errorf("requested output amount is negative")
+
+	}
+	if amount.Satoshi() == EmptyWallet {
+		trail.Println(trace.Warning("requested output is EmptyWallet").Append(t).UTC())
 		satOutput = satInput.Sub(fee)
+	} else if amount.Satoshi() > satInput.Satoshi() {
+		trail.Println(trace.Alert("requested output amount exceeds the available input").Append(t).UTC().Add("input", fmt.Sprintf("%0.8f", satInput.Bitcoin())).Add("amount", fmt.Sprintf("%0.8f", amount.Bitcoin())))
+		return nil, fmt.Errorf("requested output amount %0.8f exceeds the available input %0.8f", amount.Bitcoin(), satOutput.Bitcoin())
+	} else {
+		satOutput = amount.Satoshi()
 	}
 	satChange = satInput.Sub(satOutput.Satoshi().Add(fee))
 	outputDest, err := bt.NewP2PKHOutputFromAddress(destinationAddress, uint64(satOutput.Satoshi()))
@@ -99,7 +105,6 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		trail.Println(trace.Alert("cannot create output").UTC().Add("destinationAddress", destinationAddress).Append(t).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err))
 		return nil, fmt.Errorf("cannot create output, destinationAddress %s amount %0.8f: %w", destinationAddress, satOutput.Bitcoin(), err)
 	}
-	fmt.Printf("CHANGE: %d\n", satChange.Satoshi())
 	var outputChange *bt.Output
 	if satChange.Satoshi() > 0 {
 		outputChange, err = bt.NewP2PKHOutputFromAddress(changeAddress, uint64(satChange.Satoshi()))
@@ -276,7 +281,7 @@ func fakeKeyAddUTXO(num int) (string, string, []*UTXO) {
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	utxos := make([]*UTXO, 0, num)
 	for i := 0; i < num; i++ {
-		utxos = append(utxos, &UTXO{TXHash: txid, TXPos: uint32(i), Value: 1000000000, ScriptPubKeyHex: scriptHex})
+		utxos = append(utxos, &UTXO{TXHash: txid, TXPos: uint32(i), Value: 1, ScriptPubKeyHex: scriptHex})
 	}
 	return key, address, utxos
 }

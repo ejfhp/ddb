@@ -7,21 +7,7 @@ import (
 	"github.com/ejfhp/ddb"
 )
 
-func TestNewKeygen1(t *testing.T) {
-	nums := []int{1567}
-	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
-	for i, n := range nums {
-		k, err := ddb.NewKeygen1(n, phrases[i])
-		if err != nil {
-			t.Logf("cannot generate Keygen: %v", err)
-			t.Fail()
-		}
-		k.Describe()
-
-	}
-}
-
-func TestKeygen1WIF(t *testing.T) {
+func TestKeygen1_WIF(t *testing.T) {
 	nums := []int{3567}
 	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
 	for i, n := range nums {
@@ -44,7 +30,7 @@ func TestKeygen1WIF(t *testing.T) {
 	}
 }
 
-func BenchmarkKeygen1ManyWIF(b *testing.B) {
+func BenchmarkKeygen1_ManyWIF(b *testing.B) {
 	template := "this is the phrase number %d, let's hope"
 	for i := 0; i < b.N; i++ {
 		ph := fmt.Sprintf(template, i)
@@ -67,7 +53,7 @@ func BenchmarkKeygen1ManyWIF(b *testing.B) {
 	}
 }
 
-func TestKeygen1Keys(t *testing.T) {
+func TestKeygen1_Keys(t *testing.T) {
 	nums := []int{3567, 0, 12, 100, 1001, 1}
 	phrases := []string{
 		"tanto va la gatta al lardo che ci lascia lo zampino",

@@ -29,7 +29,7 @@ func (b *Blockchain) CacheDir() string {
 func (b *Blockchain) EstimateDataTXFee(numUTXO int, data []byte, header string) (Satoshi, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
 	key, add, utxos := fakeKeyAddUTXO(numUTXO)
-	dataTX, err := NewDataTX(key, add, add, utxos, Satoshi(1), Satoshi(1), data, header)
+	dataTX, err := NewDataTX(key, add, add, utxos, Satoshi(100), Satoshi(1), data, header)
 	if err != nil {
 		trail.Println(trace.Alert("cannot build fake DataTX").UTC().Append(tr).Error(err))
 		return 0, fmt.Errorf("cannot submit TX to miner: %w", err)
@@ -234,7 +234,8 @@ func (b *Blockchain) FillSourceOutput(tx *DataTX) error {
 }
 
 func (b *Blockchain) GetFakeUTXO() []*UTXO {
-	return []*UTXO{{TXPos: 0, TXHash: "72124e293287ab0ca20a723edb61b58d6ef89aba05508b92198bd948bfb6da40", Value: 100000000000, ScriptPubKeyHex: "76a914330a97979931a961d1e5f05d3c7ace4217fc7adc88ac"}}
+	_, _, u := fakeKeyAddUTXO(1)
+	return u
 }
 
 //TODO This could be parallelized

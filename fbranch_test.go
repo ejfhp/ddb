@@ -5,16 +5,14 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"mime"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/ejfhp/ddb"
-	"github.com/ejfhp/trail"
 )
 
 func TestFBranch_ProcessEntry(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	passwords := [][32]byte{
@@ -60,7 +58,7 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 }
 
 func TestFBranch_EstimateEntryFee(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
@@ -73,14 +71,16 @@ func TestFBranch_EstimateEntryFee(t *testing.T) {
 		t.Logf("failed to create Entry: %v", err)
 		t.FailNow()
 	}
-	fee, err := fbranch.EstimateEntryFee("123456789", entry)
-	if err != nil {
-		t.Logf("failed to estimate required fee to cast entry: %v", err)
-		t.FailNow()
-	}
-	if fee != 2847 {
-		t.Logf("fee seems to be different from the past: %d", fee)
-		t.FailNow()
+	for i := 0; i < 10; i++ {
+		fee, err := fbranch.EstimateEntryFee("123456789", entry)
+		if err != nil {
+			t.Logf("%d - failed to estimate required fee to cast entry: %v", i, err)
+			t.FailNow()
+		}
+		if fee != 2849 {
+			t.Logf("%d - fee seems to be different from the past: %d", i, fee)
+			t.FailNow()
+		}
 	}
 }
 
@@ -203,8 +203,8 @@ func TestFBranch_EstimateEntryFee(t *testing.T) {
 // }
 
 func TestFBranch_GetEntryFromTXID_Text(t *testing.T) {
+	// trail.SetWriter(os.Stdout)
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
-	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
@@ -248,6 +248,7 @@ func TestFBranch_GetEntryFromTXID_Text(t *testing.T) {
 }
 
 func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
+	// trail.SetWriter(os.Stdout)
 	txids := []string{
 		"afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426", //EXTRA TX
 		"33c5339f5f942793867898d92c72cdab8fc5ff464f77970fc6fd0cf8dd99f271",
@@ -260,7 +261,6 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 		"4d4f9f1a737e7eae37cadcd4289b436b2bcf39bdf5f374152420196ab14b0b65",
 		"1668afdd6978ef2cd594aa15c96138736e86d22abc3aba2b8428b96400dd2f87",
 	}
-	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
@@ -311,7 +311,7 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 }
 
 func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	cache, err := ddb.NewTXCache("/tmp")
@@ -371,7 +371,7 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 }
 
 func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	cache, err := ddb.NewTXCache("/tmp")
@@ -435,7 +435,7 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 }
 
 func TestFBranch_DownloadAll(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
 	cache, err := ddb.NewTXCache("/tmp")

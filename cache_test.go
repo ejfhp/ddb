@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ejfhp/ddb"
-	"github.com/ejfhp/trail"
 )
 
 func TestNewTXCache(t *testing.T) {
@@ -42,7 +41,7 @@ func TestNewTXCache(t *testing.T) {
 }
 
 func TestTXCache_StoreRetrieveTX(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	txid := "existingfaketxid"
 	random := sha256.Sum256([]byte(time.Now().Format("Mon Jan 2 15:04:05 -0700 MST 2006")))
 	ranid := string(hex.EncodeToString(random[:]))
@@ -94,7 +93,7 @@ func TestTXCache_StoreRetrieveTX(t *testing.T) {
 }
 
 func TestTXCache_StoreRetrieveTXID(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	usercache, _ := os.UserCacheDir()
 	cache, err := ddb.NewTXCache(filepath.Join(usercache, "trh"))
 	if err != nil {
@@ -144,7 +143,7 @@ func TestTXCache_StoreRetrieveTXID(t *testing.T) {
 }
 
 func TestTXCache_Clear(t *testing.T) {
-	trail.SetWriter(os.Stdout)
+	// trail.SetWriter(os.Stdout)
 	txid := "existingfaketxid"
 	random := sha256.Sum256([]byte(time.Now().Format("Mon Jan 2 15:04:05 -0700 MST 2006")))
 	ranid := string(hex.EncodeToString(random[:]))

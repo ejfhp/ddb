@@ -7,21 +7,7 @@ import (
 	"github.com/ejfhp/ddb"
 )
 
-func TestNewKeygen2(t *testing.T) {
-	nums := []int{1567}
-	phrases := []string{"tanto va la gatta al lardo che ci lascia lo zampino"}
-	for i, n := range nums {
-		k, err := ddb.NewKeygen2(n, phrases[i])
-		if err != nil {
-			t.Logf("cannot generate Keygen2: %v", err)
-			t.Fail()
-		}
-		k.Describe()
-
-	}
-}
-
-func TestKeygen2(t *testing.T) {
+func TestKeygen2_New(t *testing.T) {
 	nums := []int{3567, 15}
 	phrases := []string{
 		"tanto va la gatta al lardo che ci lascia lo zampino",
@@ -39,7 +25,7 @@ func TestKeygen2(t *testing.T) {
 			t.Fail()
 		}
 		pass := k.Password()
-		fmt.Printf("password: '%s'\n", string(pass[:]))
+		t.Logf("password: '%s'\n", string(pass[:]))
 		if len(pass) != 32 {
 			t.Logf("wrong password: '%s'", string(pass[:]))
 			t.Fail()
@@ -48,7 +34,7 @@ func TestKeygen2(t *testing.T) {
 	}
 }
 
-func BenchmarkKeygen2ManyWIF(b *testing.B) {
+func BenchmarkKeygen2_ManyWIF(b *testing.B) {
 	template := "this is the phrase number %d, let's hope"
 	for i := 0; i < b.N; i += 1791 {
 		ph := fmt.Sprintf(template, i)
@@ -71,7 +57,7 @@ func BenchmarkKeygen2ManyWIF(b *testing.B) {
 	}
 }
 
-func TestKeygen2Keys(t *testing.T) {
+func TestKeygen2_Keys(t *testing.T) {
 	nums := []int{3567, 0, 12, 100, 1001, 1}
 	phrases := []string{
 		"tanto va la gatta al lardo che ci lascia lo zampino",
