@@ -34,12 +34,28 @@ func (b *Blockchain) EstimateDataTXFee(numUTXO int, data []byte, header string) 
 		trail.Println(trace.Alert("cannot build fake DataTX").UTC().Append(tr).Error(err))
 		return 0, fmt.Errorf("cannot submit TX to miner: %w", err)
 	}
-	fee, err := b.GetDataFee()
+	fee, err := b.miner.GetDataFee()
 	if err != nil {
 		trail.Println(trace.Alert("cannot get Fee").UTC().Append(tr).Error(err))
 		return 0, fmt.Errorf("cannot get Fee: %w", err)
 	}
 	return fee.CalculateFee(len(dataTX.ToBytes())), nil
+}
+
+func (b *Blockchain) EstimateStandardTXFee(numUTXO int) (Satoshi, error) {
+	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
+	key, add, utxos := fakeKeyAddUTXO(numUTXO)
+	noDataTX, err := NewDataTX(key, add, add, utxos, Satoshi(100), Satoshi(1), nil, "")
+	if err != nil {
+		trail.Println(trace.Alert("cannot build fake DataTX").UTC().Append(tr).Error(err))
+		return 0, fmt.Errorf("cannot submit TX to miner: %w", err)
+	}
+	fee, err := b.miner.GetStandardFee()
+	if err != nil {
+		trail.Println(trace.Alert("cannot get Fee").UTC().Append(tr).Error(err))
+		return 0, fmt.Errorf("cannot get Fee: %w", err)
+	}
+	return fee.CalculateFee(len(noDataTX.ToBytes())), nil
 }
 
 //Submit submits all the transactions to the miner to be included in the blockchain, returns the TX IDs
@@ -68,14 +84,19 @@ func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 	return ids, nil
 }
 
-func (b *Blockchain) GetDataFee() (*Fee, error) {
-	tr := trace.New().Source("blockchain.go", "Blockchain", "GetDataFee")
-	if b.miner != nil {
-		trail.Println(trace.Debug("get data fee").UTC().Append(tr))
-		return b.miner.GetDataFee()
-	}
-	return &Fee{}, fmt.Errorf("miner undefined")
-}
+// func (b *Blockchain) GetDataFee() (*Fee, error) {
+// 	if b.miner != nil {
+// 		return b.miner.GetDataFee()
+// 	}
+// 	return &Fee{}, fmt.Errorf("miner undefined")
+// }
+
+// func (b *Blockchain) GetStandardFee() (*Fee, error) {
+// 	if b.miner != nil {
+// 		return b.miner.GetDataFee()
+// 	}
+// 	return &Fee{}, fmt.Errorf("miner undefined")
+// }
 
 func (b *Blockchain) MaxDataSize() int {
 	//9 is header size and must never be changed
@@ -238,7 +259,6 @@ func (b *Blockchain) GetFakeUTXO() []*UTXO {
 	return u
 }
 
-//TODO This could be parallelized
 // func (b *Blockchain) walkBackward(txid string, prevTXpos uint32, mainAddr string, depth int, maxpathlen int) ([]string, error) {
 // 	if txid == "" {
 // 		return nil, fmt.Errorf("previous tx cannot be empty, a starting TXID is mandatory")

@@ -27,6 +27,25 @@ func TestBlockchain_EstimateDataTXFee(t *testing.T) {
 	}
 }
 
+func TestBlockchain_EstimateStandardTXFee(t *testing.T) {
+	// trail.SetWriter(os.Stdout)
+	miner := ddb.NewTAAL()
+	expl := ddb.NewWOC()
+	blk := ddb.NewBlockchain(miner, expl, nil)
+	//Check consistency
+	for i := 0; i < 10; i++ {
+		fee, err := blk.EstimateStandardTXFee(1)
+		if err != nil {
+			t.Logf("%d - cannot estimate fee: %v", i, err)
+			t.FailNow()
+		}
+		if fee != 115 {
+			t.Logf("%d - fee estimation failed: %d", i, fee.Satoshi())
+			t.FailNow()
+		}
+	}
+}
+
 func TestBlockchain_Submit(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	t.SkipNow()

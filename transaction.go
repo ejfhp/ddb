@@ -40,6 +40,7 @@ func (s *SourceOutput) Equals(so *SourceOutput) bool {
 	return true
 }
 
+//DataTX is a wrapper for a TX and its source output
 type DataTX struct {
 	SourceOutputs []*SourceOutput
 	*bt.Tx
@@ -48,11 +49,14 @@ type DataTX struct {
 //NewDataTX builds a DataTX with the given params. Output order is: 1:destination, 2:opreturn, 3:change.
 func NewDataTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, amount Token, fee Token, data []byte, header string) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "DataTX", "NewDataTX")
-	trail.Println(trace.Info("preparing OP_RETURN transaction").UTC().Add("destinationAddress", destinationAddress).Add("num UTXO", fmt.Sprintf("%d", len(inutxo))).Append(t))
-	payload, err := addDataHeader(header, data)
-	if err != nil {
-		trail.Println(trace.Alert("cannot add header").UTC().Add("header", header).Error(err).Append(t))
-		return nil, fmt.Errorf("cannot add header: %w", err)
+	var payload []byte = nil
+	var err error
+	if data != nil {
+		payload, err = addDataHeader(header, data)
+		if err != nil {
+			trail.Println(trace.Alert("cannot add header").UTC().Add("header", header).Error(err).Append(t))
+			return nil, fmt.Errorf("cannot add header: %w", err)
+		}
 	}
 	tx, err := NewTX(sourceKey, destinationAddress, changeAddress, inutxo, amount, fee, payload)
 	if err != nil {
@@ -174,7 +178,6 @@ func DataTXFromBytes(b []byte) (*DataTX, error) {
 func (t *DataTX) OpReturn() ([]byte, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Data")
 	// trail.Println(trace.Info("reading OP_RETURN from DataTX").UTC().Append(tr))
-	var data []byte
 	for _, o := range t.Outputs {
 		if o.LockingScript.IsData() {
 			// fmt.Println(o.ToBytes())
@@ -192,11 +195,12 @@ func (t *DataTX) OpReturn() ([]byte, error) {
 					//fmt.Printf("%d OP_RETURN %d  %v %d\n", i, v[0], v, len(v))
 					continue
 				}
-				data = v
+				//Third place in ops
+				return v, nil
 			}
 		}
 	}
-	return data, nil
+	return nil, fmt.Errorf("no OP_RETURN found")
 }
 
 //OpReturn returns data and header of the OP_RETURN data
@@ -238,6 +242,17 @@ func (t *DataTX) Fee() (Token, error) {
 	// fmt.Printf("tot output :%d\n", totOutput)
 	fee := totInput.Sub(Satoshi(totOutput))
 	return fee, nil
+}
+
+func (t *DataTX) UTXOs() []*UTXO {
+	utxos := make([]*UTXO, 0)
+	for op, out := range t.Outputs {
+		u := UTXO{TXPos: uint32(op), TXHash: t.GetTxID(), Value: Satoshi(out.Satoshis).Bitcoin(), ScriptPubKeyHex: out.GetLockingScriptHexString()}
+		utxos = append(utxos, &u)
+	}
+	// fmt.Printf("tot input :%d\n", totInput)
+	// fmt.Printf("tot output :%d\n", totOutput)
+	return utxos
 }
 
 func BuildDataHeader(version string) (string, error) {

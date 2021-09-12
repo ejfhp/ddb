@@ -13,7 +13,6 @@ type FBranch struct {
 	BitcoinWIF string
 	BitcoinAdd string
 	Password   [32]byte
-	SpendLimit Satoshi
 	Blockchain *Blockchain
 }
 
@@ -104,7 +103,7 @@ func (fb *FBranch) packEntryParts(header string, parts []*EntryPart, utxos []*UT
 		trail.Println(trace.Info("DataTX built").UTC().Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Add("txid", dataTx.GetTxID()).Append(tr))
 		//UTXO in TX built by BuildDataTX is in position 0
 		inPos := 0
-		utxos = []*UTXO{{TXPos: 0, TXHash: dataTx.GetTxID(), Value: Satoshi(dataTx.Outputs[inPos].Satoshis).Bitcoin(), ScriptPubKeyHex: dataTx.Outputs[inPos].GetLockingScriptHexString()}}
+		utxos = []*UTXO{{TXPos: uint32(inPos), TXHash: dataTx.GetTxID(), Value: Satoshi(dataTx.Outputs[inPos].Satoshis).Bitcoin(), ScriptPubKeyHex: dataTx.Outputs[inPos].GetLockingScriptHexString()}}
 		dataTXs[i] = dataTx
 	}
 	return dataTXs, nil

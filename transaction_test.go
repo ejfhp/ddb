@@ -115,6 +115,37 @@ func TestTransaction_NewDataTX(t *testing.T) {
 	}
 }
 
+func TestTransaction_DataTX_UTXOs(t *testing.T) {
+	// trail.SetWriter(os.Stdout)
+	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
+	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
+	payload := []byte("ddb - Remind My... by ejfhp")
+	bsv := ddb.Bitcoin(0.000402740)
+	fee := ddb.Satoshi(170)
+	amount := ddb.Satoshi(20000)
+	header, _ := ddb.BuildDataHeader("test")
+	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
+	datatx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, amount, fee, payload, header)
+	if err != nil {
+		t.Fatalf("failed to create tx: %v", err)
+	}
+	t.Logf("TX ID: %s len: %d", datatx.GetTxID(), len(datatx.ToString()))
+	// fmt.Printf("DataTX hex: '%s'\n", datatx.ToString())
+	if txid == "" {
+		t.Logf("failed to create tx, ID is empty")
+		t.FailNow()
+	}
+	newUTXOs := datatx.UTXOs()
+	if len(newUTXOs) != 3 {
+		t.Logf("wrong number of output: %d", len(datatx.Outputs))
+		t.FailNow()
+	}
+	if newUTXOs[0].Value.Satoshi() != amount.Satoshi() {
+		t.Logf("output num 0 should have the destination amount: %d", datatx.Outputs[0].Satoshis)
+		t.FailNow()
+	}
+}
+
 func TestTransaction_NewDataTX_EmptyWallet(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
