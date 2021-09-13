@@ -68,7 +68,7 @@ func (fb *FBranch) EstimateEntryFee(header string, entry *Entry) (Satoshi, error
 	}
 	fee := Satoshi(0)
 	for _, t := range txs {
-		f, err := t.Fee()
+		_, _, f, err := t.TotInOutFee()
 		if err != nil {
 			trail.Println(trace.Alert("error getting fee of TX").UTC().Error(err).Append(tr))
 			return 0, fmt.Errorf("error getting fee of TX: %w", err)

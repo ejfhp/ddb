@@ -221,11 +221,11 @@ func (t *DataTX) Data() ([]byte, string, error) {
 }
 
 //Fee returns fee of TX
-func (t *DataTX) Fee() (Token, error) {
+func (t *DataTX) TotInOutFee() (Satoshi, Satoshi, Satoshi, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Fee")
 	if t.SourceOutputs == nil || len(t.SourceOutputs) == 0 {
 		trail.Println(trace.Alert("transaction has no source utxo").UTC().Append(tr))
-		return Satoshi(0), fmt.Errorf("transaction has no source utxo")
+		return Satoshi(0), Satoshi(0), Satoshi(0), fmt.Errorf("transaction has no source utxo")
 
 	}
 	totInput := Satoshi(0)
@@ -238,10 +238,11 @@ func (t *DataTX) Fee() (Token, error) {
 		trail.Println(trace.Info("output").UTC().Add("value", fmt.Sprintf("%d", out.Satoshis)).Append(tr))
 		totOutput += out.Satoshis
 	}
-	// fmt.Printf("tot input :%d\n", totInput)
-	// fmt.Printf("tot output :%d\n", totOutput)
 	fee := totInput.Sub(Satoshi(totOutput))
-	return fee, nil
+	fmt.Printf("TX tot input :%d\n", totInput)
+	fmt.Printf("TX tot output :%d\n", totOutput)
+	fmt.Printf("TX tot fee :%d\n", fee)
+	return totInput, Satoshi(totOutput), fee, nil
 }
 
 func (t *DataTX) UTXOs() []*UTXO {
@@ -250,8 +251,6 @@ func (t *DataTX) UTXOs() []*UTXO {
 		u := UTXO{TXPos: uint32(op), TXHash: t.GetTxID(), Value: Satoshi(out.Satoshis).Bitcoin(), ScriptPubKeyHex: out.GetLockingScriptHexString()}
 		utxos = append(utxos, &u)
 	}
-	// fmt.Printf("tot input :%d\n", totInput)
-	// fmt.Printf("tot output :%d\n", totOutput)
 	return utxos
 }
 

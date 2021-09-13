@@ -217,7 +217,7 @@ func TestTransaction_DataTXFromHex_Fee(t *testing.T) {
 		t.Logf("failed to fill sourceoutput: %v", err)
 		t.Fail()
 	}
-	fee, err := tx.Fee()
+	_, _, fee, err := tx.TotInOutFee()
 	if err != nil {
 		t.Logf("failed to get fees: %v", err)
 		t.Fail()
