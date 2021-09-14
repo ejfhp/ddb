@@ -26,7 +26,7 @@ func (fb *FBranch) EncodingPassword() string {
 }
 
 //ProcessEntry prepares all the TXs required to store the entry on the blockchain.
-func (fb *FBranch) ProcessEntry(header string, entry *Entry, simulate bool) ([]*DataTX, error) {
+func (fb *FBranch) ProcessEntry(header string, entry *Entry, utxo []*UTXO) ([]*DataTX, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "ProcessEntry")
 	trail.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
 	// entryParts, err := fb.EncryptEntry(entry)
@@ -34,16 +34,6 @@ func (fb *FBranch) ProcessEntry(header string, entry *Entry, simulate bool) ([]*
 	if err != nil {
 		trail.Println(trace.Alert("error making parts of entry").UTC().Error(err).Append(tr))
 		return nil, fmt.Errorf("error making parts of entry: %w", err)
-	}
-	var utxo []*UTXO
-	if simulate {
-		utxo = fb.Blockchain.GetFakeUTXO()
-	} else {
-		utxo, err = fb.Blockchain.GetUTXO(fb.BitcoinAdd)
-		if err != nil {
-			trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", fb.BitcoinAdd).Error(err).Append(tr))
-			return nil, fmt.Errorf("error getting UTXO for address %s: %w", fb.BitcoinAdd, err)
-		}
 	}
 	txs, err := fb.packEntryParts(header, entryParts, utxo)
 	if err != nil {

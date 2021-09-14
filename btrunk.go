@@ -65,24 +65,24 @@ func (bt *BTrunk) TXOfBranchedEntry(wif, address string, password [32]byte, entr
 		trail.Println(trace.Debug("error while estimating metaEntry TX fee").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while estimating metaEntry TX fee: %v", err)
 	}
+	fmt.Printf("BTRUNK METAE EST FEE: %d\n", mefee)
 	//Fee for casting Entry
 	efee, err := fBranch.EstimateEntryFee(header, entry)
 	if err != nil {
 		trail.Println(trace.Debug("error while estimating entry TXs fee").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while estimating entry TXs fee: %v", err)
 	}
+	fmt.Printf("BTRUNK ENTYT EST FEE: %d\n", efee)
 	//Fee to bring back remaining fund to BTrunk address
 	finfee, err := bt.Blockchain.EstimateStandardTXFee(1)
 	if err != nil {
 		trail.Println(trace.Debug("error while estimating final TX fee").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while estimating final TX fee: %v", err)
 	}
+	fmt.Printf("BTRUNK FINAL EST FEE: %d\n", finfee)
 	totalFee := mefee.Add(efee)
 	totalFee = totalFee.Add(finfee)
-	fmt.Printf("BTRUNK METAE FEE: %d\n", mefee)
-	fmt.Printf("BTRUNK ENTYT FEE: %d\n", efee)
-	fmt.Printf("BTRUNK FINAL FEE: %d\n", finfee)
-	fmt.Printf("BTRUNK TOTAL FEE: %d\n", totalFee)
+	fmt.Printf("BTRUNK TOTAL EST FEE: %d\n", totalFee)
 	if totalFee > maxAmountToSpend {
 		trail.Println(trace.Debug("given amount is less than estimated required fee").Append(tr).UTC().Add("fee/amount", fmt.Sprintf("%d/%d", totalFee, maxAmountToSpend)))
 		return nil, fmt.Errorf("given amount (%d) is less than estimated required fee (%d)", maxAmountToSpend, totalFee)
@@ -96,11 +96,12 @@ func (bt *BTrunk) TXOfBranchedEntry(wif, address string, password [32]byte, entr
 	}
 	allTXs = append(allTXs, meTX)
 	//Enrtry TXs
-	entryTXs, err := fBranch.ProcessEntry(header, entry, simulate)
+	entryTXs, err := fBranch.ProcessEntry(header, entry, meTX.UTXOs())
 	if err != nil {
 		trail.Println(trace.Debug("error while making entry DataTXs").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while making entry DataTXs: %v", err)
 	}
+	fmt.Printf("ENTRY TXS: %d\n", len(entryTXs))
 	allTXs = append(allTXs, entryTXs...)
 	lastTX := entryTXs[len(entryTXs)-1]
 	//Final transaction to move change back to BTrunk wallet
@@ -115,6 +116,8 @@ func (bt *BTrunk) TXOfBranchedEntry(wif, address string, password [32]byte, entr
 		return nil, fmt.Errorf("error while making final DataTX: %v", err)
 	}
 	allTXs = append(allTXs, finTX)
+	fmt.Printf("BTRUNK FINISHED\n")
+	allTXs = append(allTXs, entryTXs...)
 	return allTXs, nil
 }
 

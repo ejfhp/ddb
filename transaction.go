@@ -239,9 +239,7 @@ func (t *DataTX) TotInOutFee() (Satoshi, Satoshi, Satoshi, error) {
 		totOutput += out.Satoshis
 	}
 	fee := totInput.Sub(Satoshi(totOutput))
-	fmt.Printf("TX tot input :%d\n", totInput)
-	fmt.Printf("TX tot output :%d\n", totOutput)
-	fmt.Printf("TX tot fee :%d\n", fee)
+	fmt.Printf("TX IN: %d  OUT: %d  FEE: %d\n", totInput, totOutput, fee)
 	return totInput, Satoshi(totOutput), fee, nil
 }
 
