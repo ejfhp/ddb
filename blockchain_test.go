@@ -69,6 +69,22 @@ func TestBlockchain_Submit(t *testing.T) {
 	}
 }
 
+func TestBlockchain_ListTXIDs(t *testing.T) {
+	// trail.SetWriter(os.Stdout)
+	miner := ddb.NewTAAL()
+	expl := ddb.NewWOC()
+	blk := ddb.NewBlockchain(miner, expl, nil)
+	txids, err := blk.ListTXIDs(destinationAddress, false)
+	if err != nil {
+		t.Logf("failed to list TXs: %v", err)
+		t.Fail()
+	}
+	if len(txids) < 20 {
+		t.Logf("unexpected number of TXIDs: %d", len(txids))
+		t.Fail()
+	}
+}
+
 func TestBlockchain_GetTX(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"

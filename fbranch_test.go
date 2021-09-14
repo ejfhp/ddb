@@ -314,7 +314,7 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
-	cache, err := ddb.NewTXCache("/tmp")
+	cache, err := ddb.NewTXCache("./.trhcache")
 	if err != nil {
 		t.Logf("cache preparation failed: %v", err)
 		t.FailNow()
@@ -374,7 +374,7 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
-	cache, err := ddb.NewTXCache("/tmp")
+	cache, err := ddb.NewTXCache("./.trhcache")
 	if err != nil {
 		t.Logf("cache preparation failed: %v", err)
 		t.FailNow()
@@ -405,7 +405,7 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 	}
 	// here data should be cast to blockchain and then
 	// retrieved trough a blockchain explorer
-	ents, err := fbranch.GetEntriesFromTXID(txids, true)
+	ents, err := fbranch.GetEntriesFromTXID(txids, false)
 	if err != nil {
 		t.Logf("entry extraction failed")
 		t.Fail()
@@ -438,7 +438,8 @@ func TestFBranch_DownloadAll(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := ddb.NewTAAL()
-	cache, err := ddb.NewTXCache("/tmp")
+	// cache, err := ddb.NewTXCache("/tmp")
+	cache, err := ddb.NewTXCache("./.trhcache")
 	if err != nil {
 		t.Logf("cache preparation failed: %v", err)
 		t.FailNow()
@@ -447,7 +448,7 @@ func TestFBranch_DownloadAll(t *testing.T) {
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	output := "download"
-	n, err := fbranch.DowloadAll(output, true)
+	n, err := fbranch.DowloadAll(output, false)
 	if err != nil {
 		t.Logf("failed to download all: %v", err)
 		t.FailNow()
