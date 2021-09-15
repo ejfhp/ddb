@@ -1,7 +1,9 @@
 package ddb
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/bitcoinsv/bsvd/bsvec"
 	"github.com/bitcoinsv/bsvd/chaincfg"
@@ -24,6 +26,46 @@ func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 	}
 	priv := wif.PrivKey
 	return priv, nil
+}
+
+type KeyStore struct {
+	Wif      string   `json:"wif"`
+	Address  string   `json:"address"`
+	Password [32]byte `json:"password"`
+}
+
+func LoadKeyStore(filepath string) (*KeyStore, error) {
+}
+
+func (ks *KeyStore) Save(filepath string, pin string) error {
+	tr := trace.New().Source("keys.go", "KeyStore", "Save")
+	encoded, err := json.Marshal(ks)
+	if err != nil {
+		trail.Println(trace.Alert("cannot encode KeyStore").UTC().Error(err).Append(tr))
+		return fmt.Errorf("cannot encode KeyStore: %w", err)
+	}
+	var pinpass = [32]byte
+	copy(pinpass[:], pin[:])
+	encrypted, err := AESEncrypt(ks.Password, encoded)
+	if err != nil {
+		trail.Println(trace.Alert("cannot encrypt KeyStore").UTC().Error(err).Append(tr))
+		return fmt.Errorf("cannot encrypt KeyStore: %w", err)
+	}
+	if _, err := os.Stat(filepath); err == nil {
+		return fmt.Errorf("KeyStore already exsist")
+	}
+	file, err := os.Create(filepath)
+	if err != nil {
+		trail.Println(trace.Alert("cannot create KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return fmt.Errorf("cannot create KeyStore file: %w", err)
+	}
+	defer file.Close()
+	n, err := file.Write(encrypted)
+	if err != nil || n != len(encrypted) {
+		trail.Println(trace.Alert("error while writing KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return fmt.Errorf("error while writing KeyStore file: %w", err)
+	}
+	return nil
 }
 
 func AddressOf(wifkey string) (string, error) {
