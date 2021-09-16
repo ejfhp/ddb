@@ -18,6 +18,7 @@ import (
 var (
 	flagLog            bool
 	flagHelp           bool
+	flagAction         string
 	flagFile           string
 	flagOutputDir      string
 	flagCacheDir       string
@@ -34,16 +35,29 @@ func newFlagset(command string) *flag.FlagSet {
 	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
 	flagset.BoolVar(&flagHelp, "help", false, "prints help")
 	flagset.BoolVar(&flagHelp, "h", false, "prints help")
-	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
-	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
-	flagset.StringVar(&flagPassword, "password", "", "encryption password")
-	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
+	//KEYSTORE
+	if command == commandKeystore {
+		flagset.StringVar(&flagAction, "action", "generate", "what to do")
+		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+		flagset.StringVar(&flagPassword, "password", "", "encryption password")
+		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
+		return flagset
+	}
 	//DESCRIBE
 	if command == commandDescribe {
+		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+		flagset.StringVar(&flagPassword, "password", "", "encryption password")
+		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 		return flagset
 	}
 	//RETRIEVE
 	if command == commandRetrieveAll {
+		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+		flagset.StringVar(&flagPassword, "password", "", "encryption password")
+		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 		flagset.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
 		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
 		flagset.BoolVar(&flagOnlyCache, "onlycache", false, "true retrieves only from cache")
@@ -52,6 +66,10 @@ func newFlagset(command string) *flag.FlagSet {
 	}
 	//STORE
 	if command == commandStore {
+		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+		flagset.StringVar(&flagPassword, "password", "", "encryption password")
+		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 		flagset.StringVar(&flagFile, "file", "", "path of file to store")
 		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
 		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
