@@ -29,6 +29,7 @@ TRH is a tool that let you store and retrieve files from the Bitcoin BSV blockch
 Read instruction on https://ejfhp.com/projects/trh/
 
 Commands:
+- generate: generate key, address and password starting from a passphrase
 - describe: to show address, keys and transaction IDs
 - estimate: to estimate the miner fee before to store a file
 - store: to write files on the blockchain
@@ -41,7 +42,8 @@ Options:
 Examples:
 
 ./trh store -help
-./trh describe -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
+./trh describe -log -key <key>
+./trh generate + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh estimate -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh store -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh retrieveAll -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF

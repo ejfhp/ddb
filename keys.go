@@ -3,6 +3,7 @@ package ddb
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/bitcoinsv/bsvd/bsvec"
@@ -29,12 +30,41 @@ func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 }
 
 type KeyStore struct {
-	Wif      string   `json:"wif"`
+	WIF      string   `json:"wif"`
 	Address  string   `json:"address"`
 	Password [32]byte `json:"password"`
 }
 
-func LoadKeyStore(filepath string) (*KeyStore, error) {
+func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
+	tr := trace.New().Source("keys.go", "KeyStore", "LoadKeyStore")
+	var pinpass = [32]byte{}
+	for i := 0; i < len(pinpass); i++ {
+		pinpass[i] = 'x'
+	}
+	copy(pinpass[:], pin[:])
+	file, err := os.Open(filepath)
+	if err != nil {
+		trail.Println(trace.Alert("cannot open KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot open KeyStore file: %w", err)
+	}
+	defer file.Close()
+	read, err := ioutil.ReadAll(file)
+	if err != nil || len(read) == 0 {
+		trail.Println(trace.Alert("error while reading KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return nil, fmt.Errorf("error while reading KeyStore file: %w", err)
+	}
+	encoded, err := AESDecrypt(pinpass, read)
+	if err != nil {
+		trail.Println(trace.Alert("cannot decrypt KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot decrypt KeyStore file: %w", err)
+	}
+	var k KeyStore
+	err = json.Unmarshal(encoded, &k)
+	if err != nil {
+		trail.Println(trace.Alert("cannot decode KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot decode KeyStore file: %w", err)
+	}
+	return &k, nil
 }
 
 func (ks *KeyStore) Save(filepath string, pin string) error {
@@ -44,9 +74,12 @@ func (ks *KeyStore) Save(filepath string, pin string) error {
 		trail.Println(trace.Alert("cannot encode KeyStore").UTC().Error(err).Append(tr))
 		return fmt.Errorf("cannot encode KeyStore: %w", err)
 	}
-	var pinpass = [32]byte
+	var pinpass = [32]byte{}
+	for i := 0; i < len(pinpass); i++ {
+		pinpass[i] = 'x'
+	}
 	copy(pinpass[:], pin[:])
-	encrypted, err := AESEncrypt(ks.Password, encoded)
+	encrypted, err := AESEncrypt(pinpass, encoded)
 	if err != nil {
 		trail.Println(trace.Alert("cannot encrypt KeyStore").UTC().Error(err).Append(tr))
 		return fmt.Errorf("cannot encrypt KeyStore: %w", err)

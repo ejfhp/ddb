@@ -1,6 +1,7 @@
 package ddb_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/ejfhp/ddb"
@@ -44,5 +45,37 @@ func TestAddressOf(t *testing.T) {
 		if a != add {
 			t.Fatalf("geerated %s != expected  %s", a, add)
 		}
+	}
+}
+
+func TestKey_Save_LoadKeystore(t *testing.T) {
+	keyfile := "/tmp/keystore.trhk"
+	os.RemoveAll(keyfile)
+	pin := "trh"
+	passwordt := "tantovalagattaallardochecilascia"
+	password := [32]byte{}
+	copy(password[:], []byte(passwordt)[:])
+	k := ddb.KeyStore{WIF: destinationKey, Address: destinationAddress, Password: password}
+	err := k.Save(keyfile, pin)
+	if err != nil {
+		t.Logf("failed to save keystore: %v", err)
+		t.FailNow()
+	}
+	k2, err := ddb.LoadKeyStore(keyfile, pin)
+	if err != nil {
+		t.Logf("failed to load keystore: %v", err)
+		t.FailNow()
+	}
+	if k2.Address != destinationAddress {
+		t.Logf("load keystore has wrong address: %s", k2.Address)
+		t.FailNow()
+	}
+	if k2.WIF != destinationKey {
+		t.Logf("load keystore has wrong key: %s", k2.WIF)
+		t.FailNow()
+	}
+	if string(k2.Password[:]) != passwordt {
+		t.Logf("load keystore has wrong password: %s", string(k2.Password[:]))
+		t.FailNow()
 	}
 }
