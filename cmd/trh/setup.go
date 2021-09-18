@@ -189,35 +189,35 @@ func prepareCache(env *Environment) (*ddb.TXCache, error) {
 	return cache, nil
 }
 
-func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.FBranch, error) {
-	tr := trace.New().Source("setup.go", "", "prepareCache")
-	if env.key == "" && env.address == "" {
-		trail.Println(trace.Alert("bitcoin key and address are both empty").Append(tr).UTC())
-		return nil, fmt.Errorf("cannot prepare diary, bitcoin key and address are both empty")
-	}
-	var woc ddb.Explorer
-	if !env.cacheOnly {
-		woc = ddb.NewWOC()
-	}
-	taal := ddb.NewTAAL()
-	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	var err error
-	var diary *ddb.FBranch
-	if env.key != "" {
-		trail.Println(trace.Info("building Diary").Append(tr).UTC())
-		diary, err = ddb.NewFBranch(env.key, env.password, blockchain)
-		if err != nil {
-			return nil, fmt.Errorf("error while creating a new Diary: %w", err)
-		}
-	} else {
-		trail.Println(trace.Info("building read only Diary").Append(tr).UTC())
-		diary, err = ddb.NewDiaryRO(env.address, env.password, blockchain)
-		if err != nil {
-			return nil, fmt.Errorf("error while creating a new read only Diary: %w", err)
-		}
-	}
-	return diary, nil
-}
+// func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.FBranch, error) {
+// 	tr := trace.New().Source("setup.go", "", "prepareCache")
+// 	if env.key == "" && env.address == "" {
+// 		trail.Println(trace.Alert("bitcoin key and address are both empty").Append(tr).UTC())
+// 		return nil, fmt.Errorf("cannot prepare diary, bitcoin key and address are both empty")
+// 	}
+// 	var woc ddb.Explorer
+// 	if !env.cacheOnly {
+// 		woc = ddb.NewWOC()
+// 	}
+// 	taal := ddb.NewTAAL()
+// 	blockchain := ddb.NewBlockchain(taal, woc, cache)
+// 	var err error
+// 	var diary *ddb.FBranch
+// 	if env.key != "" {
+// 		trail.Println(trace.Info("building Diary").Append(tr).UTC())
+// 		diary, err = ddb.NewFBranch(env.key, env.password, blockchain)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("error while creating a new Diary: %w", err)
+// 		}
+// 	} else {
+// 		trail.Println(trace.Info("building read only Diary").Append(tr).UTC())
+// 		diary, err = ddb.NewDiaryRO(env.address, env.password, blockchain)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("error while creating a new read only Diary: %w", err)
+// 		}
+// 	}
+// 	return diary, nil
+// }
 
 func extractPassphrase(args []string) (string, error) {
 	startidx := -1

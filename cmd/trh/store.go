@@ -1,12 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"path/filepath"
-
 	"github.com/ejfhp/ddb"
-	"github.com/ejfhp/trail"
-	"github.com/ejfhp/trail/trace"
 )
 
 type Store struct {
@@ -19,36 +14,36 @@ func NewStore(env *Environment, diary *ddb.FBranch) *Store {
 	return &store
 }
 
-func (s *Store) Store(filename string) ([]string, error) {
-	tr := trace.New().Source("store.go", "Store", "Store")
+// func (s *Store) Store(filename string) ([]string, error) {
+// 	tr := trace.New().Source("store.go", "Store", "Store")
 
-	entry, err := ddb.NewEntryFromFile(filepath.Base(filename), filename)
+// 	entry, err := ddb.NewEntryFromFile(filepath.Base(filename), filename)
 
-	if err != nil {
-		trail.Println(trace.Alert("error while opening file").Append(tr).UTC().Add("filename", filename).Error(err))
-		return nil, fmt.Errorf("error opening file '%s': %v", filename, err)
-	}
-	txids, err := s.diary.CastEntry(entry)
-	if err != nil {
-		trail.Println(trace.Alert("error while storing file").Append(tr).UTC().Add("filename", filename).Add("address", s.diary.BitcoinPublicAddress()).Error(err))
-		return nil, fmt.Errorf("error while storing file '%s' on address '%s': %w", filename, s.diary.BitcoinPublicAddress(), err)
-	}
-	return txids, nil
-}
+// 	if err != nil {
+// 		trail.Println(trace.Alert("error while opening file").Append(tr).UTC().Add("filename", filename).Error(err))
+// 		return nil, fmt.Errorf("error opening file '%s': %v", filename, err)
+// 	}
+// 	txids, err := s.diary.CastEntry(entry)
+// 	if err != nil {
+// 		trail.Println(trace.Alert("error while storing file").Append(tr).UTC().Add("filename", filename).Add("address", s.diary.BitcoinPublicAddress()).Error(err))
+// 		return nil, fmt.Errorf("error while storing file '%s' on address '%s': %w", filename, s.diary.BitcoinPublicAddress(), err)
+// 	}
+// 	return txids, nil
+// }
 
-func (s *Store) Estimate(filename string) (ddb.Satoshi, error) {
-	tr := trace.New().Source("store.go", "Store", "Estimate")
+// func (s *Store) Estimate(filename string) (ddb.Satoshi, error) {
+// 	tr := trace.New().Source("store.go", "Store", "Estimate")
 
-	entry, err := ddb.NewEntryFromFile(filepath.Base(filename), filename)
+// 	entry, err := ddb.NewEntryFromFile(filepath.Base(filename), filename)
 
-	if err != nil {
-		trail.Println(trace.Alert("error while opening file").Append(tr).UTC().Add("filename", filename).Error(err))
-		return 0, fmt.Errorf("error opening file '%s': %v", filename, err)
-	}
-	fee, err := s.diary.EstimateFee(entry)
-	if err != nil {
-		trail.Println(trace.Alert("error while storing file").Append(tr).UTC().Add("filename", filename).Add("address", s.diary.BitcoinPublicAddress()).Error(err))
-		return 0, fmt.Errorf("error while storing file '%s' on address '%s': %w", filename, s.diary.BitcoinPublicAddress(), err)
-	}
-	return fee, nil
-}
+// 	if err != nil {
+// 		trail.Println(trace.Alert("error while opening file").Append(tr).UTC().Add("filename", filename).Error(err))
+// 		return 0, fmt.Errorf("error opening file '%s': %v", filename, err)
+// 	}
+// 	fee, err := s.diary.EstimateFee(entry)
+// 	if err != nil {
+// 		trail.Println(trace.Alert("error while storing file").Append(tr).UTC().Add("filename", filename).Add("address", s.diary.BitcoinPublicAddress()).Error(err))
+// 		return 0, fmt.Errorf("error while storing file '%s' on address '%s': %w", filename, s.diary.BitcoinPublicAddress(), err)
+// 	}
+// 	return fee, nil
+// }
