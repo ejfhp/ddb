@@ -62,7 +62,7 @@ func TestEnvironment(t *testing.T) {
 		},
 	}
 	for i, conf := range clis {
-		flagset := newFlagset(conf["command"])
+		flagset, _ := newFlagset(conf["command"])
 		args := strings.Split(conf["cli"], " ")
 		for i, a := range args {
 			fmt.Printf("%d: %s\n", i, a)

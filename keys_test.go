@@ -55,27 +55,31 @@ func TestKey_Save_LoadKeystore(t *testing.T) {
 	passwordt := "tantovalagattaallardochecilascia"
 	password := [32]byte{}
 	copy(password[:], []byte(passwordt)[:])
-	k := ddb.KeyStore{WIF: destinationKey, Address: destinationAddress, Password: password}
-	err := k.Save(keyfile, pin)
+	ks := ddb.NewKeystore()
+	ks.WIF = destinationAddress
+	ks.Address = destinationAddress
+	ks.Passwords["one"] = password
+	err := ks.Save(keyfile, pin)
 	if err != nil {
 		t.Logf("failed to save keystore: %v", err)
 		t.FailNow()
 	}
-	k2, err := ddb.LoadKeyStore(keyfile, pin)
+	ks2, err := ddb.LoadKeyStore(keyfile, pin)
 	if err != nil {
 		t.Logf("failed to load keystore: %v", err)
 		t.FailNow()
 	}
-	if k2.Address != destinationAddress {
-		t.Logf("load keystore has wrong address: %s", k2.Address)
+	if ks2.Address != destinationAddress {
+		t.Logf("load keystore has wrong address: %s", ks2.Address)
 		t.FailNow()
 	}
-	if k2.WIF != destinationKey {
-		t.Logf("load keystore has wrong key: %s", k2.WIF)
+	if ks2.WIF != destinationKey {
+		t.Logf("load keystore has wrong key: %s", ks2.WIF)
 		t.FailNow()
 	}
-	if string(k2.Password[:]) != passwordt {
-		t.Logf("load keystore has wrong password: %s", string(k2.Password[:]))
+	p2 := ks2.Passwords["one"]
+	if string(p2[:]) != passwordt {
+		t.Logf("load keystore has wrong password: %s", string(p2[:]))
 		t.FailNow()
 	}
 }

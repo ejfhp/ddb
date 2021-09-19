@@ -30,9 +30,15 @@ func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 }
 
 type KeyStore struct {
-	WIF      string   `json:"wif"`
-	Address  string   `json:"address"`
-	Password [32]byte `json:"password"`
+	WIF       string              `json:"wif"`
+	Address   string              `json:"address"`
+	Passwords map[string][32]byte `json:"password"`
+}
+
+func NewKeystore() *KeyStore {
+	ks := KeyStore{}
+	ks.Passwords = make(map[string][32]byte)
+	return &ks
 }
 
 func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {

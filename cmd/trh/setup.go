@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
 
 	"github.com/ejfhp/ddb"
 	"github.com/ejfhp/trail"
@@ -28,9 +25,11 @@ var (
 	flagBitcoinKey     string
 	flagPassword       string
 	flagKeygenID       int64
+	flagPhrase         string
+	flagNotToCheck     = []string{"log", "help", "h", "action", "keygen"}
 )
 
-func newFlagset(command string) *flag.FlagSet {
+func newFlagset(command string) (*flag.FlagSet, [][]string) {
 	flagset := flag.NewFlagSet(command, flag.ContinueOnError)
 	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
 	flagset.BoolVar(&flagHelp, "help", false, "prints help")
@@ -38,11 +37,16 @@ func newFlagset(command string) *flag.FlagSet {
 	//KEYSTORE
 	if command == commandKeystore {
 		flagset.StringVar(&flagAction, "action", "generate", "what to do")
-		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
 		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
-		flagset.StringVar(&flagPassword, "password", "", "encryption password")
+		flagset.StringVar(&flagPhrase, "phrase", "", "passphrase to generate key and password, if key is not set")
+		flagset.StringVar(&flagPassword, "password", "", "encryption password, required if key is set")
 		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-		return flagset
+		options := [][]string{
+			{""},
+			{"key", "password"},
+			{"phrase"},
+		}
+		return flagset, options
 	}
 	//DESCRIBE
 	if command == commandDescribe {
@@ -50,7 +54,7 @@ func newFlagset(command string) *flag.FlagSet {
 		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
 		flagset.StringVar(&flagPassword, "password", "", "encryption password")
 		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-		return flagset
+		return flagset, nil
 	}
 	//RETRIEVE
 	if command == commandRetrieveAll {
@@ -62,7 +66,7 @@ func newFlagset(command string) *flag.FlagSet {
 		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
 		flagset.BoolVar(&flagOnlyCache, "onlycache", false, "true retrieves only from cache")
 		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
-		return flagset
+		return flagset, nil
 	}
 	//STORE
 	if command == commandStore {
@@ -73,9 +77,56 @@ func newFlagset(command string) *flag.FlagSet {
 		flagset.StringVar(&flagFile, "file", "", "path of file to store")
 		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
 		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
-		return flagset
+		return flagset, nil
 	}
-	return flagset
+	return flagset, nil
+}
+
+func areFlagConsistent(options [][]string) bool {
+	foundFlag := []string{}
+	flag.Visit(func(f *flag.Flag) {
+		if !isInArray(f.Name, flagNotToCheck) {
+			foundFlag = append(foundFlag, f.Name)
+		}
+	})
+	consistent := IsThisAnOption(foundFlag, options)
+	return consistent
+}
+
+func IsThisAnOption(this []string, options [][]string) bool {
+	yes := false
+	for _, opt := range options {
+		if sameContent(this, opt) {
+			yes = true
+			break
+		}
+	}
+	return yes
+}
+
+func isInArray(field string, array []string) bool {
+	is := false
+	for _, e := range array {
+		if field == e {
+			is = true
+			break
+		}
+	}
+	return is
+}
+
+func sameContent(slice1, slice2 []string) bool {
+	if len(slice1) != len(slice2) {
+		return false
+	}
+	same := true
+	for _, e1 := range slice1 {
+		if !isInArray(e1, slice2) {
+			same = false
+			break
+		}
+	}
+	return same
 }
 
 type Environment struct {
@@ -218,52 +269,3 @@ func prepareCache(env *Environment) (*ddb.TXCache, error) {
 // 	}
 // 	return diary, nil
 // }
-
-func extractPassphrase(args []string) (string, error) {
-	startidx := -1
-	for i, t := range args {
-		if t == "+" {
-			startidx = i + 1
-		}
-	}
-	if startidx < 0 || startidx >= len(args) {
-		return "", fmt.Errorf("passphrase is missing")
-	}
-	passphrase := strings.Join(args[startidx:], " ")
-	return passphrase, nil
-}
-
-func processPassphrase(passphrase string, keygenID int) (string, [32]byte, error) {
-	var passnum int
-	reg, err := regexp.Compile("[^0-9 ]+")
-	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error compiling regexp: %w", err)
-	}
-	phrasenum := reg.ReplaceAllString(passphrase, "")
-	for _, n := range strings.Split(phrasenum, " ") {
-		num, err := strconv.ParseInt(n, 10, 64)
-		if err != nil {
-			continue
-		}
-		if num < 0 {
-			num = num * -1
-		}
-		passnum = int(num)
-	}
-	if passnum == 0 {
-		return "", [32]byte{}, fmt.Errorf("passphrase must contain a number")
-	}
-	var keygen ddb.Keygen
-	if keygenID == 2 {
-		keygen, err = ddb.NewKeygen2(passnum, passphrase)
-		if err != nil {
-			return "", [32]byte{}, fmt.Errorf("error building Keygen2: %w", err)
-		}
-	}
-	wif, err := keygen.WIF()
-	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error while generating bitcoin key: %w", err)
-	}
-	password := keygen.Password()
-	return wif, password, nil
-}
