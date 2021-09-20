@@ -29,7 +29,7 @@ var (
 	flagNotToCheck     = []string{"log", "help", "h", "action", "keygen"}
 )
 
-func newFlagset(command string) (*flag.FlagSet, [][]string) {
+func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 	flagset := flag.NewFlagSet(command, flag.ContinueOnError)
 	flagset.BoolVar(&flagLog, "log", false, "true enables log output")
 	flagset.BoolVar(&flagHelp, "help", false, "prints help")
@@ -37,14 +37,14 @@ func newFlagset(command string) (*flag.FlagSet, [][]string) {
 	//KEYSTORE
 	if command == commandKeystore {
 		flagset.StringVar(&flagAction, "action", "generate", "what to do")
+		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
 		flagset.StringVar(&flagPhrase, "phrase", "", "passphrase to generate key and password, if key is not set")
 		flagset.StringVar(&flagPassword, "password", "", "encryption password, required if key is set")
-		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-		options := [][]string{
-			{""},
-			{"key", "password"},
-			{"phrase"},
+		options := map[string][]string{
+			"empty":  {""},
+			"key":    {"key", "password"},
+			"phrase": {"phrase"},
 		}
 		return flagset, options
 	}
@@ -82,7 +82,7 @@ func newFlagset(command string) (*flag.FlagSet, [][]string) {
 	return flagset, nil
 }
 
-func areFlagConsistent(options [][]string) bool {
+func areFlagConsistent(options map[string][]string) string {
 	foundFlag := []string{}
 	flag.Visit(func(f *flag.Flag) {
 		if !isInArray(f.Name, flagNotToCheck) {
@@ -93,15 +93,15 @@ func areFlagConsistent(options [][]string) bool {
 	return consistent
 }
 
-func IsThisAnOption(this []string, options [][]string) bool {
-	yes := false
-	for _, opt := range options {
+func IsThisAnOption(this []string, options map[string][]string) string {
+	found := ""
+	for name, opt := range options {
 		if sameContent(this, opt) {
-			yes = true
+			found = name
 			break
 		}
 	}
-	return yes
+	return found
 }
 
 func isInArray(field string, array []string) bool {
@@ -127,6 +127,12 @@ func sameContent(slice1, slice2 []string) bool {
 		}
 	}
 	return same
+}
+
+func passwordtoBytes(password string) [32]byte {
+	var pass [32]byte
+	copy(pass[:], []byte(password))
+	return pass
 }
 
 type Environment struct {

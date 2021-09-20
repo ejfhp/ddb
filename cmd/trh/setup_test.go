@@ -7,30 +7,30 @@ import (
 )
 
 func Test_IsThisAnOption(t *testing.T) {
-	options := [][]string{
-		{"uno", "due", "tre", "quattro", "cinque"},
-		{"uno", "due", "tre", "quattro"},
-		{"due", "tre", "quattro", "cinque"},
-		{"uno", "tre", "quattro", "cinque"},
-		{"uno", "due", "cinque"},
-		{},
+	options := map[string][]string{
+		"1": {"uno", "due", "tre", "quattro", "cinque"},
+		"2": {"uno", "due", "tre", "quattro"},
+		"3": {"due", "tre", "quattro", "cinque"},
+		"4": {"uno", "tre", "quattro", "cinque"},
+		"5": {"uno", "due", "cinque"},
+		"6": {},
 	}
 	this := map[string][]string{
-		"1_false": {"uno"},
-		"2_true":  {"uno", "due", "tre", "quattro", "cinque"},
-		"3_false": {"uno", "due", "tre", "quattro", "cinque", "sei"},
-		"4_true":  {"uno", "due", "cinque"},
-		"5_true":  {"uno", "due", "quattro", "cinque", "tre"},
-		"6_false": {"uno", "due", "due", "quattro", "cinque", "tre"},
-		"7_false": {"nove"},
-		"8_true":  {},
+		"1_":  {"uno"},
+		"2_1": {"uno", "due", "tre", "quattro", "cinque"},
+		"3_":  {"uno", "due", "tre", "quattro", "cinque", "sei"},
+		"4_5": {"uno", "due", "cinque"},
+		"5_1": {"uno", "due", "quattro", "cinque", "tre"},
+		"6_":  {"uno", "due", "due", "quattro", "cinque", "tre"},
+		"7_":  {"nove"},
+		"8_6": {},
 	}
 	for k, th := range this {
 		spl := strings.Split(k, "_")
 		i, _ := strconv.ParseInt(spl[0], 10, 64)
-		exp, _ := strconv.ParseBool(spl[1])
+		exp := spl[1]
 		if IsThisAnOption(th, options) != exp {
-			t.Logf("Check of this number %d failed", i)
+			t.Logf("Check of this number %d failed: '%s'", i, exp)
 			t.Fail()
 		}
 	}

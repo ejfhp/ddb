@@ -26,30 +26,25 @@ func cmdKeystore(args []string) error {
 		printHelp(flagset)
 		return nil
 	}
-	areFlagConsistent(options)
+	opt := areFlagConsistent(options)
 
 	keyStore := ddb.NewKeystore()
-	if flagBitcoinKey != "" {
+	switch opt {
+	case "key":
 		keyStore.WIF = flagBitcoinKey
-		_, err := ddb.AddressOf(flagBitcoinKey)
+		keyStore.Address, err = ddb.AddressOf(flagBitcoinKey)
 		if err != nil {
 			trail.Println(trace.Alert("provided key has issues").Append(tr).UTC().Add("bitcoinKey", flagBitcoinKey).Error(err))
 			return fmt.Errorf("provided key %s has issues: %w", flagBitcoinKey, err)
 		}
-	}
-	if flagBitcoinAddress != "" {
-		keyStore.Address = flagBitcoinAddress
-		if flagBitcoinAddress != keyStore.Address {
-			trail.Println(trace.Alert("provided key and address are not compatible").Append(tr).UTC().Add("bitcoinKey", flagBitcoinKey).Add("bitcoinAddress", flagBitcoinAddress).Error(err))
-			return fmt.Errorf("provided key %s and address %s are not compatible: %w", flagBitcoinKey, flagBitcoinAddress, err)
-
+		keyStore.Passwords["main"] = passwordtoBytes(flagPassword)
+	case "phrase":
+		passphrase, err = extractPassphrase(args)
+		if err != nil {
+			trail.Println(trace.Alert("error while reading passphrase").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while reading passphrase: %w", err)
 		}
 
-	}
-	_, err = extractPassphrase(args)
-	if err != nil {
-		trail.Println(trace.Alert("error while reading passphrase").Append(tr).UTC().Error(err))
-		return fmt.Errorf("error while reading passphrase: %w", err)
 	}
 	return nil
 }
