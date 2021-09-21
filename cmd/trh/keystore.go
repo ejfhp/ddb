@@ -28,9 +28,9 @@ func cmdKeystore(args []string) error {
 	}
 	opt := areFlagConsistent(options)
 
-	keyStore := ddb.NewKeystore()
 	switch opt {
 	case "key":
+		keyStore := ddb.NewKeystore()
 		keyStore.WIF = flagBitcoinKey
 		keyStore.Address, err = ddb.AddressOf(flagBitcoinKey)
 		if err != nil {
@@ -38,15 +38,55 @@ func cmdKeystore(args []string) error {
 			return fmt.Errorf("provided key %s has issues: %w", flagBitcoinKey, err)
 		}
 		keyStore.Passwords["main"] = passwordtoBytes(flagPassword)
+		showKeystore(keyStore)
 	case "phrase":
-		passphrase, err = extractPassphrase(args)
+		keyStore, err := keyStoreFromPassphrase(args)
 		if err != nil {
-			trail.Println(trace.Alert("error while reading passphrase").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while reading passphrase: %w", err)
+			trail.Println(trace.Alert("error while generating keystore from passphrase").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while generating keystore from passphrase: %w", err)
 		}
-
+		showKeystore(keyStore)
+	case "actionphrase":
+		keystore, err := keyStoreFromPassphrase(args)
+		if err != nil {
+			trail.Println(trace.Alert("error while generating keystore from passphrase").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while generating keystore from passphrase: %w", err)
+		}
+		switch flagAction {
+		case "generate":
+			keyStore.Save("keystore.trh", flagPIN)
+		}
 	}
 	return nil
+}
+
+func showKeystore(keystore *ddb.KeyStore) {
+	fmt.Printf("KEYSTORE")
+	fmt.Printf("Key: %s\n", keystore.WIF)
+	fmt.Printf("Address: %s\n", keystore.Address)
+	fmt.Printf("Passwords:\n")
+	for n, p := range keystore.Passwords {
+		fmt.Printf("%s: %s\n", n, string(p[:]))
+	}
+}
+
+func keyStoreFromPassphrase(args []string) (*ddb.KeyStore, error) {
+	keyStore := ddb.NewKeystore()
+	passphrase, err := extractPassphrase(args)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading passphrase: %w", err)
+	}
+	wif, password, err := processPassphrase(passphrase, int(flagKeygenID))
+	if err != nil {
+		return nil, fmt.Errorf("error while generating key using passphrase: %w", err)
+	}
+	keyStore.WIF = wif
+	keyStore.Address, err = ddb.AddressOf(flagBitcoinKey)
+	if err != nil {
+		return nil, fmt.Errorf("generated key %s has issues: %w", flagBitcoinKey, err)
+	}
+	keyStore.Passwords["main"] = password
+	return keyStore, nil
 }
 
 func extractPassphrase(args []string) (string, error) {
