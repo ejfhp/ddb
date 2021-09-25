@@ -73,6 +73,14 @@ func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
 	return &k, nil
 }
 
+func (ks *KeyStore) Password(label string) string {
+	pwd, ok := ks.Passwords["main"]
+	if !ok {
+		return ""
+	}
+	return string(pwd[:])
+}
+
 func (ks *KeyStore) Save(filepath string, pin string) error {
 	tr := trace.New().Source("keys.go", "KeyStore", "Save")
 	encoded, err := json.Marshal(ks)
@@ -82,7 +90,7 @@ func (ks *KeyStore) Save(filepath string, pin string) error {
 	}
 	var pinpass = [32]byte{}
 	for i := 0; i < len(pinpass); i++ {
-		pinpass[i] = 'x'
+		pinpass[i] = '_'
 	}
 	copy(pinpass[:], pin[:])
 	encrypted, err := AESEncrypt(pinpass, encoded)

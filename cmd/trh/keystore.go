@@ -14,7 +14,8 @@ import (
 
 func cmdKeystore(args []string) error {
 	tr := trace.New().Source("setup.go", "", "cmdKeystore")
-	flagset, options := newFlagset(commandKeystore)
+	flagset, options := newFlagset(commands["keystore"])
+	// fmt.Printf("cmdKeystore flags: %v\n", args[2:])
 	err := flagset.Parse(args[2:])
 	if err != nil {
 		return fmt.Errorf("error while parsing args: %w", err)
@@ -26,11 +27,11 @@ func cmdKeystore(args []string) error {
 		printHelp(flagset)
 		return nil
 	}
-	opt := areFlagConsistent(options)
-
+	opt := areFlagConsistent(flagset, options)
+	var keyStore *ddb.KeyStore
 	switch opt {
-	case "key":
-		keyStore := ddb.NewKeystore()
+	case "key", "actionkey":
+		keyStore = ddb.NewKeystore()
 		keyStore.WIF = flagBitcoinKey
 		keyStore.Address, err = ddb.AddressOf(flagBitcoinKey)
 		if err != nil {
@@ -38,52 +39,44 @@ func cmdKeystore(args []string) error {
 			return fmt.Errorf("provided key %s has issues: %w", flagBitcoinKey, err)
 		}
 		keyStore.Passwords["main"] = passwordtoBytes(flagPassword)
-		showKeystore(keyStore)
-	case "phrase":
-		keyStore, err := keyStoreFromPassphrase(args)
+	case "phrase", "actionphrase":
+		keyStore, err = keyStoreFromPassphrase(flagPhrase)
 		if err != nil {
 			trail.Println(trace.Alert("error while generating keystore from passphrase").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while generating keystore from passphrase: %w", err)
 		}
+	default:
+		return fmt.Errorf("flag combination invalid")
+	}
+	switch flagAction {
+	case "generate":
+		keyStore.Save("keystore.trh", flagPIN)
+	case "show":
 		showKeystore(keyStore)
-	case "actionphrase":
-		keystore, err := keyStoreFromPassphrase(args)
-		if err != nil {
-			trail.Println(trace.Alert("error while generating keystore from passphrase").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while generating keystore from passphrase: %w", err)
-		}
-		switch flagAction {
-		case "generate":
-			keyStore.Save("keystore.trh", flagPIN)
-		}
 	}
 	return nil
 }
 
 func showKeystore(keystore *ddb.KeyStore) {
-	fmt.Printf("KEYSTORE")
-	fmt.Printf("Key: %s\n", keystore.WIF)
-	fmt.Printf("Address: %s\n", keystore.Address)
-	fmt.Printf("Passwords:\n")
+	fmt.Printf("KEYSTORE\n")
+	fmt.Printf("   Bitcoin Key (WIF): %s\n", keystore.WIF)
+	fmt.Printf("   Bitcoin Address: %s\n", keystore.Address)
+	fmt.Printf("   Passwords:\n")
 	for n, p := range keystore.Passwords {
-		fmt.Printf("%s: %s\n", n, string(p[:]))
+		fmt.Printf("      %s: '%s'\n", n, string(p[:]))
 	}
 }
 
-func keyStoreFromPassphrase(args []string) (*ddb.KeyStore, error) {
+func keyStoreFromPassphrase(passphrase string) (*ddb.KeyStore, error) {
 	keyStore := ddb.NewKeystore()
-	passphrase, err := extractPassphrase(args)
-	if err != nil {
-		return nil, fmt.Errorf("error while reading passphrase: %w", err)
-	}
 	wif, password, err := processPassphrase(passphrase, int(flagKeygenID))
 	if err != nil {
 		return nil, fmt.Errorf("error while generating key using passphrase: %w", err)
 	}
 	keyStore.WIF = wif
-	keyStore.Address, err = ddb.AddressOf(flagBitcoinKey)
+	keyStore.Address, err = ddb.AddressOf(wif)
 	if err != nil {
-		return nil, fmt.Errorf("generated key %s has issues: %w", flagBitcoinKey, err)
+		return nil, fmt.Errorf("generated key '%s' has issues: %w", flagBitcoinKey, err)
 	}
 	keyStore.Passwords["main"] = password
 	return keyStore, nil

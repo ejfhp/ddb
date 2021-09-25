@@ -27,7 +27,7 @@ var (
 	flagPIN            string
 	flagKeygenID       int64
 	flagPhrase         string
-	flagNotToCheck     = []string{"log", "help", "h", "action", "keygen"}
+	flagNotToCheck     = []string{"log", "help", "h", "keygen"}
 )
 
 func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
@@ -36,8 +36,8 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 	flagset.BoolVar(&flagHelp, "help", false, "prints help")
 	flagset.BoolVar(&flagHelp, "h", false, "prints help")
 	//KEYSTORE
-	if command == commandKeystore {
-		flagset.StringVar(&flagAction, "action", "show", "what to do")
+	if command == commands["keystore"] {
+		flagset.StringVar(&flagAction, "action", "show", "what to do (show, generate)")
 		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
 		flagset.StringVar(&flagPhrase, "phrase", "", "passphrase to generate key and password, if key is not set")
@@ -53,46 +53,47 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		return flagset, options
 	}
 	//DESCRIBE
-	if command == commandDescribe {
-		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
-		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
-		flagset.StringVar(&flagPassword, "password", "", "encryption password")
-		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-		return flagset, nil
-	}
+	// if command == commandDescribe {
+	// 	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+	// 	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+	// 	flagset.StringVar(&flagPassword, "password", "", "encryption password")
+	// 	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
+	// 	return flagset, nil
+	// }
 	//RETRIEVE
-	if command == commandRetrieveAll {
-		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
-		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
-		flagset.StringVar(&flagPassword, "password", "", "encryption password")
-		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-		flagset.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
-		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
-		flagset.BoolVar(&flagOnlyCache, "onlycache", false, "true retrieves only from cache")
-		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
-		return flagset, nil
-	}
+	// if command == commandRetrieveAll {
+	// 	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+	// 	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+	// 	flagset.StringVar(&flagPassword, "password", "", "encryption password")
+	// 	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
+	// 	flagset.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
+	// 	flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
+	// 	flagset.BoolVar(&flagOnlyCache, "onlycache", false, "true retrieves only from cache")
+	// 	flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
+	// 	return flagset, nil
+	// }
 	//STORE
-	if command == commandStore {
-		flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
-		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
-		flagset.StringVar(&flagPassword, "password", "", "encryption password")
-		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-		flagset.StringVar(&flagFile, "file", "", "path of file to store")
-		flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
-		flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
-		return flagset, nil
-	}
+	// if command == commandStore {
+	// 	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
+	// 	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
+	// 	flagset.StringVar(&flagPassword, "password", "", "encryption password")
+	// 	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
+	// 	flagset.StringVar(&flagFile, "file", "", "path of file to store")
+	// 	flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
+	// 	flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
+	// 	return flagset, nil
+	// }
 	return flagset, nil
 }
 
-func areFlagConsistent(options map[string][]string) string {
+func areFlagConsistent(flagset *flag.FlagSet, options map[string][]string) string {
 	foundFlag := []string{}
-	flag.Visit(func(f *flag.Flag) {
+	flagset.Visit(func(f *flag.Flag) {
 		if !isInArray(f.Name, flagNotToCheck) {
 			foundFlag = append(foundFlag, f.Name)
 		}
 	})
+	// fmt.Printf("areFlagConsistent, foundFlag: %v\n", foundFlag)
 	consistent := IsThisAnOption(foundFlag, options)
 	return consistent
 }

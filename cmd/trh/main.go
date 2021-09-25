@@ -14,12 +14,15 @@ const (
 	exitLogbookError
 	exitFileError
 	exitStoreError
-	commandKeystore    = "keystore"
-	commandDescribe    = "describe"
-	commandStore       = "store"
-	commandRetrieveAll = "retrieveall"
-	commandEstimate    = "estimate"
 )
+
+var commands = map[string]string{
+	"keystore": "keystore",
+	// "describe":    "describe",
+	// "store":       "store",
+	// "retrieveall": "retrieveall",
+	// "estimate":    "estimate",
+}
 
 func printMainHelp() {
 	fmt.Printf(`
@@ -35,16 +38,23 @@ Commands:
 - estimate: to estimate the miner fee before to store a file
 - store: to write files on the blockchain
 - retrieveall: to download all the files from the blockchain
-
-Options: 
-- log: enables log
-- help: to show options for a command
-
+`)
+	for _, command := range commands {
+		fmt.Printf("\n")
+		fmt.Printf("Options for command '%s': \n", command)
+		flagsetK, optionsK := newFlagset(command)
+		flagsetK.PrintDefaults()
+		fmt.Printf("Accepted combinations:\n")
+		for _, c := range optionsK {
+			fmt.Printf("     %s\n", c)
+		}
+	}
+	fmt.Printf(`
 Examples:
 
 ./trh store -help
 ./trh describe -log -key <key>
-./trh keystore generate + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
+./trh keystore generate -phrase "Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF"
 ./trh estimate -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh store -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh retrieveAll -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
@@ -202,10 +212,9 @@ func main() {
 		os.Exit(0)
 	}
 	command := strings.ToLower(os.Args[1])
-	fmt.Printf("INFO: command is: %s\n", command)
 	var err error
 	switch command {
-	case commandKeystore:
+	case commands["keystore"]:
 		err = cmdKeystore(os.Args)
 	// case commandDescribe:
 	// 	cmdDescribe()
@@ -219,7 +228,7 @@ func main() {
 		printMainHelp()
 	}
 	if err != nil {
-		fmt.Printf("ERROR: %v", err)
+		fmt.Printf("ERROR: %v\n", err)
 		os.Exit(1)
 	}
 	os.Exit(0)
