@@ -12,6 +12,8 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
+const keystoreFile = "keystore.trh"
+
 func cmdKeystore(args []string) error {
 	tr := trace.New().Source("setup.go", "", "cmdKeystore")
 	flagset, options := newFlagset(commands["keystore"])
@@ -29,8 +31,9 @@ func cmdKeystore(args []string) error {
 	}
 	opt := areFlagConsistent(flagset, options)
 	var keyStore *ddb.KeyStore
+	toStore := false
 	switch opt {
-	case "key", "actionkey":
+	case "genkey":
 		keyStore = ddb.NewKeystore()
 		keyStore.WIF = flagBitcoinKey
 		keyStore.Address, err = ddb.AddressOf(flagBitcoinKey)
@@ -39,21 +42,31 @@ func cmdKeystore(args []string) error {
 			return fmt.Errorf("provided key %s has issues: %w", flagBitcoinKey, err)
 		}
 		keyStore.Passwords["main"] = passwordtoBytes(flagPassword)
-	case "phrase", "actionphrase":
+		toStore = true
+	case "genphrase":
 		keyStore, err = keyStoreFromPassphrase(flagPhrase)
 		if err != nil {
 			trail.Println(trace.Alert("error while generating keystore from passphrase").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while generating keystore from passphrase: %w", err)
 		}
+		toStore = true
+	case "show":
+		keyStore, err = ddb.LoadKeyStore(keystoreFile, flagPIN)
+		if err != nil {
+			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while loading keystore: %w", err)
+		}
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}
-	switch flagAction {
-	case "generate":
-		keyStore.Save("keystore.trh", flagPIN)
-	case "show":
-		showKeystore(keyStore)
+	if toStore {
+		err = keyStore.Save(keystoreFile, flagPIN)
+		if err != nil {
+			trail.Println(trace.Alert("error while saving keystore to local file").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while saving keystore to local file %s: %w", keystoreFile, err)
+		}
 	}
+	showKeystore(keyStore)
 	return nil
 }
 

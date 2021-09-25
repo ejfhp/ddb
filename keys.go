@@ -43,11 +43,7 @@ func NewKeystore() *KeyStore {
 
 func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
 	tr := trace.New().Source("keys.go", "KeyStore", "LoadKeyStore")
-	var pinpass = [32]byte{}
-	for i := 0; i < len(pinpass); i++ {
-		pinpass[i] = 'x'
-	}
-	copy(pinpass[:], pin[:])
+	var pinpass = PINPassFromPIN(pin)
 	file, err := os.Open(filepath)
 	if err != nil {
 		trail.Println(trace.Alert("cannot open KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
@@ -88,11 +84,7 @@ func (ks *KeyStore) Save(filepath string, pin string) error {
 		trail.Println(trace.Alert("cannot encode KeyStore").UTC().Error(err).Append(tr))
 		return fmt.Errorf("cannot encode KeyStore: %w", err)
 	}
-	var pinpass = [32]byte{}
-	for i := 0; i < len(pinpass); i++ {
-		pinpass[i] = '_'
-	}
-	copy(pinpass[:], pin[:])
+	var pinpass = PINPassFromPIN(pin)
 	encrypted, err := AESEncrypt(pinpass, encoded)
 	if err != nil {
 		trail.Println(trace.Alert("cannot encrypt KeyStore").UTC().Error(err).Append(tr))
@@ -136,4 +128,13 @@ func AddressOf(wifkey string) (string, error) {
 	}
 	return add.EncodeAddress(), nil
 
+}
+
+func PINPassFromPIN(PIN string) [32]byte {
+	var pinpass = [32]byte{}
+	for i := 0; i < len(pinpass); i++ {
+		pinpass[i] = '#'
+	}
+	copy(pinpass[:], PIN[:])
+	return pinpass
 }

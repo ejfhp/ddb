@@ -17,6 +17,7 @@ var (
 	flagHelp           bool
 	flagAction         string
 	flagFile           string
+	flagGenerate       bool
 	flagOutputDir      string
 	flagCacheDir       string
 	flagDisableCache   bool
@@ -37,18 +38,16 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 	flagset.BoolVar(&flagHelp, "h", false, "prints help")
 	//KEYSTORE
 	if command == commands["keystore"] {
-		flagset.StringVar(&flagAction, "action", "show", "what to do (show, generate)")
+		flagset.BoolVar(&flagGenerate, "generate", false, "generate a keystore.trh file")
 		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
 		flagset.StringVar(&flagPhrase, "phrase", "", "passphrase to generate key and password, if key is not set")
 		flagset.StringVar(&flagPassword, "password", "", "encryption password, required if key is set")
 		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to encrypt the keystore")
 		options := map[string][]string{
-			"empty":        {""},
-			"key":          {"key", "password"},
-			"phrase":       {"phrase"},
-			"actionkey":    {"action", "pin", "key", "password"},
-			"actionphrase": {"action", "pin", "phrase"},
+			"show":      {"pin"},
+			"genkey":    {"generate", "pin", "key", "password"},
+			"genphrase": {"generate", "pin", "phrase"},
 		}
 		return flagset, options
 	}
