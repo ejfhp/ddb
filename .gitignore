@@ -3,3 +3,4 @@ cmd/trh/trh-*
 imagefromblockchain.png
 download/*
 .trhcache/
+keystore.trh

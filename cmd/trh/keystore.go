@@ -130,11 +130,17 @@ func processPassphrase(passphrase string, keygenID int) (string, [32]byte, error
 		return "", [32]byte{}, fmt.Errorf("passphrase must contain a number")
 	}
 	var keygen ddb.Keygen
-	if keygenID == 2 {
+	if keygenID == 1 {
+		keygen, err = ddb.NewKeygen1(passnum, passphrase)
+		if err != nil {
+			return "", [32]byte{}, fmt.Errorf("error building Keygen2: %w", err)
+		}
+	} else {
 		keygen, err = ddb.NewKeygen2(passnum, passphrase)
 		if err != nil {
 			return "", [32]byte{}, fmt.Errorf("error building Keygen2: %w", err)
 		}
+
 	}
 	wif, err := keygen.WIF()
 	if err != nil {
