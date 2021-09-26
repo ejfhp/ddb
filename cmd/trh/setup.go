@@ -70,8 +70,9 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		flagset.StringVar(&flagFile, "file", "", "path of file to store")
 		flagset.StringVar(&flagLabels, "labels", "", "comma separated list of labels")
 		flagset.StringVar(&flagNotes, "notes", "", "notes to attach to the file entry")
+		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
 		options := map[string][]string{
-			"file": {"password", "file"},
+			"file": {"password", "file", "pin"},
 		}
 		return flagset, options
 	}

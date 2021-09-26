@@ -30,7 +30,7 @@ func cmdKeystore(args []string) error {
 		trail.SetWriter(os.Stderr)
 	}
 	if flagHelp {
-		printHelp(flagset)
+		printHelp("keystore")
 		return nil
 	}
 	opt := areFlagConsistent(flagset, options)
@@ -75,7 +75,16 @@ func cmdKeystore(args []string) error {
 }
 
 func showKeystore(keystore *ddb.KeyStore) {
-	fmt.Printf("KEYSTORE\n")
+	fmt.Printf("*** KEYSTORE ***\n")
+	fmt.Printf("\n")
+	fmt.Printf("    KEY WIF\n")
+	ddb.PrintQRCode(os.Stdout, keystore.Address)
+	fmt.Printf("    %s\n", keystore.WIF)
+	fmt.Printf("\n")
+	fmt.Printf("    ADDRESS\n")
+	ddb.PrintQRCode(os.Stdout, keystore.Address)
+	fmt.Printf("   %s\n", keystore.Address)
+	fmt.Printf("\n")
 	fmt.Printf("   Bitcoin Key (WIF): %s\n", keystore.WIF)
 	fmt.Printf("   Bitcoin Address: %s\n", keystore.Address)
 	fmt.Printf("   Passwords:\n")

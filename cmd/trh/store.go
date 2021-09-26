@@ -23,7 +23,7 @@ func cmdStore(args []string) error {
 		trail.SetWriter(os.Stderr)
 	}
 	if flagHelp {
-		printHelp(flagset)
+		printHelp("store")
 		return nil
 	}
 	opt := areFlagConsistent(flagset, options)
@@ -50,12 +50,25 @@ func cmdStore(args []string) error {
 		}
 		password := passwordtoBytes(flagPassword)
 		bWIF, bAdd, err := btrunk.GenerateKeyAndAddress(password)
+		if err != nil {
+			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to generate branch key and address: %w", err)
+		}
 		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, password, ent, defaultHeader, 100000, false)
 		if err != nil {
-			trail.Println(trace.Alert("failed to store fee for file").Append(tr).UTC().Error(err))
-			return fmt.Errorf("failed to store fee for file: %w", err)
+			trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to generate txs for entry: %w", err)
 		}
-		fmt.Printf("Stored Fee: %d satoshi\n", fee)
+		totFee := ddb.Satoshi(0)
+		for i, t := range txs {
+			_, _, fee, err := t.TotInOutFee()
+			if err != nil {
+				trail.Println(trace.Alert("failed to get fee from tx").Append(tr).UTC().Error(err))
+				return fmt.Errorf("failed to get fee from tx num %d: %w", i, err)
+			}
+			totFee = totFee.Add(fee)
+		}
+		fmt.Printf("Tot Fee: %d satoshi\n", totFee)
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}

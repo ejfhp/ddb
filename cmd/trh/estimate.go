@@ -23,7 +23,7 @@ func cmdEstimate(args []string) error {
 		trail.SetWriter(os.Stderr)
 	}
 	if flagHelp {
-		printHelp(flagset)
+		printHelp("estimate")
 		return nil
 	}
 	opt := areFlagConsistent(flagset, options)

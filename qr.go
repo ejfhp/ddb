@@ -11,8 +11,8 @@ import (
 const white = "\033[107m  \033[0m"
 const black = "\033[40m  \033[0m"
 
-func PrintQRCode(w io.Writer, address string) error {
-	code, err := qr.Encode(address, qr.M)
+func PrintQRCode(w io.Writer, text string) error {
+	code, err := qr.Encode(text, qr.M)
 	if err != nil {
 		return fmt.Errorf("error while generating QRCode: %w", err)
 	}
