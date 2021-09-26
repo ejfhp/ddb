@@ -13,13 +13,15 @@ import (
 )
 
 var (
-	flagLog            bool
-	flagHelp           bool
-	flagAction         string
-	flagFile           string
+	flagLog  bool
+	flagHelp bool
+	// flagAction         string
+	flagFile string
+	// flagPathName       string
+	flagLabels         string
+	flagNotes          string
 	flagGenerate       bool
 	flagOutputDir      string
-	flagCacheDir       string
 	flagDisableCache   bool
 	flagOnlyCache      bool
 	flagBitcoinAddress string
@@ -28,7 +30,7 @@ var (
 	flagPIN            string
 	flagKeygenID       int64
 	flagPhrase         string
-	flagNotToCheck     = []string{"log", "help", "h", "keygen"}
+	flagNotToCheck     = []string{"log", "help", "h", "keygen", "notes", "labels"}
 )
 
 func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
@@ -48,6 +50,17 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 			"show":      {"pin"},
 			"genkey":    {"generate", "pin", "key", "password"},
 			"genphrase": {"generate", "pin", "phrase"},
+		}
+		return flagset, options
+	}
+	//ESTIMATE
+	if command == commands["estimate"] {
+		flagset.StringVar(&flagPassword, "password", "", "encryption password")
+		flagset.StringVar(&flagFile, "file", "", "path of file to store")
+		flagset.StringVar(&flagLabels, "labels", "", "comma separated list of labels")
+		flagset.StringVar(&flagNotes, "notes", "", "notes to attach to the file entry")
+		options := map[string][]string{
+			"file": {"password", "file"},
 		}
 		return flagset, options
 	}
@@ -92,7 +105,7 @@ func areFlagConsistent(flagset *flag.FlagSet, options map[string][]string) strin
 			foundFlag = append(foundFlag, f.Name)
 		}
 	})
-	// fmt.Printf("areFlagConsistent, foundFlag: %v\n", foundFlag)
+	fmt.Printf("areFlagConsistent, foundFlag: %v\n", foundFlag)
 	consistent := IsThisAnOption(foundFlag, options)
 	return consistent
 }
@@ -226,7 +239,6 @@ func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, err
 	}
 	env.cacheDisabled = flagDisableCache
 	env.cacheOnly = flagOnlyCache
-	env.cacheFolder = flagCacheDir
 	trail.Println(trace.Info("environment prepared").Append(tr).UTC().Add("key", env.key).Add("address", env.address).Add("password", env.passwordString()))
 	return &env, nil
 }
@@ -240,7 +252,6 @@ func prepareCache(env *Environment) (*ddb.TXCache, error) {
 	usercache, _ := os.UserCacheDir()
 	cacheDir := filepath.Join(usercache, "trh")
 	if env.cacheFolder != "" {
-		cacheDir = flagCacheDir
 	}
 	cache, err := ddb.NewTXCache(cacheDir)
 	if err != nil {

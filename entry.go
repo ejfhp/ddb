@@ -60,11 +60,14 @@ type Entry struct {
 }
 
 func NewEntryFromFile(name string, file string, labels []string, notes string) (*Entry, error) {
+	tr := trace.New().Source("entry.go", "Entry", "NewEntryFromFile")
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
+		trail.Println(trace.Alert("error while reading file").Append(tr).UTC().Add("file", file))
 		return nil, fmt.Errorf("error while reading file %s: %w", file, err)
 	}
 	fm := mime.TypeByExtension(filepath.Ext(file))
+	trail.Println(trace.Info("file read").Append(tr).UTC().Add("mime", fm).Add("size", fmt.Sprintf("%d", len(data))))
 	return NewEntryFromData(name, fm, data, labels, notes), nil
 }
 
@@ -79,22 +82,18 @@ func NewEntryFromData(name string, mime string, data []byte, labels []string, no
 //ToParts decompose the Entry in an array of EntryPart.
 //The size of the encrypted EntryPart is guarantee to be less than maxPartSize
 func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
-	t := trace.New().Source("entry.go", "Entry", "EntryOfFile")
+	tr := trace.New().Source("entry.go", "Entry", "ToParts")
 	if maxSize < 300 {
-		trail.Println(trace.Alert("maxSize excessively small (<300)").UTC().Append(t).Add("maxSize", fmt.Sprintf("%d", maxSize)))
+		trail.Println(trace.Alert("maxSize excessively small (<300)").UTC().Append(tr).Add("maxSize", fmt.Sprintf("%d", maxSize)))
 		return nil, fmt.Errorf("maxSize excessively small (<300): %d", maxSize)
-
 	}
-	trail.Println(trace.Debug("cutting the entry in an array of EntryPart").UTC().Add("maxSize when encrypted", fmt.Sprintf("%d", maxSize)).Append(t))
-
 	//Find the correct size for entry data
 	fits := false
-	division := int(math.Ceil(float64(len(e.Data)) / float64(maxSize)))
-	numParts := division + 1
+	divisions := int(math.Ceil(float64(len(e.Data)) / float64(maxSize)))
+	numParts := divisions + 1
 	entryParts := make([]*EntryPart, 0, numParts)
-	// fmt.Printf("Start Parts: %d\n", numParts)
-	for !fits && division < 1000 {
-		partSize := len(e.Data) / division
+	for !fits {
+		partSize := len(e.Data) / divisions
 		// fmt.Printf("Division: %d   PartSize: %d len(data): %d  MaxSize: %d\n", division, partSize, len(e.Data), maxSize)
 		for i := 0; i < numParts; i++ {
 			start := i * partSize
@@ -105,19 +104,19 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 			ep := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numParts, Size: (end - start), Data: e.Data[start:end]}
 			encData, err := ep.Encrypt(password)
 			if err != nil {
-				return nil, fmt.Errorf("error while encrypting EntryPart: %w", err)
+				trail.Println(trace.Alert("error while encrypting").UTC().Append(tr).Error(err))
+				return nil, fmt.Errorf("error while encrypting: %w", err)
 			}
 			// fmt.Printf("encodedData: %d  maxSize: %d\n", len(encData), maxSize)
 			if len(encData) > maxSize {
 				fits = false
-				division++
-				numParts = division + 1
+				divisions++
+				numParts = divisions + 1
 				entryParts = entryParts[:0]
 				break
 			}
 			entryParts = append(entryParts, &ep)
 			// fmt.Printf("appended entry: %d\n", ep.IdxPart)
-
 			fits = true
 		}
 	}

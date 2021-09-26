@@ -56,7 +56,7 @@ func TestKey_Save_LoadKeystore(t *testing.T) {
 	password := [32]byte{}
 	copy(password[:], []byte(passwordt)[:])
 	ks := ddb.NewKeystore()
-	ks.WIF = destinationAddress
+	ks.WIF = destinationKey
 	ks.Address = destinationAddress
 	ks.Passwords["one"] = password
 	err := ks.Save(keyfile, pin)

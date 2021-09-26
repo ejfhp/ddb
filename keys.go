@@ -13,6 +13,9 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
+const SampleAddress = "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+const SampleKey = "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+
 type Keygen interface {
 	WIF() (string, error)
 	Password() [32]byte
@@ -43,7 +46,7 @@ func NewKeystore() *KeyStore {
 
 func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
 	tr := trace.New().Source("keys.go", "KeyStore", "LoadKeyStore")
-	var pinpass = PINPassFromPIN(pin)
+	var pinpass = PasswordFromString(pin)
 	file, err := os.Open(filepath)
 	if err != nil {
 		trail.Println(trace.Alert("cannot open KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
@@ -84,7 +87,7 @@ func (ks *KeyStore) Save(filepath string, pin string) error {
 		trail.Println(trace.Alert("cannot encode KeyStore").UTC().Error(err).Append(tr))
 		return fmt.Errorf("cannot encode KeyStore: %w", err)
 	}
-	var pinpass = PINPassFromPIN(pin)
+	var pinpass = PasswordFromString(pin)
 	encrypted, err := AESEncrypt(pinpass, encoded)
 	if err != nil {
 		trail.Println(trace.Alert("cannot encrypt KeyStore").UTC().Error(err).Append(tr))
@@ -130,7 +133,7 @@ func AddressOf(wifkey string) (string, error) {
 
 }
 
-func PINPassFromPIN(PIN string) [32]byte {
+func PasswordFromString(PIN string) [32]byte {
 	var pinpass = [32]byte{}
 	for i := 0; i < len(pinpass); i++ {
 		pinpass[i] = '#'

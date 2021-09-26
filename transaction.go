@@ -285,8 +285,8 @@ func addDataHeader(header string, data []byte) ([]byte, error) {
 }
 
 func fakeKeyAddUTXO(num int) (string, string, []*UTXO) {
-	address := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
-	key := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	address := SampleAddress
+	key := SampleKey
 	// var changeAddress string = "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	// var changeKey string = "L2mk9qzXebT1gfwUuALMJrbqBtrJxGUN5JnVeqQTGRXytqpXsPr8"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"

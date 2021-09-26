@@ -41,6 +41,16 @@ func (bt *BTrunk) GenerateKeyAndAddress(password [32]byte) (string, string, erro
 
 }
 
+func (bt *BTrunk) EstimateFeeOfBranchedEntry(password [32]byte, entry *Entry, header string) (Satoshi, error) {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
+	fBranch, err := bt.newFBranch(bt.BitcoinWIF, bt.BitcoinAdd, password)
+	if err != nil {
+		trail.Println(trace.Debug("error while generating new FBranch").Append(tr).UTC().Error(err))
+		return Satoshi(0), fmt.Errorf("error while generating new FBranch: %v", err)
+	}
+	return fBranch.EstimateEntryFee(header, entry)
+}
+
 func (bt *BTrunk) TXOfBranchedEntry(wif, address string, password [32]byte, entry *Entry, header string, maxAmountToSpend Satoshi, simulate bool) ([]*DataTX, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
 	fBranch, err := bt.newFBranch(wif, address, password)

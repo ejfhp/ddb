@@ -71,9 +71,9 @@ func (fb *FBranch) EstimateEntryFee(header string, entry *Entry) (Satoshi, error
 
 //PackEncryptedEntriesPart writes each []data on a single TX chained with the others, returns the TXIDs and the hex encoded TXs
 func (fb *FBranch) packEntryParts(header string, parts []*EntryPart, utxos []*UTXO) ([]*DataTX, error) {
-	tr := trace.New().Source("fbranch.go", "", "packEntryParts")
-	trail.Println(trace.Info("packing bytes in an array of DataTX").UTC().Append(tr))
+	tr := trace.New().Source("fbranch.go", "FBranch", "packEntryParts")
 	dataTXs := make([]*DataTX, len(parts))
+	trail.Println(trace.Info("packing []EntryPart").UTC().Append(tr).Add("len parts", fmt.Sprintf("%d", len(parts))))
 	for i, ep := range parts {
 		encbytes, err := ep.Encrypt(fb.Password)
 		if err != nil {

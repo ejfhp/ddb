@@ -14,8 +14,12 @@ import (
 
 const keystoreFile = "keystore.trh"
 
+func loadKeyStore() (*ddb.KeyStore, error) {
+	return ddb.LoadKeyStore(keystoreFile, flagPIN)
+
+}
 func cmdKeystore(args []string) error {
-	tr := trace.New().Source("setup.go", "", "cmdKeystore")
+	tr := trace.New().Source("keystore.go", "", "cmdKeystore")
 	flagset, options := newFlagset(commands["keystore"])
 	// fmt.Printf("cmdKeystore flags: %v\n", args[2:])
 	err := flagset.Parse(args[2:])

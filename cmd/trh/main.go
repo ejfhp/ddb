@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	defaultHeader    = "TRH202101"
 	exitNoPassphrase = iota
 	exitNoPassnum
 	exitKeygenError
@@ -18,10 +19,10 @@ const (
 
 var commands = map[string]string{
 	"keystore": "keystore",
-	// "describe":    "describe",
-	// "store":       "store",
+	// "list":     "list",
+	"store": "store",
 	// "retrieveall": "retrieveall",
-	// "estimate":    "estimate",
+	"estimate": "estimate",
 }
 
 func printMainHelp() {
@@ -220,8 +221,8 @@ func main() {
 	// 	cmdDescribe()
 	// case commandStore:
 	// 	cmdStore()
-	// case commandEstimate:
-	// 	cmdEstimate()
+	case commands["estimate"]:
+		err = cmdEstimate(os.Args)
 	// case commandRetrieveAll:
 	// 	cmdRetrieveAll()
 	default:

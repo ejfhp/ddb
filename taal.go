@@ -13,6 +13,7 @@ import (
 
 type TAAL struct {
 	BaseURL string
+	fees    Fees
 }
 
 func NewTAAL() *TAAL {
@@ -29,6 +30,9 @@ func (l *TAAL) MaxOpReturn() int {
 
 func (l *TAAL) GetFees() (Fees, error) {
 	t := trace.New().Source("taal.go", "TAAL", "GetFee")
+	if l.fees != nil {
+		return l.fees, nil
+	}
 	url := fmt.Sprintf("%s/feeQuote", l.BaseURL)
 	trail.Println(trace.Debug("get fee").UTC().Add("url", url).Append(t))
 	resp, err := http.Get(url)
@@ -57,6 +61,7 @@ func (l *TAAL) GetFees() (Fees, error) {
 		trail.Println(trace.Alert("error while unmarshalling mapi payload").UTC().Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while unmarshalling mapi payload: %w", err)
 	}
+	l.fees = mapiPayload.Fees
 	return mapiPayload.Fees, nil
 }
 
