@@ -22,6 +22,7 @@ type BTrunk struct {
 	Blockchain *Blockchain
 }
 
+//GenerateKeyAndAddress returns key and address to be used when branching an entry. The key is a function of the BTrunk key and the given password.
 func (bt *BTrunk) GenerateKeyAndAddress(password [32]byte) (string, string, error) {
 	keySeed := []byte{}
 	keySeed = append(keySeed, []byte(bt.BitcoinAdd)...)
@@ -51,9 +52,10 @@ func (bt *BTrunk) EstimateFeeOfBranchedEntry(password [32]byte, entry *Entry, he
 	return fBranch.EstimateEntryFee(header, entry)
 }
 
-func (bt *BTrunk) TXOfBranchedEntry(wif, address string, password [32]byte, entry *Entry, header string, maxAmountToSpend Satoshi, simulate bool) ([]*DataTX, error) {
+//TXOfBranchedEntry generate all the transactions needed to store the given entry. BrancheWIF and branchAddress must be generated through BTrunk.GenerateKeyAndAddress().
+func (bt *BTrunk) TXOfBranchedEntry(branchWIF, branchAddress string, password [32]byte, entry *Entry, header string, maxAmountToSpend Satoshi, simulate bool) ([]*DataTX, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
-	fBranch, err := bt.newFBranch(wif, address, password)
+	fBranch, err := bt.newFBranch(branchWIF, branchAddress, password)
 	if err != nil {
 		trail.Println(trace.Debug("error while generating new FBranch").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while generating new FBranch: %v", err)

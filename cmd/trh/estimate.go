@@ -27,11 +27,6 @@ func cmdEstimate(args []string) error {
 		return nil
 	}
 	opt := areFlagConsistent(flagset, options)
-	// keystore, err := loadKeyStore()
-	// if err != nil {
-	// 	trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
-	// 	return fmt.Errorf("error while loading keystore: %w", err)
-	// }
 	switch opt {
 	case "file":
 		woc := ddb.NewWOC()

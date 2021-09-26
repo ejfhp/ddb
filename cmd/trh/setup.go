@@ -64,6 +64,17 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		}
 		return flagset, options
 	}
+	//STORE
+	if command == commands["store"] {
+		flagset.StringVar(&flagPassword, "password", "", "encryption password")
+		flagset.StringVar(&flagFile, "file", "", "path of file to store")
+		flagset.StringVar(&flagLabels, "labels", "", "comma separated list of labels")
+		flagset.StringVar(&flagNotes, "notes", "", "notes to attach to the file entry")
+		options := map[string][]string{
+			"file": {"password", "file"},
+		}
+		return flagset, options
+	}
 	//DESCRIBE
 	// if command == commandDescribe {
 	// 	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
@@ -81,17 +92,6 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 	// 	flagset.StringVar(&flagOutputDir, "outdir", "", "path of the folder where to save retrived files")
 	// 	flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
 	// 	flagset.BoolVar(&flagOnlyCache, "onlycache", false, "true retrieves only from cache")
-	// 	flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
-	// 	return flagset, nil
-	// }
-	//STORE
-	// if command == commandStore {
-	// 	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")
-	// 	flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
-	// 	flagset.StringVar(&flagPassword, "password", "", "encryption password")
-	// 	flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
-	// 	flagset.StringVar(&flagFile, "file", "", "path of file to store")
-	// 	flagset.BoolVar(&flagDisableCache, "nocache", false, "true disables cache")
 	// 	flagset.StringVar(&flagCacheDir, "cachedir", "", "path of the folder to be used as cache")
 	// 	return flagset, nil
 	// }

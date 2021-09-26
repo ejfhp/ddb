@@ -1,49 +1,63 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/trail"
+	"github.com/ejfhp/trail/trace"
 )
 
-type Store struct {
-	diary *ddb.FBranch
-	env   *Environment
+func cmdStore(args []string) error {
+	tr := trace.New().Source("store.go", "", "cmdStore")
+	flagset, options := newFlagset(commands["store"])
+	fmt.Printf("cmdStore flags: %v\n", args[2:])
+	err := flagset.Parse(args[2:])
+	if err != nil {
+		return fmt.Errorf("error while parsing args: %w", err)
+	}
+	if flagLog {
+		trail.SetWriter(os.Stderr)
+	}
+	if flagHelp {
+		printHelp(flagset)
+		return nil
+	}
+	opt := areFlagConsistent(flagset, options)
+	keystore, err := loadKeyStore()
+	if err != nil {
+		trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
+		return fmt.Errorf("error while loading keystore: %w", err)
+	}
+	switch opt {
+	case "file":
+		woc := ddb.NewWOC()
+		taal := ddb.NewTAAL()
+		blockchain := ddb.NewBlockchain(taal, woc, nil)
+		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
+		lff := strings.Split(flagLabels, ",")
+		labels := []string{}
+		for _, l := range lff {
+			labels = append(labels, strings.TrimSpace(strings.ToLower(l)))
+		}
+		ent, err := ddb.NewEntryFromFile(filepath.Base(flagFile), flagFile, labels, flagNotes)
+		if err != nil {
+			trail.Println(trace.Alert("failed to generate entry from file").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to generate entry from file: %w", err)
+		}
+		password := passwordtoBytes(flagPassword)
+		bWIF, bAdd, err := btrunk.GenerateKeyAndAddress(password)
+		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, password, ent, defaultHeader, 100000, false)
+		if err != nil {
+			trail.Println(trace.Alert("failed to store fee for file").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to store fee for file: %w", err)
+		}
+		fmt.Printf("Stored Fee: %d satoshi\n", fee)
+	default:
+		return fmt.Errorf("flag combination invalid")
+	}
+	return nil
 }
-
-func NewStore(env *Environment, diary *ddb.FBranch) *Store {
-	store := Store{diary: diary, env: env}
-	return &store
-}
-
-// func (s *Store) Store(filename string) ([]string, error) {
-// 	tr := trace.New().Source("store.go", "Store", "Store")
-
-// 	entry, err := ddb.NewEntryFromFile(filepath.Base(filename), filename)
-
-// 	if err != nil {
-// 		trail.Println(trace.Alert("error while opening file").Append(tr).UTC().Add("filename", filename).Error(err))
-// 		return nil, fmt.Errorf("error opening file '%s': %v", filename, err)
-// 	}
-// 	txids, err := s.diary.CastEntry(entry)
-// 	if err != nil {
-// 		trail.Println(trace.Alert("error while storing file").Append(tr).UTC().Add("filename", filename).Add("address", s.diary.BitcoinPublicAddress()).Error(err))
-// 		return nil, fmt.Errorf("error while storing file '%s' on address '%s': %w", filename, s.diary.BitcoinPublicAddress(), err)
-// 	}
-// 	return txids, nil
-// }
-
-// func (s *Store) Estimate(filename string) (ddb.Satoshi, error) {
-// 	tr := trace.New().Source("store.go", "Store", "Estimate")
-
-// 	entry, err := ddb.NewEntryFromFile(filepath.Base(filename), filename)
-
-// 	if err != nil {
-// 		trail.Println(trace.Alert("error while opening file").Append(tr).UTC().Add("filename", filename).Error(err))
-// 		return 0, fmt.Errorf("error opening file '%s': %v", filename, err)
-// 	}
-// 	fee, err := s.diary.EstimateFee(entry)
-// 	if err != nil {
-// 		trail.Println(trace.Alert("error while storing file").Append(tr).UTC().Add("filename", filename).Add("address", s.diary.BitcoinPublicAddress()).Error(err))
-// 		return 0, fmt.Errorf("error while storing file '%s' on address '%s': %w", filename, s.diary.BitcoinPublicAddress(), err)
-// 	}
-// 	return fee, nil
-// }
