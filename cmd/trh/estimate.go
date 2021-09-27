@@ -43,12 +43,27 @@ func cmdEstimate(args []string) error {
 			trail.Println(trace.Alert("failed to generate entry from file").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate entry from file: %w", err)
 		}
-		fee, err := btrunk.EstimateFeeOfBranchedEntry(ddb.PasswordFromString(flagPassword), ent, defaultHeader)
+		password := passwordtoBytes(flagPassword)
+		bWIF, bAdd, err := btrunk.GenerateKeyAndAddress(password)
 		if err != nil {
-			trail.Println(trace.Alert("failed to estimate fee for file").Append(tr).UTC().Error(err))
-			return fmt.Errorf("failed to estimate fee for file: %w", err)
+			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to generate branch key and address: %w", err)
 		}
-		fmt.Printf("Estimated Fee: %d satoshi\n", fee)
+		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, passwordtoBytes(""), ent, defaultHeader, ddb.Satoshi(flagMaxSpend), true)
+		if err != nil {
+			trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to generate txs for entry: %w", err)
+		}
+		totFee := ddb.Satoshi(0)
+		for i, t := range txs {
+			_, _, fee, err := t.TotInOutFee()
+			if err != nil {
+				trail.Println(trace.Alert("failed to get fee from tx").Append(tr).UTC().Error(err))
+				return fmt.Errorf("failed to get fee from tx num %d: %w", i, err)
+			}
+			totFee = totFee.Add(fee)
+		}
+		fmt.Printf("Estimated Fee: %d satoshi\n", totFee)
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}

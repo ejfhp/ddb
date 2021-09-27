@@ -18,6 +18,7 @@ const (
 
 var commands = map[string]string{
 	"keystore": "keystore",
+	"show":     "show",
 	// "list":     "list",
 	"store": "store",
 	// "retrieveall": "retrieveall",
@@ -77,8 +78,8 @@ func main() {
 	switch command {
 	case commands["keystore"]:
 		err = cmdKeystore(os.Args)
-	// case commandDescribe:
-	// 	cmdDescribe()
+	case commands["show"]:
+		err = cmdShow(os.Args)
 	case commands["store"]:
 		err = cmdStore(os.Args)
 	case commands["estimate"]:

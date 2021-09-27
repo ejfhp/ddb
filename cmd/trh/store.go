@@ -54,7 +54,7 @@ func cmdStore(args []string) error {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)
 		}
-		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, password, ent, defaultHeader, 100000, false)
+		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, password, ent, defaultHeader, ddb.Satoshi(flagMaxSpend), false)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate txs for entry: %w", err)

@@ -28,9 +28,9 @@ var (
 	flagBitcoinKey     string
 	flagPassword       string
 	flagPIN            string
+	flagMaxSpend       int64
 	flagKeygenID       int64
 	flagPhrase         string
-	flagNotToCheck     = []string{"log", "help", "h", "keygen", "notes", "labels"}
 )
 
 func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
@@ -50,6 +50,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 			"show":      {"pin"},
 			"genkey":    {"generate", "pin", "key", "password"},
 			"genphrase": {"generate", "pin", "phrase"},
+			"ignored":   {"log", "help", "h", "keygen", "notes", "labels", "maxspend"},
 		}
 		return flagset, options
 	}
@@ -60,7 +61,17 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		flagset.StringVar(&flagLabels, "labels", "", "comma separated list of labels")
 		flagset.StringVar(&flagNotes, "notes", "", "notes to attach to the file entry")
 		options := map[string][]string{
-			"file": {"password", "file"},
+			"file":    {"password", "file"},
+			"ignored": {"log", "help", "h", "keygen", "notes", "labels", "maxspend"},
+		}
+		return flagset, options
+	}
+	//SHOW
+	if command == commands["show"] {
+		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
+		options := map[string][]string{
+			"pin":     {"pin"},
+			"ignored": {},
 		}
 		return flagset, options
 	}
@@ -71,8 +82,10 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		flagset.StringVar(&flagLabels, "labels", "", "comma separated list of labels")
 		flagset.StringVar(&flagNotes, "notes", "", "notes to attach to the file entry")
 		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
+		flagset.Int64Var(&flagMaxSpend, "maxspend", 100000, "the max amount to spend (in fee) to store the file")
 		options := map[string][]string{
-			"file": {"password", "file", "pin"},
+			"file":    {"password", "file", "pin"},
+			"ignored": {"log", "help", "h", "keygen", "notes", "labels", "maxspend"},
 		}
 		return flagset, options
 	}
@@ -101,6 +114,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 
 func areFlagConsistent(flagset *flag.FlagSet, options map[string][]string) string {
 	foundFlag := []string{}
+	flagNotToCheck := options["ignored"]
 	flagset.Visit(func(f *flag.Flag) {
 		if !isInArray(f.Name, flagNotToCheck) {
 			foundFlag = append(foundFlag, f.Name)

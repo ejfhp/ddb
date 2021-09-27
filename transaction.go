@@ -99,7 +99,7 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		satOutput = satInput.Sub(fee)
 	} else if amount.Satoshi() > satInput.Satoshi() {
 		trail.Println(trace.Alert("requested output amount exceeds the available input").Append(t).UTC().Add("input", fmt.Sprintf("%0.8f", satInput.Bitcoin())).Add("amount", fmt.Sprintf("%0.8f", amount.Bitcoin())))
-		return nil, fmt.Errorf("requested output amount %0.8f exceeds the available input %0.8f", amount.Bitcoin(), satOutput.Bitcoin())
+		return nil, fmt.Errorf("requested output amount %d exceeds the available input %d", amount.Bitcoin().Satoshi(), satInput.Bitcoin().Satoshi())
 	} else {
 		satOutput = amount.Satoshi()
 	}
