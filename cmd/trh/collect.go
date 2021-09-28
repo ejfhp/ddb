@@ -9,10 +9,10 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
-func cmdShow(args []string) error {
-	tr := trace.New().Source("show.go", "", "cmdShow")
-	flagset, options := newFlagset(commands["show"])
-	fmt.Printf("cmdShow flags: %v\n", args[2:])
+func cmdCollect(args []string) error {
+	tr := trace.New().Source("collect.go", "", "cmdCollect")
+	flagset, options := newFlagset(commands["collect"])
+	fmt.Printf("cmdCollect flags: %v\n", args[2:])
 	err := flagset.Parse(args[2:])
 	if err != nil {
 		return fmt.Errorf("error while parsing args: %w", err)
@@ -21,7 +21,7 @@ func cmdShow(args []string) error {
 		trail.SetWriter(os.Stderr)
 	}
 	if flagHelp {
-		printHelp("show")
+		printHelp("collect")
 		return nil
 	}
 	opt := areFlagConsistent(flagset, options)
@@ -31,6 +31,8 @@ func cmdShow(args []string) error {
 		taal := ddb.NewTAAL()
 		blockchain := ddb.NewBlockchain(taal, woc, nil)
 		keystore, err := loadKeyStore()
+		//Get password by flag or default and collect utxo
+		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
 		if err != nil {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)

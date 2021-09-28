@@ -75,6 +75,15 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		}
 		return flagset, options
 	}
+	//COLLECT
+	if command == commands["collect"] {
+		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
+		options := map[string][]string{
+			"pin":     {"pin"},
+			"ignored": {},
+		}
+		return flagset, options
+	}
 	//STORE
 	if command == commands["store"] {
 		flagset.StringVar(&flagPassword, "password", "", "encryption password")

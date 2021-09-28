@@ -20,7 +20,8 @@ var commands = map[string]string{
 	"keystore": "keystore",
 	"show":     "show",
 	// "list":     "list",
-	"store": "store",
+	"store":   "store",
+	"collect": "collect",
 	// "retrieveall": "retrieveall",
 	"estimate": "estimate",
 }
@@ -62,8 +63,10 @@ func printHelp(command string) {
 	flagsetK, optionsK := newFlagset(command)
 	flagsetK.PrintDefaults()
 	fmt.Printf("Accepted combinations:\n")
-	for _, c := range optionsK {
-		fmt.Printf("     %s\n", c)
+	for n, c := range optionsK {
+		if n != "ignored" {
+			fmt.Printf("     %s\n", c)
+		}
 	}
 }
 
@@ -79,6 +82,8 @@ func main() {
 	case commands["keystore"]:
 		err = cmdKeystore(os.Args)
 	case commands["show"]:
+		err = cmdShow(os.Args)
+	case commands["collect"]:
 		err = cmdShow(os.Args)
 	case commands["store"]:
 		err = cmdStore(os.Args)
