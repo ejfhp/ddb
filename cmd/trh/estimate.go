@@ -49,7 +49,7 @@ func cmdEstimate(args []string) error {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)
 		}
-		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, passwordtoBytes(""), ent, defaultHeader, ddb.Satoshi(flagMaxSpend), true)
+		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, passwordtoBytes(""), ent, defaultHeader, ddb.Bitcoin(ddb.FakeTXValue).Satoshi(), true)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate txs for entry: %w", err)
@@ -63,7 +63,8 @@ func cmdEstimate(args []string) error {
 			}
 			totFee = totFee.Add(fee)
 		}
-		fmt.Printf("Estimated Fee: %d satoshi\n", totFee)
+		fmt.Printf("Estimated fee: %d satoshi\n", totFee)
+		fmt.Printf("Estimated traffic: %d tx\n", len(txs))
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}

@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	APP_NAME  = "ddb"  //3 bytes, this must not be changed
-	VER_AES   = "0001" //4 bytes
-	headerLen = 9
+	APP_NAME    = "ddb"  //3 bytes, this must not be changed
+	VER_AES     = "0001" //4 bytes
+	headerLen   = 9
+	FakeTXValue = 100
 )
 
 type SourceOutput struct {
@@ -293,7 +294,7 @@ func fakeKeyAddUTXO(num int) (string, string, []*UTXO) {
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	utxos := make([]*UTXO, 0, num)
 	for i := 0; i < num; i++ {
-		utxos = append(utxos, &UTXO{TXHash: txid, TXPos: uint32(i), Value: 1, ScriptPubKeyHex: scriptHex})
+		utxos = append(utxos, &UTXO{TXHash: txid, TXPos: uint32(i), Value: FakeTXValue, ScriptPubKeyHex: scriptHex})
 	}
 	return key, address, utxos
 }

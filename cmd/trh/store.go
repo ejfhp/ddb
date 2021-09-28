@@ -68,7 +68,15 @@ func cmdStore(args []string) error {
 			}
 			totFee = totFee.Add(fee)
 		}
-		fmt.Printf("Tot Fee: %d satoshi\n", totFee)
+		ids, err := btrunk.Blockchain.Submit(txs)
+		if err != nil {
+			trail.Println(trace.Alert("failed to submit txs").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to submit txs: %w", err)
+		}
+		for i, id := range ids {
+			fmt.Printf("%d - %s", i, id)
+		}
+
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}

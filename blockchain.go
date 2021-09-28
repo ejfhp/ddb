@@ -84,20 +84,6 @@ func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
 	return ids, nil
 }
 
-// func (b *Blockchain) GetDataFee() (*Fee, error) {
-// 	if b.miner != nil {
-// 		return b.miner.GetDataFee()
-// 	}
-// 	return &Fee{}, fmt.Errorf("miner undefined")
-// }
-
-// func (b *Blockchain) GetStandardFee() (*Fee, error) {
-// 	if b.miner != nil {
-// 		return b.miner.GetDataFee()
-// 	}
-// 	return &Fee{}, fmt.Errorf("miner undefined")
-// }
-
 func (b *Blockchain) MaxDataSize() int {
 	//9 is header size and must never be changed
 	avai := b.miner.MaxOpReturn() - 9
@@ -205,33 +191,6 @@ func (b *Blockchain) ListTXIDs(address string, cacheOnly bool) ([]string, error)
 	return txids, nil
 }
 
-//ListTXHistoryBackward returns all the TXID of the TX history that ends to txid.
-//The search follows the given address.
-//List length is limited to limit.
-// func (b *Blockchain) ListTXHistoryBackward(txid string, folllowAddress string, limit int) ([]string, error) {
-// 	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXHistoryBackwards")
-// 	trail.Println(trace.Debug("get TX").UTC().Append(tr))
-// 	if txid == "" {
-// 		trail.Println(trace.Alert("TXID cannot be empty").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Append(tr))
-// 		return nil, fmt.Errorf("TXID cannot be empty, a starting TXID is mandatory")
-// 	}
-// 	tx, err := b.GetTX(txid)
-// 	if err != nil {
-// 		trail.Println(trace.Alert("error getting lastTX").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Error(err).Append(tr))
-// 		return nil, fmt.Errorf("error getting lastTX: %w", err)
-// 	}
-// 	path := []string{txid}
-// 	for i, in := range tx.Inputs {
-// 		history, err := b.walkBackward(in.PreviousTxID, in.PreviousTxOutIndex, folllowAddress, 1, limit)
-// 		if err != nil {
-// 			trail.Println(trace.Alert("error going back in history").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Error(err).Append(tr))
-// 			return nil, fmt.Errorf("error going back in history input:%d txid:%s", i, in.PreviousTxID)
-// 		}
-// 		path = append(path, history...)
-// 	}
-// 	return path, nil
-// }
-
 //Data returns data inside OP_RETURN and version of TX
 func (b *Blockchain) FillSourceOutput(tx *DataTX) error {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "FillSourceOutput")
@@ -259,6 +218,32 @@ func (b *Blockchain) GetFakeUTXO() []*UTXO {
 	return u
 }
 
+//ListTXHistoryBackward returns all the TXID of the TX history that ends to txid.
+//The search follows the given address.
+//List length is limited to limit.
+// func (b *Blockchain) ListTXHistoryBackward(txid string, folllowAddress string, limit int) ([]string, error) {
+// 	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXHistoryBackwards")
+// 	trail.Println(trace.Debug("get TX").UTC().Append(tr))
+// 	if txid == "" {
+// 		trail.Println(trace.Alert("TXID cannot be empty").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Append(tr))
+// 		return nil, fmt.Errorf("TXID cannot be empty, a starting TXID is mandatory")
+// 	}
+// 	tx, err := b.GetTX(txid)
+// 	if err != nil {
+// 		trail.Println(trace.Alert("error getting lastTX").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Error(err).Append(tr))
+// 		return nil, fmt.Errorf("error getting lastTX: %w", err)
+// 	}
+// 	path := []string{txid}
+// 	for i, in := range tx.Inputs {
+// 		history, err := b.walkBackward(in.PreviousTxID, in.PreviousTxOutIndex, folllowAddress, 1, limit)
+// 		if err != nil {
+// 			trail.Println(trace.Alert("error going back in history").UTC().Add("lastTXID", txid).Add("followAddress", folllowAddress).Error(err).Append(tr))
+// 			return nil, fmt.Errorf("error going back in history input:%d txid:%s", i, in.PreviousTxID)
+// 		}
+// 		path = append(path, history...)
+// 	}
+// 	return path, nil
+// }
 // func (b *Blockchain) walkBackward(txid string, prevTXpos uint32, mainAddr string, depth int, maxpathlen int) ([]string, error) {
 // 	if txid == "" {
 // 		return nil, fmt.Errorf("previous tx cannot be empty, a starting TXID is mandatory")

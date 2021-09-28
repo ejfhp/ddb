@@ -144,3 +144,28 @@ func (bt *BTrunk) getUTXOs(simulate bool) ([]*UTXO, error) {
 func (bt *BTrunk) ListEntries(address string, password [32]byte) ([]string, error) {
 	return []string{}, nil
 }
+
+func (bt *BTrunk) CollectAddress(collectingKey string, collectingAddress, destinationAddress string) ([]string, error) {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "CollectAddress")
+	utxo, err := bt.Blockchain.GetUTXO(collectingAddress)
+	if err != nil {
+		trail.Println(trace.Alert("error getting UTXO").Append(tr).UTC().Add("address", collectingAddress).Error(err))
+		return nil, fmt.Errorf("error getting UTXO for address %s: %w", collectingAddress, err)
+	}
+	fee, err := bt.Blockchain.EstimateStandardTXFee(len(utxo))
+	if err != nil {
+		trail.Println(trace.Alert("error estimating fee").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error estimating fee: %w", err)
+	}
+	collectingTX, err := NewDataTX(collectingKey, destinationAddress, destinationAddress, utxo, EmptyWallet, fee, nil, "")
+	if err != nil {
+		trail.Println(trace.Alert("error making collecting TX").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error making collectiong TX: %w", err)
+	}
+	ids, err := bt.Blockchain.Submit([]*DataTX{collectingTX})
+	if err != nil {
+		trail.Println(trace.Alert("error submitting collecting TX").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error submitting collecting TX: %w", err)
+	}
+	return ids, nil
+}
