@@ -69,9 +69,11 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 	//SHOW
 	if command == commands["show"] {
 		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
+		flagset.StringVar(&flagPassword, "password", "", "encryption password")
 		options := map[string][]string{
-			"pin":     {"pin"},
-			"ignored": {},
+			"pin":      {"pin"},
+			"password": {"pin", "password"},
+			"ignored":  {},
 		}
 		return flagset, options
 	}
@@ -121,7 +123,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 	return flagset, nil
 }
 
-func areFlagConsistent(flagset *flag.FlagSet, options map[string][]string) string {
+func areFlagConsistent(flagset *flag.FlagSet, options map[string][]string) (string, bool) {
 	foundFlag := []string{}
 	flagNotToCheck := options["ignored"]
 	flagset.Visit(func(f *flag.Flag) {
@@ -130,19 +132,21 @@ func areFlagConsistent(flagset *flag.FlagSet, options map[string][]string) strin
 		}
 	})
 	fmt.Printf("areFlagConsistent, foundFlag: %v\n", foundFlag)
-	consistent := IsThisAnOption(foundFlag, options)
-	return consistent
+	opt, consistent := IsThisAnOption(foundFlag, options)
+	return opt, consistent
 }
 
-func IsThisAnOption(this []string, options map[string][]string) string {
-	found := ""
+func IsThisAnOption(this []string, options map[string][]string) (string, bool) {
+	found := false
+	option := ""
 	for name, opt := range options {
 		if sameContent(this, opt) {
-			found = name
+			option = name
+			found = true
 			break
 		}
 	}
-	return found
+	return option, found
 }
 
 func isInArray(field string, array []string) bool {

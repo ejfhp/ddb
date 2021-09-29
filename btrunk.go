@@ -145,7 +145,7 @@ func (bt *BTrunk) ListEntries(address string, password [32]byte) ([]string, erro
 	return []string{}, nil
 }
 
-func (bt *BTrunk) CollectAddress(collectingKey string, collectingAddress, destinationAddress string) ([]string, error) {
+func (bt *BTrunk) TXOfCollectedFunds(collectingKey string, collectingAddress, destinationAddress string) ([]*DataTX, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "CollectAddress")
 	utxo, err := bt.Blockchain.GetUTXO(collectingAddress)
 	if err != nil {
@@ -162,10 +162,5 @@ func (bt *BTrunk) CollectAddress(collectingKey string, collectingAddress, destin
 		trail.Println(trace.Alert("error making collecting TX").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error making collectiong TX: %w", err)
 	}
-	ids, err := bt.Blockchain.Submit([]*DataTX{collectingTX})
-	if err != nil {
-		trail.Println(trace.Alert("error submitting collecting TX").Append(tr).UTC().Error(err))
-		return nil, fmt.Errorf("error submitting collecting TX: %w", err)
-	}
-	return ids, nil
+	return []*DataTX{collectingTX}, nil
 }

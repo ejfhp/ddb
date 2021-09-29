@@ -24,38 +24,51 @@ func cmdCollect(args []string) error {
 		printHelp("collect")
 		return nil
 	}
-	opt := areFlagConsistent(flagset, options)
+	opt, ok := areFlagConsistent(flagset, options)
+	if !ok {
+		return fmt.Errorf("flag combination invalid")
+	}
+	var pass [32]byte
+	var keystore *ddb.KeyStore
 	switch opt {
 	case "pin":
-		woc := ddb.NewWOC()
-		taal := ddb.NewTAAL()
-		blockchain := ddb.NewBlockchain(taal, woc, nil)
-		keystore, err := loadKeyStore()
-		//Get password by flag or default and collect utxo
-		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
+		keystore, err = loadKeyStore()
 		if err != nil {
-			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while loading keystore: %w", err)
+			trail.Println(trace.Alert("error while opening keystore").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while opening keystore: %w", err)
 		}
-		utxos, err := blockchain.GetUTXO(keystore.Address)
+		pass = keystore.Passwords["main"]
+	case "password":
+		keystore, err = loadKeyStore()
 		if err != nil {
-			trail.Println(trace.Alert("error while retrieving unspent outputs (UTXO)").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while retrieving unspend outputs (UTXO): %w", err)
+			trail.Println(trace.Alert("error while opening keystore").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while opening keystore: %w", err)
 		}
-		txs, err := blockchain.ListTXIDs(keystore.Address, false)
-		if err != nil {
-			trail.Println(trace.Alert("error while retrieving existing transactions").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while retrieving existing transactions: %w", err)
-		}
-		for _, u := range utxos {
-			fmt.Printf(" Found UTXOS: %d satoshi in TX %s, %d\n", u.Value.Satoshi(), u.TXHash, u.TXPos)
-		}
-		for _, tx := range txs {
-			fmt.Printf(" Found TX: %s\n", tx)
-		}
-
+		pass = passwordtoBytes(flagPassword)
 	default:
 		return fmt.Errorf("flag combination invalid")
+	}
+	woc := ddb.NewWOC()
+	taal := ddb.NewTAAL()
+	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
+	wif, address, err := btrunk.GenerateKeyAndAddress(pass)
+	if err != nil {
+		trail.Println(trace.Alert("error while generating branched key").Append(tr).UTC().Error(err))
+		return fmt.Errorf("error while generating branched key): %w", err)
+	}
+	collectingTX, err := btrunk.TXOfCollectedFunds(wif, address, keystore.Address)
+	if err != nil {
+		trail.Println(trace.Alert("error while building collecting TX").Append(tr).UTC().Error(err))
+		return fmt.Errorf("error while building collecting TX: %w", err)
+	}
+	ids, err := btrunk.Blockchain.Submit(collectingTX)
+	if err != nil {
+		trail.Println(trace.Alert("error submitting collecting TX").Append(tr).UTC().Error(err))
+		return fmt.Errorf("error submitting collecting TX: %w", err)
+	}
+	for _, tx := range ids {
+		fmt.Printf(" Submitted TX: %s\n", tx)
 	}
 	return nil
 }

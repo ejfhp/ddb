@@ -24,7 +24,10 @@ func cmdShow(args []string) error {
 		printHelp("show")
 		return nil
 	}
-	opt := areFlagConsistent(flagset, options)
+	opt, ok := areFlagConsistent(flagset, options)
+	if !ok {
+		return fmt.Errorf("flag combination invalid")
+	}
 	switch opt {
 	case "pin":
 		woc := ddb.NewWOC()
@@ -45,6 +48,7 @@ func cmdShow(args []string) error {
 			trail.Println(trace.Alert("error while retrieving existing transactions").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while retrieving existing transactions: %w", err)
 		}
+		fmt.Printf("Address: %s\n", keystore.Address)
 		for _, u := range utxos {
 			fmt.Printf(" Found UTXOS: %d satoshi in TX %s, %d\n", u.Value.Satoshi(), u.TXHash, u.TXPos)
 		}

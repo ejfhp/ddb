@@ -35,11 +35,15 @@ TRH is a tool that let you store and retrieve files from the Bitcoin BSV blockch
 Read instruction on https://ejfhp.com/projects/trh/
 
 Commands:
-- keystore: manage keystore
-- describe: to show address, keys and transaction IDs
-- estimate: to estimate the miner fee before to store a file
-- store: to write files on the blockchain
-- retrieveall: to download all the files from the blockchain
+`)
+	for _, command := range commands {
+		fmt.Printf("       %s\n", command)
+	}
+	fmt.Printf(`
+
+
+Options available:
+
 `)
 	for _, command := range commands {
 		fmt.Printf("\n")
@@ -84,7 +88,7 @@ func main() {
 	case commands["show"]:
 		err = cmdShow(os.Args)
 	case commands["collect"]:
-		err = cmdShow(os.Args)
+		err = cmdCollect(os.Args)
 	case commands["store"]:
 		err = cmdStore(os.Args)
 	case commands["estimate"]:
@@ -96,6 +100,9 @@ func main() {
 	}
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		if err.Error() == "flag combination invalid" {
+			printHelp(command)
+		}
 		os.Exit(1)
 	}
 	os.Exit(0)

@@ -26,7 +26,10 @@ func cmdEstimate(args []string) error {
 		printHelp("estimate")
 		return nil
 	}
-	opt := areFlagConsistent(flagset, options)
+	opt, ok := areFlagConsistent(flagset, options)
+	if !ok {
+		return fmt.Errorf("flag combination invalid")
+	}
 	switch opt {
 	case "file":
 		woc := ddb.NewWOC()

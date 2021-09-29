@@ -26,7 +26,10 @@ func cmdStore(args []string) error {
 		printHelp("store")
 		return nil
 	}
-	opt := areFlagConsistent(flagset, options)
+	opt, ok := areFlagConsistent(flagset, options)
+	if !ok {
+		return fmt.Errorf("flag combination invalid")
+	}
 	keystore, err := loadKeyStore()
 	if err != nil {
 		trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
@@ -49,6 +52,12 @@ func cmdStore(args []string) error {
 			return fmt.Errorf("failed to generate entry from file: %w", err)
 		}
 		password := passwordtoBytes(flagPassword)
+		keystore.Passwords[flagPassword] = password
+		err = saveKeyStore(keystore)
+		if err != nil {
+			trail.Println(trace.Alert("failed to save current password in the keystore").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to save the current password in the keystore: %w", err)
+		}
 		bWIF, bAdd, err := btrunk.GenerateKeyAndAddress(password)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))

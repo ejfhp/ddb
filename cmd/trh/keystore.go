@@ -16,7 +16,9 @@ const keystoreFile = "keystore.trh"
 
 func loadKeyStore() (*ddb.KeyStore, error) {
 	return ddb.LoadKeyStore(keystoreFile, flagPIN)
-
+}
+func saveKeyStore(k *ddb.KeyStore) error {
+	return k.Save(keystoreFile, flagPIN)
 }
 func cmdKeystore(args []string) error {
 	tr := trace.New().Source("keystore.go", "", "cmdKeystore")
@@ -33,7 +35,10 @@ func cmdKeystore(args []string) error {
 		printHelp("keystore")
 		return nil
 	}
-	opt := areFlagConsistent(flagset, options)
+	opt, ok := areFlagConsistent(flagset, options)
+	if !ok {
+		return fmt.Errorf("flag combination invalid")
+	}
 	var keyStore *ddb.KeyStore
 	toStore := false
 	switch opt {
