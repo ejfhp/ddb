@@ -13,8 +13,7 @@ import (
 
 func cmdEstimate(args []string) error {
 	tr := trace.New().Source("estimate.go", "", "cmdEstimate")
-	flagset, options := newFlagset(commands["estimate"])
-	fmt.Printf("cmdEstimate flags: %v\n", args[2:])
+	flagset, options := newFlagset(estimateCmd)
 	err := flagset.Parse(args[2:])
 	if err != nil {
 		return fmt.Errorf("error while parsing args: %w", err)
@@ -23,7 +22,7 @@ func cmdEstimate(args []string) error {
 		trail.SetWriter(os.Stderr)
 	}
 	if flagHelp {
-		printHelp("estimate")
+		printHelp(estimateCmd)
 		return nil
 	}
 	opt, ok := areFlagConsistent(flagset, options)

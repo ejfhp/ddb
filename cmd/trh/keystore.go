@@ -17,13 +17,18 @@ const keystoreFile = "keystore.trh"
 func loadKeyStore() (*ddb.KeyStore, error) {
 	return ddb.LoadKeyStore(keystoreFile, flagPIN)
 }
+
 func saveKeyStore(k *ddb.KeyStore) error {
 	return k.Save(keystoreFile, flagPIN)
 }
+
+func updateKeyStore(k *ddb.KeyStore) error {
+	return k.Update(keystoreFile, flagPIN)
+}
+
 func cmdKeystore(args []string) error {
 	tr := trace.New().Source("keystore.go", "", "cmdKeystore")
-	flagset, options := newFlagset(commands["keystore"])
-	// fmt.Printf("cmdKeystore flags: %v\n", args[2:])
+	flagset, options := newFlagset(keystoreCmd)
 	err := flagset.Parse(args[2:])
 	if err != nil {
 		return fmt.Errorf("error while parsing args: %w", err)
@@ -32,7 +37,7 @@ func cmdKeystore(args []string) error {
 		trail.SetWriter(os.Stderr)
 	}
 	if flagHelp {
-		printHelp("keystore")
+		printHelp(keystoreCmd)
 		return nil
 	}
 	opt, ok := areFlagConsistent(flagset, options)
@@ -69,7 +74,7 @@ func cmdKeystore(args []string) error {
 		return fmt.Errorf("flag combination invalid")
 	}
 	if toStore {
-		err = keyStore.Save(keystoreFile, flagPIN)
+		saveKeyStore(keyStore)
 		if err != nil {
 			trail.Println(trace.Alert("error while saving keystore to local file").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while saving keystore to local file %s: %w", keystoreFile, err)

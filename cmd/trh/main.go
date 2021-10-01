@@ -8,6 +8,11 @@ import (
 
 const (
 	defaultHeader    = "TRH202101"
+	keystoreCmd      = "keystore"
+	txCmd            = "tx"
+	storeCmd         = "store"
+	collectCmd       = "collect"
+	estimateCmd      = "estimate"
 	exitNoPassphrase = iota
 	exitNoPassnum
 	exitKeygenError
@@ -17,13 +22,13 @@ const (
 )
 
 var commands = map[string]string{
-	"keystore": "keystore",
-	"show":     "show",
+	keystoreCmd: "creates and shows keystore file",
+	txCmd:       "lists transaction connected to keystore and password",
 	// "list":     "list",
-	"store":   "store",
-	"collect": "collect",
+	storeCmd:   "stores a file on the blockchain",
+	collectCmd: "collects amount left on branched transactions due to errors",
 	// "retrieveall": "retrieveall",
-	"estimate": "estimate",
+	estimateCmd: "estimates the amount to spend to save a file on the blockchain",
 }
 
 func printMainHelp() {
@@ -36,8 +41,8 @@ Read instruction on https://ejfhp.com/projects/trh/
 
 Commands:
 `)
-	for _, command := range commands {
-		fmt.Printf("       %s\n", command)
+	for cmd, desc := range commands {
+		fmt.Printf("       %s: %s\n", cmd, desc)
 	}
 	fmt.Printf(`
 
@@ -45,9 +50,9 @@ Commands:
 Options available:
 
 `)
-	for _, command := range commands {
+	for cmd, _ := range commands {
 		fmt.Printf("\n")
-		printHelp(command)
+		printHelp(cmd)
 	}
 	fmt.Printf(`
 Examples:
@@ -83,15 +88,15 @@ func main() {
 	command := strings.ToLower(os.Args[1])
 	var err error
 	switch command {
-	case commands["keystore"]:
+	case keystoreCmd:
 		err = cmdKeystore(os.Args)
-	case commands["show"]:
-		err = cmdShow(os.Args)
-	case commands["collect"]:
+	case txCmd:
+		err = cmdTx(os.Args)
+	case collectCmd:
 		err = cmdCollect(os.Args)
-	case commands["store"]:
+	case storeCmd:
 		err = cmdStore(os.Args)
-	case commands["estimate"]:
+	case estimateCmd:
 		err = cmdEstimate(os.Args)
 	// case commandRetrieveAll:
 	// 	cmdRetrieveAll()

@@ -11,8 +11,7 @@ import (
 
 func cmdCollect(args []string) error {
 	tr := trace.New().Source("collect.go", "", "cmdCollect")
-	flagset, options := newFlagset(commands["collect"])
-	fmt.Printf("cmdCollect flags: %v\n", args[2:])
+	flagset, options := newFlagset(collectCmd)
 	err := flagset.Parse(args[2:])
 	if err != nil {
 		return fmt.Errorf("error while parsing args: %w", err)
@@ -21,7 +20,7 @@ func cmdCollect(args []string) error {
 		trail.SetWriter(os.Stderr)
 	}
 	if flagHelp {
-		printHelp("collect")
+		printHelp(collectCmd)
 		return nil
 	}
 	opt, ok := areFlagConsistent(flagset, options)

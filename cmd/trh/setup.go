@@ -39,7 +39,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 	flagset.BoolVar(&flagHelp, "help", false, "prints help")
 	flagset.BoolVar(&flagHelp, "h", false, "prints help")
 	//KEYSTORE
-	if command == commands["keystore"] {
+	if command == keystoreCmd {
 		flagset.BoolVar(&flagGenerate, "generate", false, "generate a keystore.trh file")
 		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
@@ -55,7 +55,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		return flagset, options
 	}
 	//ESTIMATE
-	if command == commands["estimate"] {
+	if command == estimateCmd {
 		flagset.StringVar(&flagPassword, "password", "", "encryption password")
 		flagset.StringVar(&flagFile, "file", "", "path of file to store")
 		flagset.StringVar(&flagLabels, "labels", "", "comma separated list of labels")
@@ -67,7 +67,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		return flagset, options
 	}
 	//SHOW
-	if command == commands["show"] {
+	if command == txCmd {
 		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
 		flagset.StringVar(&flagPassword, "password", "", "encryption password")
 		options := map[string][]string{
@@ -78,7 +78,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		return flagset, options
 	}
 	//COLLECT
-	if command == commands["collect"] {
+	if command == collectCmd {
 		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
 		options := map[string][]string{
 			"pin":     {"pin"},
@@ -87,7 +87,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		return flagset, options
 	}
 	//STORE
-	if command == commands["store"] {
+	if command == storeCmd {
 		flagset.StringVar(&flagPassword, "password", "", "encryption password")
 		flagset.StringVar(&flagFile, "file", "", "path of file to store")
 		flagset.StringVar(&flagLabels, "labels", "", "comma separated list of labels")

@@ -118,12 +118,11 @@ func (ks *KeyStore) Update(filepath string, pin string) error {
 		return fmt.Errorf("cannot read current keystore file: %w", err)
 	}
 
-	err = ioutil.WriteFile(filepath+".old", input, 0644)
+	err = ioutil.WriteFile(filepath+".old", copy, 0644)
 	if err != nil {
 		trail.Println(trace.Alert("cannot duplicate current keystore file").Append(tr).UTC().Error(err))
 		return fmt.Errorf("cannot duplicate current keystore file: %w", err)
 	}
-	//TODO finish to duplicate file to be updated with new password
 	ck, err := LoadKeyStore(filepath, pin)
 	if err != nil {
 		trail.Println(trace.Alert("cannot load current keystore file").Append(tr).UTC().Error(err))
@@ -133,6 +132,7 @@ func (ks *KeyStore) Update(filepath string, pin string) error {
 		trail.Println(trace.Alert("in memory keystore and saved keystore have a different key").Append(tr).UTC())
 		return fmt.Errorf("in memory keystore and saved keystore have a different key")
 	}
+	return ck.Save(filepath, pin)
 }
 
 func AddressOf(wifkey string) (string, error) {

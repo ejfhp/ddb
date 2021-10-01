@@ -13,8 +13,7 @@ import (
 
 func cmdStore(args []string) error {
 	tr := trace.New().Source("store.go", "", "cmdStore")
-	flagset, options := newFlagset(commands["store"])
-	fmt.Printf("cmdStore flags: %v\n", args[2:])
+	flagset, options := newFlagset(storeCmd)
 	err := flagset.Parse(args[2:])
 	if err != nil {
 		return fmt.Errorf("error while parsing args: %w", err)
@@ -23,7 +22,7 @@ func cmdStore(args []string) error {
 		trail.SetWriter(os.Stderr)
 	}
 	if flagHelp {
-		printHelp("store")
+		printHelp(storeCmd)
 		return nil
 	}
 	opt, ok := areFlagConsistent(flagset, options)
@@ -53,7 +52,7 @@ func cmdStore(args []string) error {
 		}
 		password := passwordtoBytes(flagPassword)
 		keystore.Passwords[flagPassword] = password
-		err = saveKeyStore(keystore)
+		err = updateKeyStore(keystore)
 		if err != nil {
 			trail.Println(trace.Alert("failed to save current password in the keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to save the current password in the keystore: %w", err)
