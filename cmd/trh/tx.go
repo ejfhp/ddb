@@ -66,7 +66,11 @@ func cmdTx(args []string) error {
 			trail.Println(trace.Alert("error while retrieving existing transactions").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while retrieving existing transactions: %w", err)
 		}
-		fmt.Printf("Address: %s [%s]\n", add, string(pwd[:]))
+		if pwd == "" {
+			fmt.Printf("Main address '%s' \n", add)
+		} else {
+			fmt.Printf("Address '%s' of password '%s'\n", add, pwd)
+		}
 		for _, u := range utxos {
 			fmt.Printf(" Found UTXOS: %d satoshi in TX %s, %d\n", u.Value.Satoshi(), u.TXHash, u.TXPos)
 		}

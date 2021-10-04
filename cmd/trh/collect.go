@@ -27,7 +27,6 @@ func cmdCollect(args []string) error {
 	if !ok {
 		return fmt.Errorf("flag combination invalid")
 	}
-	var pass [32]byte
 	var keystore *ddb.KeyStore
 	switch opt {
 	case "pin":
@@ -36,14 +35,6 @@ func cmdCollect(args []string) error {
 			trail.Println(trace.Alert("error while opening keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while opening keystore: %w", err)
 		}
-		pass = keystore.Passwords["main"]
-	case "password":
-		keystore, err = loadKeyStore()
-		if err != nil {
-			trail.Println(trace.Alert("error while opening keystore").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while opening keystore: %w", err)
-		}
-		pass = passwordtoBytes(flagPassword)
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}
@@ -51,23 +42,43 @@ func cmdCollect(args []string) error {
 	taal := ddb.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
-	wif, address, err := btrunk.GenerateKeyAndAddress(pass)
-	if err != nil {
-		trail.Println(trace.Alert("error while generating branched key").Append(tr).UTC().Error(err))
-		return fmt.Errorf("error while generating branched key): %w", err)
+
+	utxos := make(map[string][]*ddb.UTXO)
+	for _, pwd := range keystore.Passwords {
+		k, a, err := btrunk.GenerateKeyAndAddress(pwd)
+		if err != nil {
+			trail.Println(trace.Alert("error while generating key/address from password").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while generating key/address from password: %w", err)
+		}
+		u, err := blockchain.GetUTXO(a)
+		if err != nil && err.Error() != "found no UTXO" {
+			trail.Println(trace.Alert("error while retrieving UTXO").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while retrieving UTXO for address %s: %w", a, err)
+		}
+		if len(u) > 0 {
+			utxos[k] = u
+		}
 	}
-	collectingTX, err := btrunk.TXOfCollectedFunds(wif, address, keystore.Address)
-	if err != nil {
-		trail.Println(trace.Alert("error while building collecting TX").Append(tr).UTC().Error(err))
-		return fmt.Errorf("error while building collecting TX: %w", err)
-	}
-	ids, err := btrunk.Blockchain.Submit(collectingTX)
-	if err != nil {
-		trail.Println(trace.Alert("error submitting collecting TX").Append(tr).UTC().Error(err))
-		return fmt.Errorf("error submitting collecting TX: %w", err)
-	}
-	for _, tx := range ids {
-		fmt.Printf(" Submitted TX: %s\n", tx)
+	if len(utxos) > 0 {
+		fee, err := blockchain.EstimateStandardTXFee(len(utxos))
+		if err != nil {
+			trail.Println(trace.Alert("error while estimating collecting tx fee").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while estimating collecting tx fee: %w", err)
+		}
+		collectingTX, err := ddb.NewMultiInputTX(keystore.Address, utxos, fee)
+		if err != nil {
+			trail.Println(trace.Alert("error while building collecting TX").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while building collecting TX: %w", err)
+		}
+		fmt.Printf("Collecting TX :\n%s\n", collectingTX.ToString())
+		ids, err := btrunk.Blockchain.Submit([]*ddb.DataTX{collectingTX})
+		if err != nil {
+			trail.Println(trace.Alert("error submitting collecting TX").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error submitting collecting TX: %w", err)
+		}
+		for _, tx := range ids {
+			fmt.Printf(" Submitted TX: %s\n", tx)
+		}
 	}
 	return nil
 }

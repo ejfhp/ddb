@@ -72,8 +72,8 @@ func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
 	return &k, nil
 }
 
-func (ks *KeyStore) Password(label string) string {
-	pwd, ok := ks.Passwords["main"]
+func (ks *KeyStore) PasswordAsString(label string) string {
+	pwd, ok := ks.Passwords[label]
 	if !ok {
 		return ""
 	}
@@ -117,8 +117,13 @@ func (ks *KeyStore) Update(filepath string, pin string) error {
 		trail.Println(trace.Alert("cannot read current keystore file").Append(tr).UTC().Error(err))
 		return fmt.Errorf("cannot read current keystore file: %w", err)
 	}
-
-	err = ioutil.WriteFile(filepath+".old", copy, 0644)
+	oldFile := filepath + ".old"
+	err = os.Remove(oldFile)
+	if err != nil {
+		trail.Println(trace.Alert("cannot delete old keystore file").Append(tr).UTC().Error(err))
+		return fmt.Errorf("cannot delete old keystore file: %w", err)
+	}
+	err = ioutil.WriteFile(oldFile, copy, 0644)
 	if err != nil {
 		trail.Println(trace.Alert("cannot duplicate current keystore file").Append(tr).UTC().Error(err))
 		return fmt.Errorf("cannot duplicate current keystore file: %w", err)
@@ -132,7 +137,12 @@ func (ks *KeyStore) Update(filepath string, pin string) error {
 		trail.Println(trace.Alert("in memory keystore and saved keystore have a different key").Append(tr).UTC())
 		return fmt.Errorf("in memory keystore and saved keystore have a different key")
 	}
-	return ck.Save(filepath, pin)
+	err = os.Remove(filepath)
+	if err != nil {
+		trail.Println(trace.Alert("cannot delete old keystore file").Append(tr).UTC().Error(err))
+		return fmt.Errorf("cannot delete old keystore file: %w", err)
+	}
+	return ks.Save(filepath, pin)
 }
 
 func AddressOf(wifkey string) (string, error) {

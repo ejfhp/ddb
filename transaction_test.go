@@ -77,6 +77,43 @@ func TestTransaction_NewTX_NoOPRETURN(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestTransaction_NewMultiInputTX(t *testing.T) {
+	// trail.SetWriter(os.Stdout)
+	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
+	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
+	bsv := ddb.Bitcoin(0.000402740)
+	fee := ddb.Satoshi(170)
+	utxos := make(map[string][]*ddb.UTXO)
+	utxos[destinationKey] = []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
+	tx, err := ddb.NewMultiInputTX(changeAddress, utxos, fee)
+	if err != nil {
+		t.Fatalf("failed to create tx: %v", err)
+	}
+	t.Logf("TX ID: %s len: %d", tx.GetTxID(), len(tx.ToString()))
+	// fmt.Printf("DataTX hex: '%s'\n", tx.ToString())
+	if txid == "" {
+		t.Logf("failed to create tx, ID is empty")
+		t.FailNow()
+	}
+	if len(tx.Outputs) != 1 {
+		t.Logf("wrong number of output: %d", len(tx.Outputs))
+		t.FailNow()
+	}
+	if tx.Outputs[0].Satoshis <= 0 {
+		t.Logf("output num 0 should be the destination but has no output value: %d", tx.Outputs[0].Satoshis)
+		t.FailNow()
+	}
+	if len(tx.ToBytes()) < 100 {
+		t.Logf("failed to create tx, []byte too short: %d", len(tx.ToBytes()))
+		t.FailNow()
+	}
+	input := tx.Outputs[0].Satoshis + uint64(fee.Satoshi())
+	if input != uint64(bsv.Satoshi()) {
+		t.Logf("Amounts don't match: %d + %d != %d", tx.Outputs[0].Satoshis, uint64(fee.Satoshi()), input)
+		t.FailNow()
+	}
+}
 func TestTransaction_NewDataTX(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"

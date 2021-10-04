@@ -29,7 +29,7 @@ func Test_IsThisAnOption(t *testing.T) {
 		spl := strings.Split(k, "_")
 		i, _ := strconv.ParseInt(spl[0], 10, 64)
 		exp := spl[1]
-		if IsThisAnOption(th, options) != exp {
+		if val, _ := IsThisAnOption(th, options); val != exp {
 			t.Logf("Check of this number %d failed: '%s'", i, exp)
 			t.Fail()
 		}
