@@ -2,6 +2,7 @@ package ddb
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -120,8 +121,10 @@ func (ks *KeyStore) Update(filepath string, pin string) error {
 	oldFile := filepath + ".old"
 	err = os.Remove(oldFile)
 	if err != nil {
-		trail.Println(trace.Alert("cannot delete old keystore file").Append(tr).UTC().Error(err))
-		return fmt.Errorf("cannot delete old keystore file: %w", err)
+		if !errors.Is(err, os.ErrNotExist) {
+			trail.Println(trace.Alert("cannot delete old keystore file").Append(tr).UTC().Error(err))
+			return fmt.Errorf("cannot delete old keystore file: %w", err)
+		}
 	}
 	err = ioutil.WriteFile(oldFile, copy, 0644)
 	if err != nil {
@@ -130,8 +133,13 @@ func (ks *KeyStore) Update(filepath string, pin string) error {
 	}
 	ck, err := LoadKeyStore(filepath, pin)
 	if err != nil {
-		trail.Println(trace.Alert("cannot load current keystore file").Append(tr).UTC().Error(err))
-		return fmt.Errorf("cannot load current keystore file: %w", err)
+		if !errors.Is(err, os.ErrNotExist) {
+			trail.Println(trace.Alert("keystore doesn't exist in the current directory").Append(tr).UTC().Error(err))
+			return fmt.Errorf("keystore doesn't exist in the current directory: %w", err)
+		} else {
+			trail.Println(trace.Alert("cannot load current keystore file").Append(tr).UTC().Error(err))
+			return fmt.Errorf("cannot load current keystore file: %w", err)
+		}
 	}
 	if ck.WIF != ks.WIF {
 		trail.Println(trace.Alert("in memory keystore and saved keystore have a different key").Append(tr).UTC())

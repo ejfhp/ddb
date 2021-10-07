@@ -16,7 +16,7 @@ import (
 // curl https://api.whatsonchain.com/v1/bsv/main/tx/hash/73908464acc24e75af7d0046c2ee01a305e235e18b4e941ee75b9dd371b0169b
 
 type wocu struct {
-	Height uint32 `json:"height"`
+	Height int32  `json:"height"`
 	TXPos  uint32 `json:"tx_pos"`
 	TXHash string `json:"tx_hash"`
 	Value  uint64 `json:"value"`

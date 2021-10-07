@@ -70,6 +70,18 @@ func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 				t.Logf("%d - unexpected number of branched TXs: %d", i, len(txs))
 				t.FailNow()
 			}
+			for i, tx := range txs {
+				in := tx.Inputs
+				if len(in) == 0 {
+					t.Logf("%d - unexpected number of input: %d", i, len(in))
+					t.FailNow()
+				}
+				out := tx.Outputs
+				if len(out) < 2 {
+					t.Logf("%d - unexpected number of output: %d", i, len(in))
+					t.FailNow()
+				}
+			}
 			totFee := ddb.Satoshi(0)
 			firstIn, _, _, _ := txs[1].TotInOutFee()
 			_, lastOut, _, _ := txs[len(txs)-1].TotInOutFee()

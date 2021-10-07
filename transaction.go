@@ -78,8 +78,8 @@ func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee T
 	t := trace.New().Source("transaction.go", "", "NewMultiInputTX")
 	tx := bt.NewTx()
 	satInput := Satoshi(0)
-	inputIndex := 0
 	sourceOutputs := []*SourceOutput{}
+	signers := []*bt.InternalSigner{}
 	for k, utxos := range inputs {
 		key, err := DecodeWIF(k)
 		if err != nil {
@@ -95,14 +95,9 @@ func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee T
 			}
 			satInput = satInput.Add(utx.Value)
 			tx.AddInput(input)
-			err = tx.Sign(uint32(inputIndex), signer)
-			if err != nil {
-				trail.Println(trace.Alert("cannot sign inputs").UTC().Error(err).Append(t))
-				return nil, fmt.Errorf("cannot sign inputs: %w", err)
-			}
+			signers = append(signers, signer)
 			sourceOutput := SourceOutput{TXPos: utx.TXPos, TXHash: utx.TXHash, Value: utx.Value.Satoshi(), ScriptPubKeyHex: utx.ScriptPubKeyHex}
 			sourceOutputs = append(sourceOutputs, &sourceOutput)
-			inputIndex++
 		}
 	}
 	satOutput := satInput.Sub(fee)
@@ -112,6 +107,16 @@ func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee T
 		return nil, fmt.Errorf("cannot create output, destinationAddress %s amount %0.8f: %w", destinationAddress, satOutput.Bitcoin(), err)
 	}
 	tx.AddOutput(outputDest)
+	if len(signers) != len(tx.Inputs) {
+		return nil, fmt.Errorf("signers and inputs have different length")
+	}
+	for i := range tx.Inputs {
+		err = tx.Sign(uint32(i), signers[i])
+		if err != nil {
+			trail.Println(trace.Alert("cannot sign transaction").UTC().Add("input", fmt.Sprintf("%d", i)).Error(err).Append(t))
+			return nil, fmt.Errorf("cannot sign input %d: %w", i, err)
+		}
+	}
 	dtx := DataTX{SourceOutputs: sourceOutputs, Tx: tx}
 	return &dtx, nil
 }
@@ -131,6 +136,10 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		satInput = satInput.Add(utx.Value)
 		tx.AddInput(input)
 	}
+	if satInput == 0 {
+		trail.Println(trace.Alert("input is 0").Append(t).UTC())
+		return nil, fmt.Errorf("input is 0")
+	}
 	satOutput := Satoshi(0)
 	satChange := Satoshi(0)
 	if amount.Bitcoin() < 0 {
@@ -138,16 +147,17 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		return nil, fmt.Errorf("requested output amount is negative")
 
 	}
+	if satInput < amount.Satoshi().Add(fee) {
+		trail.Println(trace.Alert("output is less than 0").Append(t).UTC())
+		return nil, fmt.Errorf("output is less than 0")
+	}
 	if amount.Satoshi() == EmptyWallet {
 		trail.Println(trace.Warning("requested output is EmptyWallet").Append(t).UTC())
 		satOutput = satInput.Sub(fee)
-	} else if amount.Satoshi() > satInput.Satoshi() {
-		trail.Println(trace.Alert("requested output amount exceeds the available input").Append(t).UTC().Add("input", fmt.Sprintf("%0.8f", satInput.Bitcoin())).Add("amount", fmt.Sprintf("%0.8f", amount.Bitcoin())))
-		return nil, fmt.Errorf("requested output amount %d exceeds the available input %d", amount.Bitcoin().Satoshi(), satInput.Bitcoin().Satoshi())
 	} else {
 		satOutput = amount.Satoshi()
 	}
-	satChange = satInput.Sub(satOutput.Satoshi().Add(fee))
+
 	outputDest, err := bt.NewP2PKHOutputFromAddress(destinationAddress, uint64(satOutput.Satoshi()))
 	if err != nil {
 		trail.Println(trace.Alert("cannot create output").UTC().Add("destinationAddress", destinationAddress).Append(t).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err))
@@ -164,15 +174,13 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		tx.AddOutput(outOpRet)
 	}
 
-	var outputChange *bt.Output
+	satChange = satInput.Sub(satOutput.Satoshi().Add(fee))
 	if satChange.Satoshi() > 0 {
-		outputChange, err = bt.NewP2PKHOutputFromAddress(changeAddress, uint64(satChange.Satoshi()))
+		outputChange, err := bt.NewP2PKHOutputFromAddress(changeAddress, uint64(satChange.Satoshi()))
 		if err != nil {
 			trail.Println(trace.Alert("cannot create output").UTC().Add("changeAddress", changeAddress).Append(t).Add("output", fmt.Sprintf("%0.8f", satChange.Bitcoin())).Error(err))
 			return nil, fmt.Errorf("cannot create output, changeAddress %s amount %0.8f: %w", changeAddress, satChange.Bitcoin(), err)
 		}
-	}
-	if outputChange != nil {
 		tx.AddOutput(outputChange)
 	}
 

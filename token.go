@@ -2,6 +2,7 @@ package ddb
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 )
 
@@ -22,8 +23,11 @@ func (b Bitcoin) Bitcoin() Bitcoin {
 	return b
 }
 
-func (b Bitcoin) Sub(t Token) Token {
-	return Satoshi(b.Satoshi() - t.Satoshi())
+func (b Bitcoin) Sub(t Token) (Token, error) {
+	if b.Satoshi() < t.Satoshi() {
+		return Satoshi(0), fmt.Errorf("negative Satoshi")
+	}
+	return Satoshi(b.Satoshi() - t.Satoshi()), nil
 }
 
 func (b Bitcoin) Add(t Token) Token {
@@ -53,8 +57,11 @@ func (s Satoshi) Satoshi() Satoshi {
 	return s
 }
 
-func (s Satoshi) Sub(t Token) Satoshi {
-	return Satoshi(s - t.Satoshi())
+func (s Satoshi) Sub(t Token) (Satoshi, error) {
+	if s < t.Satoshi() {
+		return Satoshi(0), fmt.Errorf("negative Satoshi")
+	}
+	return Satoshi(s - t.Satoshi()), nil
 }
 
 func (s Satoshi) Add(t Token) Satoshi {

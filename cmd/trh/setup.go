@@ -73,7 +73,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		options := map[string][]string{
 			"pin":      {"pin"},
 			"password": {"pin", "password"},
-			"ignored":  {},
+			"ignored":  {"log", "help"},
 		}
 		return flagset, options
 	}
@@ -82,7 +82,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
 		options := map[string][]string{
 			"pin":     {"pin"},
-			"ignored": {},
+			"ignored": {"log", "help"},
 		}
 		return flagset, options
 	}
