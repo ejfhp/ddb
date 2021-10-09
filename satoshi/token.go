@@ -2,11 +2,13 @@ package satoshi
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"math"
 )
 
 const EmptyWallet = Satoshi(math.MaxUint64)
+
+var ErrNegativeAmount = errors.New("Negative amount")
 
 type Token interface {
 	Bitcoin() Bitcoin
@@ -25,7 +27,7 @@ func (b Bitcoin) Bitcoin() Bitcoin {
 
 func (b Bitcoin) Sub(t Token) (Token, error) {
 	if b.Satoshi() < t.Satoshi() {
-		return Satoshi(0), fmt.Errorf("negative Satoshi")
+		return Satoshi(0), ErrNegativeAmount
 	}
 	return Satoshi(b.Satoshi() - t.Satoshi()), nil
 }
@@ -57,12 +59,11 @@ func (s Satoshi) Satoshi() Satoshi {
 	return s
 }
 
-func (s Satoshi) Sub(t Token) Satoshi {
+func (s Satoshi) Sub(t Token) (Satoshi, error) {
 	if s < t.Satoshi() {
-		// return Satoshi(0), fmt.Errorf("negative Satoshi")
-		return Satoshi(0)
+		return Satoshi(0), ErrNegativeAmount
 	}
-	return Satoshi(s - t.Satoshi())
+	return Satoshi(s - t.Satoshi()), nil
 }
 
 func (s Satoshi) Add(t Token) Satoshi {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 	bt "github.com/libsv/go-bt"
@@ -19,10 +20,10 @@ const (
 )
 
 type SourceOutput struct {
-	TXPos           uint32  `json:"txpos"`
-	TXHash          string  `json:"txhash"`
-	Value           Satoshi `json:"value"`
-	ScriptPubKeyHex string  `json:"scriptpubkeyhex"`
+	TXPos           uint32          `json:"txpos"`
+	TXHash          string          `json:"txhash"`
+	Value           satoshi.Satoshi `json:"value"`
+	ScriptPubKeyHex string          `json:"scriptpubkeyhex"`
 }
 
 func (s *SourceOutput) Equals(so *SourceOutput) bool {
@@ -48,7 +49,7 @@ type DataTX struct {
 }
 
 //NewDataTX builds a DataTX with the given params. Output order is: 1:destination, 2:opreturn, 3:change.
-func NewDataTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, amount Token, fee Token, data []byte, header string) (*DataTX, error) {
+func NewDataTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, amount satoshi.Token, fee satoshi.Token, data []byte, header string) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "DataTX", "NewDataTX")
 	var payload []byte = nil
 	var err error
@@ -74,10 +75,10 @@ func NewDataTX(sourceKey string, destinationAddress string, changeAddress string
 }
 
 //NewMultiInputTX builds a DataTX transaction collecting the amount from the multiple UTXO given.
-func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee Token) (*DataTX, error) {
+func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee satoshi.Token) (*DataTX, error) {
 	t := trace.New().Source("transaction.go", "", "NewMultiInputTX")
 	tx := bt.NewTx()
-	satInput := Satoshi(0)
+	satInput := satoshi.Satoshi(0)
 	sourceOutputs := []*SourceOutput{}
 	signers := []*bt.InternalSigner{}
 	for k, utxos := range inputs {
@@ -100,7 +101,11 @@ func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee T
 			sourceOutputs = append(sourceOutputs, &sourceOutput)
 		}
 	}
-	satOutput := satInput.Sub(fee)
+	satOutput, err := satInput.Sub(fee)
+	if err != nil {
+		trail.Println(trace.Alert("cannot define output value").UTC().Add("destinationAddress", destinationAddress).Append(t).Add("input/output", fmt.Sprintf("%0.8f/%0.8f", satInput.Bitcoin(), satOutput.Bitcoin())).Error(err))
+		return nil, fmt.Errorf("cannot define output value, destinationAddress %s input/output %0.8f/%0.8f: %w", destinationAddress, satInput.Bitcoin(), satOutput.Bitcoin(), err)
+	}
 	outputDest, err := bt.NewP2PKHOutputFromAddress(destinationAddress, uint64(satOutput.Satoshi()))
 	if err != nil {
 		trail.Println(trace.Alert("cannot create output").UTC().Add("destinationAddress", destinationAddress).Append(t).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err))
@@ -123,10 +128,10 @@ func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee T
 
 //NewTX builds a bt.TX transaction with the given params. The optional OP_RETURN data is in position 0. To move all the amount connected to the address use put EmptyWallet as amount.
 //No nil field allowed.
-func NewTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, amount Token, fee Token, opreturn []byte) (*bt.Tx, error) {
+func NewTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, amount satoshi.Token, fee satoshi.Token, opreturn []byte) (*bt.Tx, error) {
 	t := trace.New().Source("transaction.go", "", "NewTX")
 	tx := bt.NewTx()
-	satInput := Satoshi(0)
+	satInput := satoshi.Satoshi(0)
 	for i, utx := range inutxo {
 		input, err := bt.NewInputFromUTXO(utx.TXHash, utx.TXPos, uint64(utx.Value.Satoshi()), utx.ScriptPubKeyHex, math.MaxUint32)
 		if err != nil {
@@ -140,28 +145,28 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		trail.Println(trace.Alert("input is 0").Append(t).UTC())
 		return nil, fmt.Errorf("input is 0")
 	}
-	satOutput := Satoshi(0)
-	satChange := Satoshi(0)
+	satOutput := satoshi.Satoshi(0)
+	satChange := satoshi.Satoshi(0)
 	if amount.Bitcoin() < 0 {
 		trail.Println(trace.Alert("requested output amount is negative").Append(t).UTC())
 		return nil, fmt.Errorf("requested output amount is negative")
 
 	}
-	if amount.Satoshi() == EmptyWallet {
+	if amount.Satoshi() == satoshi.EmptyWallet {
 		trail.Println(trace.Warning("requested output is EmptyWallet").Append(t).UTC())
-		satOutput = satInput.Sub(fee)
+		satOutput, err := satInput.Sub(fee)
+		if err != nil {
+			trail.Println(trace.Alert("cannot define output value").UTC().Append(t).Add("input/output/fee", fmt.Sprintf("%0.8f/%0.8f/%0.8f", satInput.Bitcoin(), satOutput.Bitcoin(), fee.Bitcoin())).Error(err))
+			return nil, fmt.Errorf("cannot define output value, input/output/fee %0.8f/%0.8f/%0.8f: %w", satInput.Bitcoin(), fee.Bitcoin(), satOutput.Bitcoin(), err)
+		}
 	} else {
 		satOutput = amount.Satoshi()
 	}
 
-	if satInput < amount.Satoshi().Add(fee) {
-		trail.Println(trace.Alert("output is less than 0").Append(t).UTC())
-		return nil, fmt.Errorf("output is less than 0")
-	}
 	outputDest, err := bt.NewP2PKHOutputFromAddress(destinationAddress, uint64(satOutput.Satoshi()))
 	if err != nil {
-		trail.Println(trace.Alert("cannot create output").UTC().Add("destinationAddress", destinationAddress).Append(t).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err))
-		return nil, fmt.Errorf("cannot create output, destinationAddress %s amount %0.8f: %w", destinationAddress, satOutput.Bitcoin(), err)
+		trail.Println(trace.Alert("cannot create output").UTC().Append(t).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err))
+		return nil, fmt.Errorf("cannot create output, amount %0.8f: %w", satOutput.Bitcoin(), err)
 	}
 	tx.AddOutput(outputDest)
 
@@ -174,7 +179,11 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		tx.AddOutput(outOpRet)
 	}
 
-	satChange = satInput.Sub(satOutput.Satoshi().Add(fee))
+	satChange, err = satInput.Sub(satOutput.Satoshi().Add(fee))
+	if err != nil {
+		trail.Println(trace.Alert("cannot define change value").UTC().Append(t).Add("input/output/fee", fmt.Sprintf("%0.8f/%0.8f/%0.8f", satInput.Bitcoin(), satOutput.Bitcoin(), fee.Bitcoin())).Error(err))
+		return nil, fmt.Errorf("cannot define change value, input/output/fee %0.8f/%0.8f/%0.8f: %w", satInput.Bitcoin(), fee.Bitcoin(), satOutput.Bitcoin(), err)
+	}
 	if satChange.Satoshi() > 0 {
 		outputChange, err := bt.NewP2PKHOutputFromAddress(changeAddress, uint64(satChange.Satoshi()))
 		if err != nil {
@@ -275,16 +284,16 @@ func (t *DataTX) Data() ([]byte, string, error) {
 }
 
 //Fee returns fee of TX
-func (t *DataTX) TotInOutFee() (Satoshi, Satoshi, Satoshi, error) {
+func (t *DataTX) TotInOutFee() (satoshi.Satoshi, satoshi.Satoshi, satoshi.Satoshi, error) {
 	tr := trace.New().Source("transaction.go", "DataTX", "Fee")
 	if t.SourceOutputs == nil || len(t.SourceOutputs) == 0 {
 		trail.Println(trace.Alert("transaction has no source utxo").UTC().Append(tr))
-		return Satoshi(0), Satoshi(0), Satoshi(0), fmt.Errorf("transaction has no source utxo")
+		return satoshi.Satoshi(0), satoshi.Satoshi(0), satoshi.Satoshi(0), fmt.Errorf("transaction has no source utxo")
 
 	}
-	totInput := Satoshi(0)
+	totInput := satoshi.Satoshi(0)
 	for _, in := range t.SourceOutputs {
-		trail.Println(trace.Info("input").UTC().Add("value", fmt.Sprintf("%d", in.Value)).Append(tr))
+		trail.Println(trace.Info("input").Append(tr).UTC().Add("value", fmt.Sprintf("%d", in.Value)))
 		totInput = totInput.Add(in.Value)
 	}
 	totOutput := uint64(0)
@@ -292,15 +301,19 @@ func (t *DataTX) TotInOutFee() (Satoshi, Satoshi, Satoshi, error) {
 		trail.Println(trace.Info("output").UTC().Add("value", fmt.Sprintf("%d", out.Satoshis)).Append(tr))
 		totOutput += out.Satoshis
 	}
-	fee := totInput.Sub(Satoshi(totOutput))
+	fee, err := totInput.Sub(satoshi.Satoshi(totOutput))
+	if err != nil {
+		trail.Println(trace.Alert("negative fee").Append(tr).UTC().Error(err))
+		return satoshi.Satoshi(0), satoshi.Satoshi(0), satoshi.Satoshi(0), fmt.Errorf("negative fee: %w", err)
+	}
 	// fmt.Printf("TX IN: %d  OUT: %d  FEE: %d\n", totInput, totOutput, fee)
-	return totInput, Satoshi(totOutput), fee, nil
+	return totInput, satoshi.Satoshi(totOutput), fee, nil
 }
 
 func (t *DataTX) UTXOs() []*UTXO {
 	utxos := make([]*UTXO, 0)
 	for op, out := range t.Outputs {
-		u := UTXO{TXPos: uint32(op), TXHash: t.GetTxID(), Value: Satoshi(out.Satoshis).Bitcoin(), ScriptPubKeyHex: out.GetLockingScriptHexString()}
+		u := UTXO{TXPos: uint32(op), TXHash: t.GetTxID(), Value: satoshi.Satoshi(out.Satoshis).Bitcoin(), ScriptPubKeyHex: out.GetLockingScriptHexString()}
 		utxos = append(utxos, &u)
 	}
 	return utxos

@@ -7,12 +7,13 @@ import (
 	"github.com/bitcoinsv/bsvd/bsvec"
 	"github.com/bitcoinsv/bsvd/chaincfg"
 	"github.com/bitcoinsv/bsvutil"
+	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
 
 type Results struct {
-	Cost  Satoshi
+	Cost  satoshi.Satoshi
 	TXIDs []string
 }
 
@@ -43,7 +44,7 @@ func (bt *BTrunk) GenerateKeyAndAddress(password [32]byte) (string, string, erro
 }
 
 //TXOfBranchedEntry generate all the transactions needed to store the given entry. BrancheWIF and branchAddress must be generated through BTrunk.GenerateKeyAndAddress().
-func (bt *BTrunk) TXOfBranchedEntry(branchWIF, branchAddress string, password [32]byte, entry *Entry, header string, maxAmountToSpend Satoshi, simulate bool) ([]*DataTX, error) {
+func (bt *BTrunk) TXOfBranchedEntry(branchWIF, branchAddress string, password [32]byte, entry *Entry, header string, maxAmountToSpend satoshi.Satoshi, simulate bool) ([]*DataTX, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
 	fBranch, err := bt.newFBranch(branchWIF, branchAddress, password)
 	if err != nil {

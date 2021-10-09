@@ -1,9 +1,10 @@
 package satoshi_test
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/ejfhp/satoshi"
+	"github.com/ejfhp/ddb/satoshi"
 )
 
 func TestBitcoinToSatoshi(t *testing.T) {
@@ -53,6 +54,62 @@ func TestSumBitcoin(t *testing.T) {
 		res := satoshi.Bitcoin(v[0]).Add(satoshi.Bitcoin(v[1]))
 		if float64(res.Bitcoin()) != v[2] {
 			t.Logf("%d: sum is not correct! %0.8f + %0.8f = %0.30f != %0.30f", i, v[0], v[1], res.Bitcoin(), v[2])
+			t.Fail()
+		}
+	}
+}
+
+func TestSubBitcoin(t *testing.T) {
+	bitsat := [][]float64{
+		{1, 0.00000001, 0.99999999},
+		{21000000, 0.00000001, 20999999.99999999},
+		{0.00000001, 0.00000001, 0.00000000},
+		{0.00000016, 0.00000001, 0.00000015},
+		{0.10000016, 0.10000001, 0.00000015},
+		{0.10000016, 0.10000021, 9999},
+	}
+	for i, v := range bitsat {
+		res, err := satoshi.Bitcoin(v[0]).Sub(satoshi.Bitcoin(v[1]))
+		if err != nil {
+			if !errors.Is(err, satoshi.ErrNegativeAmount) {
+				t.Logf("Wrong kind of error")
+				t.Fail()
+			}
+		}
+		if v[2] == 9999 && err == nil {
+			t.Logf("negative result must return error")
+			t.Fail()
+		}
+		if v[2] != 9999 && float64(res.Bitcoin()) != v[2] {
+			t.Logf("%d: sum is not correct! %0.8f - %0.8f = %0.30f != %0.30f", i, v[0], v[1], res.Bitcoin(), v[2])
+			t.Fail()
+		}
+	}
+}
+
+func TestSubSatoshi(t *testing.T) {
+	bitsat := [][]uint64{
+		{100000000, 1, 99999999},
+		{2100000000000000, 1, 2099999999999999},
+		{1, 1, 0},
+		{16, 1, 15},
+		{10000016, 10000001, 15},
+		{10000016, 10000021, 9999},
+	}
+	for i, v := range bitsat {
+		res, err := satoshi.Satoshi(v[0]).Sub(satoshi.Satoshi(v[1]))
+		if err != nil {
+			if !errors.Is(err, satoshi.ErrNegativeAmount) {
+				t.Logf("Wrong kind of error")
+				t.Fail()
+			}
+		}
+		if v[2] == 9999 && err == nil {
+			t.Logf("negative result must return error")
+			t.Fail()
+		}
+		if v[2] != 9999 && uint64(res.Satoshi()) != v[2] {
+			t.Logf("%d: sum is not correct! %d - %d = %d != %d", i, v[0], v[1], res.Satoshi(), v[2])
 			t.Fail()
 		}
 	}

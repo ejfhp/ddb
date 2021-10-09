@@ -1,9 +1,11 @@
 package ddb
 
+import "github.com/ejfhp/ddb/satoshi"
+
 type UTXO struct {
 	TXPos           uint32
 	TXHash          string
-	Value           Bitcoin
+	Value           satoshi.Bitcoin
 	ScriptPubKeyHex string
 }
 
@@ -27,9 +29,9 @@ type Vin struct {
 }
 
 type Vout struct {
-	Value        Bitcoin       `json:"value"`
-	N            uint32        `json:"n"`
-	ScriptPubKey *ScriptPubKey `json:"scriptPubKey"`
+	Value        satoshi.Bitcoin `json:"value"`
+	N            uint32          `json:"n"`
+	ScriptPubKey *ScriptPubKey   `json:"scriptPubKey"`
 }
 
 type ScriptSig struct {

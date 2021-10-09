@@ -3,6 +3,7 @@ package ddb
 import (
 	"fmt"
 
+	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
@@ -26,10 +27,10 @@ func (b *Blockchain) CacheDir() string {
 	return b.Cache.path
 }
 
-func (b *Blockchain) EstimateDataTXFee(numUTXO int, data []byte, header string) (Satoshi, error) {
+func (b *Blockchain) EstimateDataTXFee(numUTXO int, data []byte, header string) (satoshi.Satoshi, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
 	key, add, utxos := fakeKeyAddUTXO(numUTXO)
-	dataTX, err := NewDataTX(key, add, add, utxos, Satoshi(100), Satoshi(1), data, header)
+	dataTX, err := NewDataTX(key, add, add, utxos, satoshi.Satoshi(100), satoshi.Satoshi(1), data, header)
 	if err != nil {
 		trail.Println(trace.Alert("cannot build fake DataTX").UTC().Append(tr).Error(err))
 		return 0, fmt.Errorf("cannot submit TX to miner: %w", err)
@@ -42,10 +43,10 @@ func (b *Blockchain) EstimateDataTXFee(numUTXO int, data []byte, header string) 
 	return fee.CalculateFee(len(dataTX.ToBytes())), nil
 }
 
-func (b *Blockchain) EstimateStandardTXFee(numUTXO int) (Satoshi, error) {
+func (b *Blockchain) EstimateStandardTXFee(numUTXO int) (satoshi.Satoshi, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
 	key, add, utxos := fakeKeyAddUTXO(numUTXO)
-	noDataTX, err := NewDataTX(key, add, add, utxos, Satoshi(100), Satoshi(1), nil, "")
+	noDataTX, err := NewDataTX(key, add, add, utxos, satoshi.Satoshi(100), satoshi.Satoshi(1), nil, "")
 	if err != nil {
 		trail.Println(trace.Alert("cannot build fake DataTX").UTC().Append(tr).Error(err))
 		return 0, fmt.Errorf("cannot submit TX to miner: %w", err)
@@ -204,7 +205,7 @@ func (b *Blockchain) FillSourceOutput(tx *DataTX) error {
 		sourceOut := SourceOutput{
 			TXPos:           in.PreviousTxOutIndex,
 			TXHash:          in.PreviousTxID,
-			Value:           Satoshi(prevTX.Outputs[in.PreviousTxOutIndex].Satoshis),
+			Value:           satoshi.Satoshi(prevTX.Outputs[in.PreviousTxOutIndex].Satoshis),
 			ScriptPubKeyHex: prevTX.Outputs[in.PreviousTxOutIndex].GetLockingScriptHexString(),
 		}
 		sourceOutputs = append(sourceOutputs, &sourceOut)

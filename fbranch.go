@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
@@ -17,7 +18,7 @@ type FBranch struct {
 }
 
 type BResult struct {
-	Cost  Satoshi
+	Cost  satoshi.Satoshi
 	TXIDs []string
 }
 
@@ -43,7 +44,7 @@ func (fb *FBranch) ProcessEntry(header string, entry *Entry, utxo []*UTXO) ([]*D
 	return txs, nil
 }
 
-func (fb *FBranch) EstimateEntryFee(header string, entry *Entry) (Satoshi, error) {
+func (fb *FBranch) EstimateEntryFee(header string, entry *Entry) (satoshi.Satoshi, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "EstimateEntryFee")
 	entryParts, err := entry.ToParts(fb.Password, fb.Blockchain.miner.MaxOpReturn())
 	if err != nil {
@@ -56,7 +57,7 @@ func (fb *FBranch) EstimateEntryFee(header string, entry *Entry) (Satoshi, error
 		trail.Println(trace.Alert("error packing encrypted parts into DataTXs").UTC().Error(err).Append(tr))
 		return 0, fmt.Errorf("error packing encrypted parts into DataTXs: %w", err)
 	}
-	fee := Satoshi(0)
+	fee := satoshi.Satoshi(0)
 	for _, t := range txs {
 		_, _, f, err := t.TotInOutFee()
 		if err != nil {
@@ -85,7 +86,7 @@ func (fb *FBranch) packEntryParts(header string, parts []*EntryPart, utxos []*UT
 			trail.Println(trace.Alert("cannot calculate DataTX fee").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot calculate DataTX fee: %w", err)
 		}
-		dataTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, fb.BitcoinAdd, utxos, EmptyWallet, fee, encbytes, header)
+		dataTx, err := NewDataTX(fb.BitcoinWIF, fb.BitcoinAdd, fb.BitcoinAdd, utxos, satoshi.EmptyWallet, fee, encbytes, header)
 		if err != nil {
 			trail.Println(trace.Alert("cannot build TX").UTC().Error(err).Append(tr))
 			return nil, fmt.Errorf("cannot build TX: %w", err)
@@ -93,7 +94,7 @@ func (fb *FBranch) packEntryParts(header string, parts []*EntryPart, utxos []*UT
 		trail.Println(trace.Info("DataTX built").UTC().Add("fee", fmt.Sprintf("%0.8f", fee.Bitcoin())).Add("txid", dataTx.GetTxID()).Append(tr))
 		//UTXO in TX built by BuildDataTX is in position 0
 		inPos := 0
-		utxos = []*UTXO{{TXPos: uint32(inPos), TXHash: dataTx.GetTxID(), Value: Satoshi(dataTx.Outputs[inPos].Satoshis).Bitcoin(), ScriptPubKeyHex: dataTx.Outputs[inPos].GetLockingScriptHexString()}}
+		utxos = []*UTXO{{TXPos: uint32(inPos), TXHash: dataTx.GetTxID(), Value: satoshi.Satoshi(dataTx.Outputs[inPos].Satoshis).Bitcoin(), ScriptPubKeyHex: dataTx.Outputs[inPos].GetLockingScriptHexString()}}
 		dataTXs[i] = dataTx
 	}
 	return dataTXs, nil

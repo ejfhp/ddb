@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/satoshi"
 )
 
 func TestTransaction_NewTX(t *testing.T) {
@@ -13,9 +14,9 @@ func TestTransaction_NewTX(t *testing.T) {
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
-	bsv := ddb.Bitcoin(0.000402740)
-	fee := ddb.Satoshi(170)
-	amount := ddb.Satoshi(20000)
+	bsv := satoshi.Bitcoin(0.000402740)
+	fee := satoshi.Satoshi(170)
+	amount := satoshi.Satoshi(20000)
 	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
 	tx, err := ddb.NewTX(destinationKey, destinationAddress, changeAddress, utxos, amount, fee, payload)
 	if err != nil {
@@ -54,9 +55,9 @@ func TestTransaction_NewTX_NoOPRETURN(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
-	bsv := ddb.Bitcoin(0.000402740)
-	fee := ddb.Satoshi(170)
-	amount := ddb.EmptyWallet
+	bsv := satoshi.Bitcoin(0.000402740)
+	fee := satoshi.Satoshi(170)
+	amount := satoshi.EmptyWallet
 	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
 	tx, err := ddb.NewTX(destinationKey, destinationAddress, destinationAddress, utxos, amount, fee, nil)
 	if err != nil {
@@ -72,7 +73,12 @@ func TestTransaction_NewTX_NoOPRETURN(t *testing.T) {
 		t.Logf("wrong number of output: %d", len(tx.Outputs))
 		t.FailNow()
 	}
-	if tx.Outputs[0].Satoshis != uint64(bsv.Satoshi().Sub(fee)) {
+	actOut, err := bsv.Satoshi().Sub(fee)
+	if err != nil {
+		t.Logf("negative amount: %v", err)
+		t.FailNow()
+	}
+	if tx.Outputs[0].Satoshis != uint64(actOut) {
 		t.Logf("output num 0 should be the destination but has no output value: %d", tx.Outputs[0].Satoshis)
 		t.FailNow()
 	}
@@ -82,8 +88,8 @@ func TestTransaction_NewMultiInputTX(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
-	bsv := ddb.Bitcoin(0.000402740)
-	fee := ddb.Satoshi(170)
+	bsv := satoshi.Bitcoin(0.000402740)
+	fee := satoshi.Satoshi(170)
 	utxos := make(map[string][]*ddb.UTXO)
 	utxos[destinationKey] = []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
 	tx, err := ddb.NewMultiInputTX(changeAddress, utxos, fee)
@@ -119,9 +125,9 @@ func TestTransaction_NewDataTX(t *testing.T) {
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
-	bsv := ddb.Bitcoin(0.000402740)
-	fee := ddb.Satoshi(170)
-	amount := ddb.Satoshi(20000)
+	bsv := satoshi.Bitcoin(0.000402740)
+	fee := satoshi.Satoshi(170)
+	amount := satoshi.Satoshi(20000)
 	header, _ := ddb.BuildDataHeader("test")
 	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
 	datatx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, amount, fee, payload, header)
@@ -142,7 +148,17 @@ func TestTransaction_NewDataTX(t *testing.T) {
 		t.Logf("output num 0 should have the destination amount: %d", datatx.Outputs[0].Satoshis)
 		t.FailNow()
 	}
-	if datatx.Outputs[2].Satoshis != uint64(bsv.Sub(fee).Satoshi().Sub(amount)) {
+	actMinusfee, err := bsv.Sub(fee)
+	if err != nil {
+		t.Logf("negative amount: %v", err)
+		t.FailNow()
+	}
+	actOut, err := actMinusfee.Satoshi().Sub(amount)
+	if err != nil {
+		t.Logf("negative amount: %v", err)
+		t.FailNow()
+	}
+	if datatx.Outputs[2].Satoshis != uint64(actOut.Satoshi()) {
 		t.Logf("output num 0 should have the change amount: %d", datatx.Outputs[0].Satoshis)
 		t.FailNow()
 	}
@@ -157,9 +173,9 @@ func TestTransaction_DataTX_UTXOs(t *testing.T) {
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
-	bsv := ddb.Bitcoin(0.000402740)
-	fee := ddb.Satoshi(170)
-	amount := ddb.Satoshi(20000)
+	bsv := satoshi.Bitcoin(0.000402740)
+	fee := satoshi.Satoshi(170)
+	amount := satoshi.Satoshi(20000)
 	header, _ := ddb.BuildDataHeader("test")
 	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
 	datatx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, amount, fee, payload, header)
@@ -188,9 +204,9 @@ func TestTransaction_NewDataTX_EmptyWallet(t *testing.T) {
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
-	bsv := ddb.Bitcoin(0.000402740)
-	fee := ddb.Satoshi(170)
-	amount := ddb.EmptyWallet
+	bsv := satoshi.Bitcoin(0.000402740)
+	fee := satoshi.Satoshi(170)
+	amount := satoshi.EmptyWallet
 	header, _ := ddb.BuildDataHeader("test")
 	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: bsv, ScriptPubKeyHex: scriptHex}}
 	datatx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, amount, fee, payload, header)
@@ -207,7 +223,12 @@ func TestTransaction_NewDataTX_EmptyWallet(t *testing.T) {
 		t.Logf("wrong number of output: %d", len(datatx.Outputs))
 		t.FailNow()
 	}
-	if datatx.Outputs[0].Satoshis != uint64(bsv.Sub(fee).Satoshi()) {
+	actOut, err := bsv.Sub(fee)
+	if err != nil {
+		t.Logf("negative amount: %v", err)
+		t.FailNow()
+	}
+	if datatx.Outputs[0].Satoshis != uint64(actOut.Satoshi()) {
 		t.Logf("unexpected value for a EmptyAddress ouput value: %d", datatx.Outputs[0].Satoshis)
 		t.FailNow()
 	}
@@ -269,9 +290,9 @@ func Helper_FakeTX(t *testing.T) *ddb.DataTX {
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte(fmt.Sprintf("TRH - The Rabbit Hole, by ejfhp - %s", time.Now().Format(time.RFC3339Nano)))
-	balance := ddb.Bitcoin(0.000402740)
-	fee := ddb.Satoshi(170)
-	amount := ddb.Satoshi(20000)
+	balance := satoshi.Bitcoin(0.000402740)
+	fee := satoshi.Satoshi(170)
+	amount := satoshi.Satoshi(20000)
 	header, _ := ddb.BuildDataHeader("test")
 	utxos := []*ddb.UTXO{{TXHash: txid, TXPos: 1, Value: balance, ScriptPubKeyHex: scriptHex}}
 	datatx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, amount, fee, payload, header)
