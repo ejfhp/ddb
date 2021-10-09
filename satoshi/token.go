@@ -1,4 +1,4 @@
-package ddb
+package satoshi
 
 import (
 	"encoding/json"
