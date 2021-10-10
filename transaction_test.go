@@ -71,6 +71,7 @@ func TestTransaction_NewTX_NoOPRETURN(t *testing.T) {
 	}
 	if len(tx.Outputs) != 1 {
 		t.Logf("wrong number of output: %d", len(tx.Outputs))
+		t.Logf("'%s'\n", tx.ToString())
 		t.FailNow()
 	}
 	actOut, err := bsv.Satoshi().Sub(fee)

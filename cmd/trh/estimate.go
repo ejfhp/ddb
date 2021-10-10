@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
@@ -51,12 +52,12 @@ func cmdEstimate(args []string) error {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)
 		}
-		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, passwordtoBytes(""), ent, defaultHeader, ddb.Bitcoin(ddb.FakeTXValue).Satoshi(), true)
+		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, passwordtoBytes(""), ent, defaultHeader, satoshi.Bitcoin(ddb.FakeTXValue).Satoshi(), true)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate txs for entry: %w", err)
 		}
-		totFee := ddb.Satoshi(0)
+		totFee := satoshi.Satoshi(0)
 		for i, t := range txs {
 			_, _, fee, err := t.TotInOutFee()
 			if err != nil {

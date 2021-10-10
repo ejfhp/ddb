@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/satoshi"
 )
 
 func TestBTrunk_GenerateKeyAndAddress(t *testing.T) {
@@ -55,7 +56,7 @@ func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 			t.FailNow()
 		}
 		for n, f := range files {
-			maxToSpend := ddb.Satoshi(10000)
+			maxToSpend := satoshi.Satoshi(10000)
 			entry, err := ddb.NewEntryFromFile(n, f, []string{"label1", "label2"}, "notes")
 			if err != nil {
 				t.Logf("%d - failed to generate entry: %v", i, err)
@@ -82,10 +83,10 @@ func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 					t.FailNow()
 				}
 			}
-			totFee := ddb.Satoshi(0)
+			totFee := satoshi.Satoshi(0)
 			firstIn, _, _, _ := txs[1].TotInOutFee()
 			_, lastOut, _, _ := txs[len(txs)-1].TotInOutFee()
-			firstFee := ddb.Satoshi(0)
+			firstFee := satoshi.Satoshi(0)
 			for i, tx := range txs {
 				_, _, tfe, err := tx.TotInOutFee()
 				if err != nil {
@@ -102,8 +103,14 @@ func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 				t.Logf("fee greater than limit (%d): %d", maxToSpend, totFee)
 				t.FailNow()
 			}
-			if totFee != firstIn.Sub(lastOut).Add(firstFee) {
-				t.Logf("in, out, fee, don't match: %d, %d, %d but fees are: %d", firstIn, lastOut, totFee, firstIn.Sub(lastOut).Satoshi())
+			entTotFee, err := firstIn.Sub(lastOut)
+			if err != nil {
+				t.Logf("error calculating fee")
+				t.FailNow()
+			}
+
+			if totFee != entTotFee.Add(firstFee) {
+				t.Logf("in, out, fee, don't match: %d, %d, %d but fees are: %d", firstIn, lastOut, totFee, entTotFee.Add(firstFee).Satoshi())
 				t.FailNow()
 			}
 		}

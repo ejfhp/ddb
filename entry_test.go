@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/satoshi"
 )
 
 func TestEntry_NewEntryFromFile(t *testing.T) {
@@ -235,10 +236,10 @@ func TestEntry_EncodedToAndReadFromDataTX(t *testing.T) {
 	//pack
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
-	utxos := []*ddb.UTXO{{TXPos: 1, TXHash: txid, Value: ddb.Bitcoin(1), ScriptPubKeyHex: scriptHex}}
+	utxos := []*ddb.UTXO{{TXPos: 1, TXHash: txid, Value: satoshi.Bitcoin(1), ScriptPubKeyHex: scriptHex}}
 	txs := make([]*ddb.DataTX, 0, len(cryParts))
 	for _, p := range cryParts {
-		tx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, ddb.Satoshi(10), ddb.Satoshi(200), p, "123456789")
+		tx, err := ddb.NewDataTX(destinationKey, destinationAddress, changeAddress, utxos, satoshi.Satoshi(10), satoshi.Satoshi(200), p, "123456789")
 		if err != nil {
 			t.Logf("EntryPart packing failed: %v", err)
 			t.Fail()

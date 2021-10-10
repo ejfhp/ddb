@@ -30,7 +30,7 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 	for i, v := range passwords {
 		fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: v, Blockchain: blockchain}
 		entry := ddb.Entry{Name: filename, Data: []byte(file)}
-		txs, err := fbranch.ProcessEntry("123456789", &entry, Helper_FakeTX(t).UTXOs())
+		txs, err := fbranch.ProcessEntry(&entry, Helper_FakeTX(t).UTXOs(), "123456789")
 		if err != nil {
 			t.Logf("%d failed to process entry: %v", i, err)
 			t.Fail()
@@ -328,7 +328,7 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	sha := sha256.Sum256(bytes)
 	hash := hex.EncodeToString(sha[:])
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: hash, Data: bytes}
-	txs, err := fbranch.ProcessEntry("123456789", entry, Helper_FakeTX(t).UTXOs())
+	txs, err := fbranch.ProcessEntry(entry, Helper_FakeTX(t).UTXOs(), "123456789")
 	t.Logf("txs len: %d", len(txs))
 	if err != nil {
 		t.Logf("txs preparation failed")
@@ -392,7 +392,7 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 	imageHash := hex.EncodeToString(imageSha[:])
 	fm := mime.TypeByExtension(filepath.Ext(name))
 	entry := &ddb.Entry{Name: name, Mime: fm, Hash: imageHash, Data: image}
-	txs, err := fbranch.ProcessEntry("123456789", entry, Helper_FakeTX(t).UTXOs())
+	txs, err := fbranch.ProcessEntry(entry, Helper_FakeTX(t).UTXOs(), "123456789")
 	txids := make([]string, len(txs))
 	for i, t := range txs {
 		txids[i] = t.GetTxID()

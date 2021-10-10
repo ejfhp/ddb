@@ -126,8 +126,7 @@ func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee s
 	return &dtx, nil
 }
 
-//NewTX builds a bt.TX transaction with the given params. The optional OP_RETURN data is in position 0. To move all the amount connected to the address use put EmptyWallet as amount.
-//No nil field allowed.
+//NewTX builds a bt.TX transaction with the given params. To move all the amount connected to the address use put EmptyWallet as amount.
 func NewTX(sourceKey string, destinationAddress string, changeAddress string, inutxo []*UTXO, amount satoshi.Token, fee satoshi.Token, opreturn []byte) (*bt.Tx, error) {
 	t := trace.New().Source("transaction.go", "", "NewTX")
 	tx := bt.NewTx()
@@ -145,44 +144,44 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		trail.Println(trace.Alert("input is 0").Append(t).UTC())
 		return nil, fmt.Errorf("input is 0")
 	}
-	satOutput := satoshi.Satoshi(0)
+	satDest := satoshi.Satoshi(0)
 	satChange := satoshi.Satoshi(0)
 	if amount.Bitcoin() < 0 {
 		trail.Println(trace.Alert("requested output amount is negative").Append(t).UTC())
 		return nil, fmt.Errorf("requested output amount is negative")
-
 	}
 	if amount.Satoshi() == satoshi.EmptyWallet {
 		trail.Println(trace.Warning("requested output is EmptyWallet").Append(t).UTC())
-		satOutput, err := satInput.Sub(fee)
+		var err error
+		satDest, err = satInput.Sub(fee)
 		if err != nil {
-			trail.Println(trace.Alert("cannot define output value").UTC().Append(t).Add("input/output/fee", fmt.Sprintf("%0.8f/%0.8f/%0.8f", satInput.Bitcoin(), satOutput.Bitcoin(), fee.Bitcoin())).Error(err))
-			return nil, fmt.Errorf("cannot define output value, input/output/fee %0.8f/%0.8f/%0.8f: %w", satInput.Bitcoin(), fee.Bitcoin(), satOutput.Bitcoin(), err)
+			trail.Println(trace.Alert("cannot define output value").UTC().Append(t).Add("input/output/fee", fmt.Sprintf("%0.8f/%0.8f/%0.8f", satInput.Bitcoin(), satDest.Bitcoin(), fee.Bitcoin())).Error(err))
+			return nil, fmt.Errorf("cannot define output value, input/output/fee %0.8f/%0.8f/%0.8f: %w", satInput.Bitcoin(), fee.Bitcoin(), satDest.Bitcoin(), err)
 		}
 	} else {
-		satOutput = amount.Satoshi()
+		satDest = amount.Satoshi()
 	}
 
-	outputDest, err := bt.NewP2PKHOutputFromAddress(destinationAddress, uint64(satOutput.Satoshi()))
+	outputDest, err := bt.NewP2PKHOutputFromAddress(destinationAddress, uint64(satDest.Satoshi()))
 	if err != nil {
-		trail.Println(trace.Alert("cannot create output").UTC().Append(t).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err))
-		return nil, fmt.Errorf("cannot create output, amount %0.8f: %w", satOutput.Bitcoin(), err)
+		trail.Println(trace.Alert("cannot create output").UTC().Append(t).Add("output", fmt.Sprintf("%0.8f", satDest.Bitcoin())).Error(err))
+		return nil, fmt.Errorf("cannot create output, amount %0.8f: %w", satDest.Bitcoin(), err)
 	}
 	tx.AddOutput(outputDest)
 
 	if opreturn != nil {
 		outOpRet, err := bt.NewOpReturnOutput(opreturn)
 		if err != nil {
-			trail.Println(trace.Alert("cannot create OP_RETURN output").UTC().Add("destinationAddress", destinationAddress).Add("output", fmt.Sprintf("%0.8f", satOutput.Bitcoin())).Error(err).Append(t))
+			trail.Println(trace.Alert("cannot create OP_RETURN output").UTC().Add("destinationAddress", destinationAddress).Add("output", fmt.Sprintf("%0.8f", satDest.Bitcoin())).Error(err).Append(t))
 			return nil, fmt.Errorf("cannot create OP_RETURN output: %w", err)
 		}
 		tx.AddOutput(outOpRet)
 	}
-
-	satChange, err = satInput.Sub(satOutput.Satoshi().Add(fee))
+	satOut := satDest.Add(fee)
+	satChange, err = satInput.Sub(satOut)
 	if err != nil {
-		trail.Println(trace.Alert("cannot define change value").UTC().Append(t).Add("input/output/fee", fmt.Sprintf("%0.8f/%0.8f/%0.8f", satInput.Bitcoin(), satOutput.Bitcoin(), fee.Bitcoin())).Error(err))
-		return nil, fmt.Errorf("cannot define change value, input/output/fee %0.8f/%0.8f/%0.8f: %w", satInput.Bitcoin(), fee.Bitcoin(), satOutput.Bitcoin(), err)
+		trail.Println(trace.Alert("cannot define change value").UTC().Append(t).Add("input/output/fee", fmt.Sprintf("%0.8f/%0.8f/%0.8f", satInput.Bitcoin(), satDest.Bitcoin(), fee.Bitcoin())).Error(err))
+		return nil, fmt.Errorf("cannot define change value, input/output/fee %0.8f/%0.8f/%0.8f: %w", satInput.Bitcoin(), satDest.Bitcoin(), fee.Bitcoin(), err)
 	}
 	if satChange.Satoshi() > 0 {
 		outputChange, err := bt.NewP2PKHOutputFromAddress(changeAddress, uint64(satChange.Satoshi()))

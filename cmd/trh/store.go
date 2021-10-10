@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
@@ -62,12 +63,12 @@ func cmdStore(args []string) error {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)
 		}
-		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, password, ent, defaultHeader, ddb.Satoshi(flagMaxSpend), false)
+		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, password, ent, defaultHeader, satoshi.Satoshi(flagMaxSpend), false)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate txs for entry: %w", err)
 		}
-		totFee := ddb.Satoshi(0)
+		totFee := satoshi.Satoshi(0)
 		for i, t := range txs {
 			_, _, fee, err := t.TotInOutFee()
 			if err != nil {
@@ -79,6 +80,7 @@ func cmdStore(args []string) error {
 		for i, t := range txs {
 			fmt.Printf("\n%d:\n%s\n", i, t.ToString())
 		}
+
 		// ids, err := btrunk.Blockchain.Submit(txs)
 		// if err != nil {
 		// 	trail.Println(trace.Alert("failed to submit txs").Append(tr).UTC().Error(err))

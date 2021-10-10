@@ -27,7 +27,7 @@ func (fb *FBranch) EncodingPassword() string {
 }
 
 //ProcessEntry prepares all the TXs required to store the entry on the blockchain.
-func (fb *FBranch) ProcessEntry(header string, entry *Entry, utxo []*UTXO) ([]*DataTX, error) {
+func (fb *FBranch) ProcessEntry(entry *Entry, utxo []*UTXO, header string) ([]*DataTX, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "ProcessEntry")
 	trail.Println(trace.Info("preparing file").Add("file", entry.Name).Add("size", fmt.Sprintf("%d", len(entry.Data))).UTC().Append(tr))
 	// entryParts, err := fb.EncryptEntry(entry)

@@ -68,24 +68,14 @@ func (bt *BTrunk) TXOfBranchedEntry(branchWIF, branchAddress string, password [3
 		trail.Println(trace.Debug("error while estimating metaEntry TX fee").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while estimating metaEntry TX fee: %v", err)
 	}
-	//Fee for casting Entry
-	efee, err := fBranch.EstimateEntryFee(header, entry)
-	if err != nil {
-		trail.Println(trace.Debug("error while estimating entry TXs fee").Append(tr).UTC().Error(err))
-		return nil, fmt.Errorf("error while estimating entry TXs fee: %v", err)
-	}
+
 	//Fee to bring back remaining fund to BTrunk address
 	finfee, err := bt.Blockchain.EstimateStandardTXFee(1)
 	if err != nil {
 		trail.Println(trace.Debug("error while estimating final TX fee").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while estimating final TX fee: %v", err)
 	}
-	totalFee := mefee.Add(efee)
-	totalFee = totalFee.Add(finfee)
-	if totalFee > maxAmountToSpend {
-		trail.Println(trace.Debug("given amount is less than estimated required fee").Append(tr).UTC().Add("fee/amount", fmt.Sprintf("%d/%d", totalFee, maxAmountToSpend)))
-		return nil, fmt.Errorf("given amount (%d) is less than estimated required fee (%d)", maxAmountToSpend, totalFee)
-	}
+
 	allTXs := make([]*DataTX, 0)
 	//First TX with metaEntry
 	meTX, err := NewDataTX(bt.BitcoinWIF, fBranch.BitcoinAdd, bt.BitcoinAdd, utxo, maxAmountToSpend, mefee, metaEntryData, header)
@@ -94,21 +84,22 @@ func (bt *BTrunk) TXOfBranchedEntry(branchWIF, branchAddress string, password [3
 		return nil, fmt.Errorf("error while making metaEntry DataTX: %v", err)
 	}
 	allTXs = append(allTXs, meTX)
-	//Enrtry TXs, only the first UTXO has to be considered.
-	entryTXs, err := fBranch.ProcessEntry(header, entry, meTX.UTXOs()[:1])
+
+	//Entry TXs, only the first UTXO has to be considered.
+	entryTXs, err := fBranch.ProcessEntry(entry, meTX.UTXOs()[:1], header)
 	if err != nil {
 		trail.Println(trace.Debug("error while making entry DataTXs").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while making entry DataTXs: %v", err)
 	}
 	allTXs = append(allTXs, entryTXs...)
-	lastTX := entryTXs[len(entryTXs)-1]
+
 	//Final transaction to move change back to BTrunk wallet
-	_, lout, _, err := lastTX.TotInOutFee()
+	lastTX := entryTXs[len(entryTXs)-1]
 	if err != nil {
 		trail.Println(trace.Debug("error getting output from last entity TX").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error getting output from last eintity TX: %v", err)
 	}
-	finTX, err := NewDataTX(fBranch.BitcoinWIF, bt.BitcoinAdd, bt.BitcoinAdd, lastTX.UTXOs(), lout, finfee, nil, "")
+	finTX, err := NewDataTX(fBranch.BitcoinWIF, bt.BitcoinAdd, bt.BitcoinAdd, lastTX.UTXOs()[:1], satoshi.EmptyWallet, finfee, nil, header)
 	if err != nil {
 		trail.Println(trace.Debug("error while making final DataTX").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while making final DataTX: %v", err)
