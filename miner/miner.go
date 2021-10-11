@@ -1,8 +1,8 @@
-package ddb
+package miner
 
 import "time"
 
-type MapiPayload struct {
+type SingleTXResponse struct {
 	ApiVersion                string    `json:"apiVersion"`
 	Timestamp                 time.Time `json:"timestamp"`
 	ExpiryTime                time.Time `json:"expiryTime"`
@@ -14,8 +14,28 @@ type MapiPayload struct {
 	CurrentHighestBlockHeight int       `json:"currentHighestBlockHeight"`
 	Fees                      Fees      `json:"fees"`
 }
+type MultiTXResponse struct {
+	ApiVersion                string    `json:"apiVersion"`
+	Timestamp                 time.Time `json:"timestamp"`
+	MinerID                   string    `json:"minerId"`
+	CurrentHighestBlockHash   string    `json:"currentHighestBlockHash"`
+	CurrentHighestBlockHeight int       `json:"currentHighestBlockHeight"`
+	SecondMempoolExpiry       time.Time `json:"txSecondMempoolExpiry"`
+	ExpiryTime                time.Time `json:"expiryTime"`
+	TXS                       struct {
+		TXID              string `json:"txid"`
+		ReturnResult      string `json:"returnResult"`
+		ResultDescription string `json:"resultDescription"`
+		ConflictedWith    []struct {
+			TXID string `json:"txid"`
+			Size int    `json:"size"`
+			Hex  string `json:"hex"`
+		} `json:"conflictedWith,omitempty"`
+	} `json:"txs"`
+	FailureCount int `json:"failureCount"`
+}
 
-type MapiSubmitTX struct {
+type TX struct {
 	Rawtx              string `json:"rawtx"`
 	CallBackUrl        string `json:"callBackUrl"`
 	CallBackToken      string `json:"callBackToken"`
@@ -34,4 +54,5 @@ type Miner interface {
 	GetStandardFee() (*Fee, error)
 	//SubmitTX submit the given raw tx to Taal MAPI and if succeed return TXID
 	SubmitTX(rawTX string) (string, error)
+	SubmitMultiTX(rawTX []string) ([]string, error)
 }

@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/ddb/satoshi"
 )
 
 func TestBTrunk_GenerateKeyAndAddress(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	passwords := [][32]byte{
 		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
 		{'c', 'i', 'a', 'o', 'm', 'a', 'm', 'm', 'a', 'g', 'u', 'a', 'r', 'd', 'a', 'c', 'o', 'm', 'e', 'm', 'i', 'd', 'i', 'v', 'e', 'r', 't', 'o', '.', '.', '.'},
@@ -38,7 +39,7 @@ func TestBTrunk_GenerateKeyAndAddress(t *testing.T) {
 func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	passwords := [][32]byte{
 		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
 		{'c', 'i', 'a', 'o', 'm', 'a', 'm', 'm', 'a', 'g', 'u', 'a', 'r', 'd', 'a', 'c', 'o', 'm', 'e', 'm', 'i', 'd', 'i', 'v', 'e', 'r', 't', 'o', '.', '.', '.'},

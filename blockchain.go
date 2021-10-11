@@ -3,19 +3,20 @@ package ddb
 import (
 	"fmt"
 
+	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
 
 type Blockchain struct {
-	miner    Miner
+	miner    miner.Miner
 	explorer Explorer
 	Cache    *TXCache
 }
 
 //NewBlockchain builds a new Blockchain. This is the access point to write and read from a blockchain.
-func NewBlockchain(miner Miner, explorer Explorer, cache *TXCache) *Blockchain {
+func NewBlockchain(miner miner.Miner, explorer Explorer, cache *TXCache) *Blockchain {
 	return &Blockchain{miner: miner, explorer: explorer, Cache: cache}
 }
 

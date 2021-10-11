@@ -1,4 +1,4 @@
-package ddb
+package miner
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
+//TODO Implemtnet send multi tx and package miners api
 type TAAL struct {
 	BaseURL string
 	fees    Fees
@@ -55,7 +56,7 @@ func (l *TAAL) GetFees() (Fees, error) {
 		return nil, fmt.Errorf("error while unmarshalling mapi response: %w", err)
 	}
 	payload := mapiResponse["payload"].(string)
-	mapiPayload := MapiPayload{}
+	mapiPayload := SingleTXResponse{}
 	err = json.Unmarshal([]byte(payload), &mapiPayload)
 	if err != nil {
 		trail.Println(trace.Alert("error while unmarshalling mapi payload").UTC().Add("url", url).Error(err).Append(t))
@@ -103,7 +104,7 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	url := fmt.Sprintf("%s/tx", l.BaseURL)
 	trail.Println(trace.Debug("submit tx").UTC().Add("url", url).Append(t))
 	//fmt.Printf("\n\n %s \n\n", rawTX)
-	mapiSubmitTX := MapiSubmitTX{
+	mapiSubmitTX := TX{
 		Rawtx:       rawTX,
 		MerkleProof: false,
 		DsCheck:     false,
@@ -132,7 +133,7 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 		return "", fmt.Errorf("error while unmarshalling mapi response: %w", err)
 	}
 	responsePayload := mapiResponse["payload"].(string)
-	mapiPayload := MapiPayload{}
+	mapiPayload := SingleTXResponse{}
 	err = json.Unmarshal([]byte(responsePayload), &mapiPayload)
 	if err != nil {
 		trail.Println(trace.Alert("error while unmarshalling mapi payload").UTC().Add("url", url).Error(err).Append(t))
@@ -145,4 +146,57 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	}
 	txid := mapiPayload.TXID
 	return txid, nil
+}
+
+func (l *TAAL) SubmitMultiTX(rawTXs []string) ([]string, error) {
+	t := trace.New().Source("taal.go", "TAAL", "SubmitMultiTX")
+	url := fmt.Sprintf("%s/txs", l.BaseURL)
+	trail.Println(trace.Debug("submit multi tx").UTC().Add("url", url).Append(t))
+	//fmt.Printf("\n\n %s \n\n", rawTX)
+	mapiSubmitMultiTX := make([]TX, len(rawTXs))
+	for i, rawTX := range rawTXs {
+		mapiSubmitMultiTX[i] = TX{
+			Rawtx:       rawTX,
+			MerkleProof: false,
+			DsCheck:     false,
+		}
+	}
+	payload, err := json.Marshal(mapiSubmitMultiTX)
+	if err != nil {
+		trail.Println(trace.Alert("error while marshalling MapiSubmitTX").UTC().Add("url", url).Error(err).Append(t))
+		return nil, fmt.Errorf("error while marshalling []TX: %w", err)
+	}
+	resp, err := http.Post(url, "application/json", bytes.NewReader(payload))
+	if err != nil {
+		trail.Println(trace.Alert("error while posting MultiTX").UTC().Add("url", url).Error(err).Append(t))
+		return nil, fmt.Errorf("error while posting MultiTX: %w", err)
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	trail.Println(trace.Info("miner response").UTC().Add("url", url).Add("response", string(body)).Append(t))
+	if resp.StatusCode != 200 {
+		trail.Println(trace.Alert("miner replied with bad status").UTC().Add("url", url).Add("status", resp.Status).Append(t))
+		return "", fmt.Errorf("miner replied with bad status: %s", resp.Status)
+
+	}
+	mapiResponse := make(map[string]interface{})
+	err = json.Unmarshal(body, &mapiResponse)
+	if err != nil {
+		trail.Println(trace.Alert("error while unmarshalling mapi response").UTC().Add("url", url).Error(err).Append(t))
+		return "", fmt.Errorf("error while unmarshalling mapi response: %w", err)
+	}
+	responsePayload := mapiResponse["payload"].(string)
+	mapiPayload := SingleTXResponse{}
+	err = json.Unmarshal([]byte(responsePayload), &mapiPayload)
+	if err != nil {
+		trail.Println(trace.Alert("error while unmarshalling mapi payload").UTC().Add("url", url).Error(err).Append(t))
+		return "", fmt.Errorf("error while unmarshalling mapi payload: %w", err)
+	}
+	if mapiPayload.ReturnResult != "success" {
+		trail.Println(trace.Alert("mapi call unsuccesful").UTC().Add("return", mapiPayload.ReturnResult).Add("returnDecription", mapiPayload.ResultDescription).Append(t))
+		return "", fmt.Errorf("mapi call unsuccesfull: %s, %s", mapiPayload.ReturnResult, mapiPayload.ResultDescription)
+
+	}
+	txid := mapiPayload.TXID
+	return txid, nil
+	return nil, nil
 }

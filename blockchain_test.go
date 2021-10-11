@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/miner"
 )
 
 func TestBlockchain_EstimateDataTXFee(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
-	miner := ddb.NewTAAL()
+	miner := miner.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, nil)
 	//Check consistency
@@ -29,7 +30,7 @@ func TestBlockchain_EstimateDataTXFee(t *testing.T) {
 
 func TestBlockchain_EstimateStandardTXFee(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
-	miner := ddb.NewTAAL()
+	miner := miner.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, nil)
 	//Check consistency
@@ -56,7 +57,7 @@ func TestBlockchain_Submit(t *testing.T) {
 		t.FailNow()
 	}
 	txs := []*ddb.DataTX{tx}
-	miner := ddb.NewTAAL()
+	miner := miner.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, nil)
 	ids, err := blk.Submit(txs)
@@ -71,7 +72,7 @@ func TestBlockchain_Submit(t *testing.T) {
 
 func TestBlockchain_ListTXIDs(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
-	miner := ddb.NewTAAL()
+	miner := miner.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, nil)
 	txids, err := blk.ListTXIDs(destinationAddress, false)
@@ -88,7 +89,7 @@ func TestBlockchain_ListTXIDs(t *testing.T) {
 func TestBlockchain_GetTX(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
-	miner := ddb.NewTAAL()
+	miner := miner.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, nil)
 	dataTx, err := blk.GetTX(txid, false)
@@ -113,9 +114,9 @@ func TestBlockchain_GetTX_OnlyCache(t *testing.T) {
 	tx := Helper_FakeTX(t)
 	txid := tx.GetTxID()
 	txCache.StoreTX(txid, tx.ToBytes())
-	miner := ddb.NewTAAL()
+	mir := miner.NewTAAL()
 	expl := ddb.NewWOC()
-	blk := ddb.NewBlockchain(miner, expl, txCache)
+	blk := ddb.NewBlockchain(mir, expl, txCache)
 	dataTx, err := blk.GetTX(txid, true)
 	if err != nil {
 		t.Logf("failed to get data TXs: %v", err)

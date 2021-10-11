@@ -9,12 +9,13 @@ import (
 	"testing"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/miner"
 )
 
 func TestFBranch_ProcessEntry(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	passwords := [][32]byte{
 		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
 	}
@@ -60,7 +61,7 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 func TestFBranch_EstimateEntryFee(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
@@ -206,7 +207,7 @@ func TestFBranch_GetEntryFromTXID_Text(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
@@ -262,7 +263,7 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 		"1668afdd6978ef2cd594aa15c96138736e86d22abc3aba2b8428b96400dd2f87",
 	}
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
@@ -313,7 +314,7 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	cache, err := ddb.NewTXCache("./.trhcache")
 	if err != nil {
 		t.Logf("cache preparation failed: %v", err)
@@ -373,7 +374,7 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	cache, err := ddb.NewTXCache("./.trhcache")
 	if err != nil {
 		t.Logf("cache preparation failed: %v", err)
@@ -437,7 +438,7 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 func TestFBranch_DownloadAll(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	// cache, err := ddb.NewTXCache("/tmp")
 	cache, err := ddb.NewTXCache("./.trhcache")
 	if err != nil {
