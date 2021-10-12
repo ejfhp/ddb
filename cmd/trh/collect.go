@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
@@ -39,7 +40,7 @@ func cmdCollect(args []string) error {
 		return fmt.Errorf("flag combination invalid")
 	}
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
 

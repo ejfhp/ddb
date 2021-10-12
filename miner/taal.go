@@ -148,7 +148,7 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	return txid, nil
 }
 
-func (l *TAAL) SubmitMultiTX(rawTXs []string) ([]string, error) {
+func (l *TAAL) SubmitMultiTX(rawTXs []string) (map[string]string, error) {
 	t := trace.New().Source("taal.go", "TAAL", "SubmitMultiTX")
 	url := fmt.Sprintf("%s/txs", l.BaseURL)
 	trail.Println(trace.Debug("submit multi tx").UTC().Add("url", url).Append(t))
@@ -175,28 +175,25 @@ func (l *TAAL) SubmitMultiTX(rawTXs []string) ([]string, error) {
 	trail.Println(trace.Info("miner response").UTC().Add("url", url).Add("response", string(body)).Append(t))
 	if resp.StatusCode != 200 {
 		trail.Println(trace.Alert("miner replied with bad status").UTC().Add("url", url).Add("status", resp.Status).Append(t))
-		return "", fmt.Errorf("miner replied with bad status: %s", resp.Status)
+		return nil, fmt.Errorf("miner replied with bad status: %s", resp.Status)
 
 	}
 	mapiResponse := make(map[string]interface{})
 	err = json.Unmarshal(body, &mapiResponse)
 	if err != nil {
 		trail.Println(trace.Alert("error while unmarshalling mapi response").UTC().Add("url", url).Error(err).Append(t))
-		return "", fmt.Errorf("error while unmarshalling mapi response: %w", err)
+		return nil, fmt.Errorf("error while unmarshalling mapi response: %w", err)
 	}
 	responsePayload := mapiResponse["payload"].(string)
-	mapiPayload := SingleTXResponse{}
+	mapiPayload := MultiTXResponse{}
 	err = json.Unmarshal([]byte(responsePayload), &mapiPayload)
 	if err != nil {
 		trail.Println(trace.Alert("error while unmarshalling mapi payload").UTC().Add("url", url).Error(err).Append(t))
-		return "", fmt.Errorf("error while unmarshalling mapi payload: %w", err)
+		return nil, fmt.Errorf("error while unmarshalling mapi payload: %w", err)
 	}
-	if mapiPayload.ReturnResult != "success" {
-		trail.Println(trace.Alert("mapi call unsuccesful").UTC().Add("return", mapiPayload.ReturnResult).Add("returnDecription", mapiPayload.ResultDescription).Append(t))
-		return "", fmt.Errorf("mapi call unsuccesfull: %s, %s", mapiPayload.ReturnResult, mapiPayload.ResultDescription)
-
+	responseTXs := map[string]string{}
+	for _, res := range mapiPayload.TXS {
+		responseTXs[res.TXID] = res.ResultDescription
 	}
-	txid := mapiPayload.TXID
-	return txid, nil
-	return nil, nil
+	return responseTXs, nil
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -33,7 +34,7 @@ func cmdEstimate(args []string) error {
 	switch opt {
 	case "file":
 		woc := ddb.NewWOC()
-		taal := ddb.NewTAAL()
+		taal := miner.NewTAAL()
 		blockchain := ddb.NewBlockchain(taal, woc, nil)
 		btrunk := &ddb.BTrunk{BitcoinWIF: ddb.SampleKey, BitcoinAdd: ddb.SampleAddress, Blockchain: blockchain}
 		lff := strings.Split(flagLabels, ",")

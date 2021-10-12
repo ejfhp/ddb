@@ -2,6 +2,10 @@ package miner
 
 import "time"
 
+const (
+	ResponseSuccess = "success"
+)
+
 type SingleTXResponse struct {
 	ApiVersion                string    `json:"apiVersion"`
 	Timestamp                 time.Time `json:"timestamp"`
@@ -20,9 +24,8 @@ type MultiTXResponse struct {
 	MinerID                   string    `json:"minerId"`
 	CurrentHighestBlockHash   string    `json:"currentHighestBlockHash"`
 	CurrentHighestBlockHeight int       `json:"currentHighestBlockHeight"`
-	SecondMempoolExpiry       time.Time `json:"txSecondMempoolExpiry"`
-	ExpiryTime                time.Time `json:"expiryTime"`
-	TXS                       struct {
+	SecondMempoolExpiry       int       `json:"txSecondMempoolExpiry"`
+	TXS                       []struct {
 		TXID              string `json:"txid"`
 		ReturnResult      string `json:"returnResult"`
 		ResultDescription string `json:"resultDescription"`
@@ -54,5 +57,5 @@ type Miner interface {
 	GetStandardFee() (*Fee, error)
 	//SubmitTX submit the given raw tx to Taal MAPI and if succeed return TXID
 	SubmitTX(rawTX string) (string, error)
-	SubmitMultiTX(rawTX []string) ([]string, error)
+	SubmitMultiTX(rawTX []string) (map[string]string, error)
 }

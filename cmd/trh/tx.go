@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
@@ -29,7 +30,7 @@ func cmdTx(args []string) error {
 	}
 	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
-	taal := ddb.NewTAAL()
+	taal := miner.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	switch opt {
 	case "pin":

@@ -21,7 +21,7 @@ func TestBlockchain_EstimateDataTXFee(t *testing.T) {
 			t.Logf("%d - cannot estimate fee: %v", i, err)
 			t.FailNow()
 		}
-		if fee != 126 {
+		if fee < 125 {
 			t.Logf("%d - fee estimation failed: %d", i, fee.Satoshi())
 			t.FailNow()
 		}

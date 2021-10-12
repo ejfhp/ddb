@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -38,7 +39,7 @@ func cmdStore(args []string) error {
 	switch opt {
 	case "file":
 		woc := ddb.NewWOC()
-		taal := ddb.NewTAAL()
+		taal := miner.NewTAAL()
 		blockchain := ddb.NewBlockchain(taal, woc, nil)
 		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
 		lff := strings.Split(flagLabels, ",")
@@ -80,6 +81,8 @@ func cmdStore(args []string) error {
 		for i, t := range txs {
 			fmt.Printf("\n%d:\n%s\n", i, t.ToString())
 		}
+
+		//TODO TRY TO SUBMIT
 
 		// ids, err := btrunk.Blockchain.Submit(txs)
 		// if err != nil {

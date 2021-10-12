@@ -60,30 +60,36 @@ func (b *Blockchain) EstimateStandardTXFee(numUTXO int) (satoshi.Satoshi, error)
 	return fee.CalculateFee(len(noDataTX.ToBytes())), nil
 }
 
-//Submit submits all the transactions to the miner to be included in the blockchain, returns the TX IDs
-func (b *Blockchain) Submit(txs []*DataTX) ([]string, error) {
+//Submit submits all the transactions to the miner to be included in the blockchain, returns the TX IDs with result
+func (b *Blockchain) Submit(txs []*DataTX) (map[string]string, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
-	ids := make([]string, len(txs))
+	txsdata := make([]string, len(txs))
 	for i, tx := range txs {
-		fee := tx.GetTotalInputSatoshis() - tx.GetTotalOutputSatoshis()
-		trail.Println(trace.Info("submiting TX").UTC().Add("id", tx.GetTxID()).Add("fee", fmt.Sprintf("%d", fee)).Append(tr))
-		id, err := b.miner.SubmitTX(tx.ToString())
-		if err != nil {
-			trail.Println(trace.Alert("cannot submit TX to miner").UTC().Add("TX n.", fmt.Sprintf("%d", i)).Add("miner", b.miner.GetName()).Error(err).Append(tr))
-			return nil, fmt.Errorf("cannot submit TX to miner: %w", err)
+		txsdata[i] = tx.ToString()
+	}
+	restxs, err := b.miner.SubmitMultiTX(txsdata)
+	if err != nil {
+		trail.Println(trace.Alert("cannot submit MultiTXs to miner").UTC().Add("TXs cardinality", fmt.Sprintf("%d", len(txs))).Add("miner", b.miner.GetName()).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot submit TX to miner: %w", err)
+	}
+	for i, tx := range txs {
+		result, ok := restxs[tx.GetTxID()]
+		if !ok {
+			trail.Println(trace.Alert("something weird happened, TX is not in miner response").UTC().Add("TXID", tx.GetTxID()).Append(tr))
+			return nil, fmt.Errorf("something weird happened, TX is not in miner response: %s", tx.GetTxID())
 		}
-		if id != tx.GetTxID() {
-			trail.Println(trace.Alert("for TX miner returned a different TXID").UTC().Add("minerTXID", id).Add("TXID", tx.GetTxID()).Add("miner", b.miner.GetName()).Append(tr))
+		if result != miner.ResponseSuccess {
+			continue
 		}
+		txsdata[i] = tx.ToString()
 		if b.Cache != nil {
-			err = b.Cache.StoreTX(id, tx.ToBytes())
+			err = b.Cache.StoreTX(tx.GetTxID(), tx.ToBytes())
 			if err != nil {
 				trail.Println(trace.Alert("error while storing submitted TX in cache").UTC().Add("TXID", tx.GetTxID()).Append(tr))
 			}
 		}
-		ids[i] = id
 	}
-	return ids, nil
+	return restxs, nil
 }
 
 func (b *Blockchain) MaxDataSize() int {
