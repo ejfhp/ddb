@@ -49,7 +49,7 @@ func cmdKeystore(args []string) error {
 	switch opt {
 	case "genkey":
 		keyStore = ddb.NewKeystore()
-		keyStore.WIF = flagBitcoinKey
+		keyStore.Key = flagBitcoinKey
 		keyStore.Address, err = ddb.AddressOf(flagBitcoinKey)
 		if err != nil {
 			trail.Println(trace.Alert("provided key has issues").Append(tr).UTC().Add("bitcoinKey", flagBitcoinKey).Error(err))
@@ -89,13 +89,13 @@ func showKeystore(keystore *ddb.KeyStore) {
 	fmt.Printf("\n")
 	fmt.Printf("    KEY WIF\n")
 	ddb.PrintQRCode(os.Stdout, keystore.Address)
-	fmt.Printf("    %s\n", keystore.WIF)
+	fmt.Printf("    %s\n", keystore.Key)
 	fmt.Printf("\n")
 	fmt.Printf("    ADDRESS\n")
 	ddb.PrintQRCode(os.Stdout, keystore.Address)
 	fmt.Printf("   %s\n", keystore.Address)
 	fmt.Printf("\n")
-	fmt.Printf("   Bitcoin Key (WIF): %s\n", keystore.WIF)
+	fmt.Printf("   Bitcoin Key (WIF): %s\n", keystore.Key)
 	fmt.Printf("   Bitcoin Address: %s\n", keystore.Address)
 	fmt.Printf("   Passwords:\n")
 	for n, p := range keystore.Passwords {
@@ -109,7 +109,7 @@ func keyStoreFromPassphrase(passphrase string) (*ddb.KeyStore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while generating key using passphrase: %w", err)
 	}
-	keyStore.WIF = wif
+	keyStore.Key = wif
 	keyStore.Address, err = ddb.AddressOf(wif)
 	if err != nil {
 		return nil, fmt.Errorf("generated key '%s' has issues: %w", flagBitcoinKey, err)

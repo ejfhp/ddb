@@ -42,7 +42,7 @@ func cmdCollect(args []string) error {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
+	btrunk := &ddb.BTrunk{BitcoinWIF: keystore.Key, BitcoinAdd: keystore.Address, Blockchain: blockchain}
 
 	utxos := make(map[string][]*ddb.UTXO)
 	for _, pwd := range keystore.Passwords {

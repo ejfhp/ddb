@@ -1,6 +1,7 @@
 package ddb
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,9 +35,10 @@ func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 }
 
 type KeyStore struct {
-	WIF       string              `json:"wif"`
+	Key       string              `json:"wif"`
 	Address   string              `json:"address"`
 	Passwords map[string][32]byte `json:"password"`
+	PKeyAdd   map[string][]string `json:"pwifadd"`
 }
 
 func NewKeystore() *KeyStore {
@@ -73,12 +75,48 @@ func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
 	return &k, nil
 }
 
-func (ks *KeyStore) PasswordAsString(label string) string {
-	pwd, ok := ks.Passwords[label]
-	if !ok {
-		return ""
+func LoadKeyStoreUnencrypted(filepath string) (*KeyStore, error) {
+	tr := trace.New().Source("keys.go", "KeyStore", "LoadKeyStoreUnencrypted")
+	file, err := os.Open(filepath)
+	if err != nil {
+		trail.Println(trace.Alert("cannot open KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot open KeyStore file: %w", err)
 	}
-	return string(pwd[:])
+	defer file.Close()
+	read, err := ioutil.ReadAll(file)
+	if err != nil || len(read) == 0 {
+		trail.Println(trace.Alert("error while reading KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return nil, fmt.Errorf("error while reading KeyStore file: %w", err)
+	}
+	var k KeyStore
+	err = json.Unmarshal(read, &k)
+	if err != nil {
+		trail.Println(trace.Alert("cannot decode KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return nil, fmt.Errorf("cannot decode KeyStore file: %w", err)
+	}
+	return &k, nil
+}
+
+//GenerateKeyAndAddress returns key and address to be used when branching an entry. The key is a function of the BTrunk key and the given password.
+func (ks *KeyStore) GenerateKeyAndAddress(password [32]byte) (string, string, error) {
+	keySeed := []byte{}
+	keySeed = append(keySeed, []byte(ks.Address)...)
+	keySeed = append(keySeed, password[:]...)
+	keySeedHash := sha256.Sum256(keySeed)
+	key, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
+	fbwif, err := bsvutil.NewWIF(key, &chaincfg.MainNetParams, true)
+	if err != nil {
+		return "", "", fmt.Errorf("error while generating key: %v", err)
+	}
+	fbWIF := fbwif.String()
+	fbAdd, err := AddressOf(fbWIF)
+	if err != nil {
+		return "", "", fmt.Errorf("error while generating address: %v", err)
+	}
+	ks.Passwords[string(password[:])] = password
+	ks.PKeyAdd[string(password[:])] = []string{fbWIF, fbAdd}
+	return fbWIF, fbAdd, nil
+
 }
 
 func (ks *KeyStore) Save(filepath string, pin string) error {
@@ -105,6 +143,30 @@ func (ks *KeyStore) Save(filepath string, pin string) error {
 	defer file.Close()
 	n, err := file.Write(encrypted)
 	if err != nil || n != len(encrypted) {
+		trail.Println(trace.Alert("error while writing KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return fmt.Errorf("error while writing KeyStore file: %w", err)
+	}
+	return nil
+}
+
+func (ks *KeyStore) SaveUnencrypted(filepath string) error {
+	tr := trace.New().Source("keys.go", "KeyStore", "SaveUnencrypted")
+	encoded, err := json.Marshal(ks)
+	if err != nil {
+		trail.Println(trace.Alert("cannot encode KeyStore").UTC().Error(err).Append(tr))
+		return fmt.Errorf("cannot encode KeyStore: %w", err)
+	}
+	if _, err := os.Stat(filepath); err == nil {
+		return fmt.Errorf("KeyStore already exsist")
+	}
+	file, err := os.Create(filepath)
+	if err != nil {
+		trail.Println(trace.Alert("cannot create KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
+		return fmt.Errorf("cannot create KeyStore file: %w", err)
+	}
+	defer file.Close()
+	n, err := file.Write(encoded)
+	if err != nil || n != len(encoded) {
 		trail.Println(trace.Alert("error while writing KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
 		return fmt.Errorf("error while writing KeyStore file: %w", err)
 	}
@@ -141,7 +203,7 @@ func (ks *KeyStore) Update(filepath string, pin string) error {
 			return fmt.Errorf("cannot load current keystore file: %w", err)
 		}
 	}
-	if ck.WIF != ks.WIF {
+	if ck.Key != ks.Key {
 		trail.Println(trace.Alert("in memory keystore and saved keystore have a different key").Append(tr).UTC())
 		return fmt.Errorf("in memory keystore and saved keystore have a different key")
 	}

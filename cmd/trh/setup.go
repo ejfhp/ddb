@@ -100,6 +100,17 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		}
 		return flagset, options
 	}
+	//LIST
+	if command == listCmd {
+		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to read the keystore")
+		flagset.StringVar(&flagPassword, "password", "", "encryption password")
+		options := map[string][]string{
+			"pin":      {"pin"},
+			"password": {"pin", "password"},
+			"ignored":  {"log", "help"},
+		}
+		return flagset, options
+	}
 	//DESCRIBE
 	// if command == commandDescribe {
 	// 	flagset.StringVar(&flagBitcoinAddress, "address", "", "bitcoin address")

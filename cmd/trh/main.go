@@ -11,6 +11,7 @@ const (
 	keystoreCmd      = "keystore"
 	txCmd            = "tx"
 	storeCmd         = "store"
+	listCmd          = "list"
 	collectCmd       = "collect"
 	estimateCmd      = "estimate"
 	exitNoPassphrase = iota
@@ -24,9 +25,9 @@ const (
 var commands = map[string]string{
 	keystoreCmd: "creates and shows keystore file",
 	txCmd:       "lists transaction connected to keystore and password",
-	// "list":     "list",
-	storeCmd:   "stores a file on the blockchain",
-	collectCmd: "collects amount left on branched transactions due to errors",
+	listCmd:     "list",
+	storeCmd:    "stores a file on the blockchain",
+	collectCmd:  "collects amount left on branched transactions due to errors",
 	// "retrieveall": "retrieveall",
 	estimateCmd: "estimates the amount to spend to save a file on the blockchain",
 }
@@ -91,11 +92,13 @@ func main() {
 	case keystoreCmd:
 		err = cmdKeystore(os.Args)
 	case txCmd:
-		err = cmdTx(os.Args)
+		err = cmdList(os.Args)
 	case collectCmd:
 		err = cmdCollect(os.Args)
 	case storeCmd:
 		err = cmdStore(os.Args)
+	case listCmd:
+		err = cmdList(os.Args)
 	case estimateCmd:
 		err = cmdEstimate(os.Args)
 	// case commandRetrieveAll:

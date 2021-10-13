@@ -41,7 +41,7 @@ func cmdStore(args []string) error {
 		woc := ddb.NewWOC()
 		taal := miner.NewTAAL()
 		blockchain := ddb.NewBlockchain(taal, woc, nil)
-		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.WIF, BitcoinAdd: keystore.Address, Blockchain: blockchain}
+		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.Key, BitcoinAdd: keystore.Address, Blockchain: blockchain}
 		lff := strings.Split(flagLabels, ",")
 		labels := []string{}
 		for _, l := range lff {
@@ -78,20 +78,17 @@ func cmdStore(args []string) error {
 			}
 			totFee = totFee.Add(fee)
 		}
-		for i, t := range txs {
-			fmt.Printf("\n%d:\n%s\n", i, t.ToString())
+		// for i, t := range txs {
+		// 	fmt.Printf("\n%d:\n%s\n", i, t.ToString())
+		// }
+		ids, err := btrunk.Blockchain.Submit(txs)
+		if err != nil {
+			trail.Println(trace.Alert("failed to submit txs").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to submit txs: %w", err)
 		}
-
-		//TODO TRY TO SUBMIT
-
-		// ids, err := btrunk.Blockchain.Submit(txs)
-		// if err != nil {
-		// 	trail.Println(trace.Alert("failed to submit txs").Append(tr).UTC().Error(err))
-		// 	return fmt.Errorf("failed to submit txs: %w", err)
-		// }
-		// for i, id := range ids {
-		// 	fmt.Printf("%d - %s", i, id)
-		// }
+		for id, success := range ids {
+			fmt.Printf("%s: %s\n", id, success)
+		}
 
 	default:
 		return fmt.Errorf("flag combination invalid")

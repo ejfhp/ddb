@@ -10,9 +10,9 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
-func cmdTx(args []string) error {
-	tr := trace.New().Source("tx.go", "", "cmdTx")
-	flagset, options := newFlagset(txCmd)
+func cmdList(args []string) error {
+	tr := trace.New().Source("list.go", "", "cmdList")
+	flagset, options := newFlagset(listCmd)
 	err := flagset.Parse(args[2:])
 	if err != nil {
 		return fmt.Errorf("error while parsing args: %w", err)

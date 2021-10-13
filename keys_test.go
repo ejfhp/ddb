@@ -24,6 +24,10 @@ func TestDecodeWIF(t *testing.T) {
 	}
 }
 
+func TestKeyStore_GenerateKeyAndAddress(t *testing.T) {
+	t.FailNow()
+}
+
 func TestAddressOf(t *testing.T) {
 	keys := map[string]string{
 		"1GB5MLgNF4zDVQc65BdrXKac1GJK8K59Ck": "KxdpCLdUFVuY9KCLaRVGfsSKQWnFobegqVjn8tM8oPo3UBbzgraF",
@@ -48,7 +52,7 @@ func TestAddressOf(t *testing.T) {
 	}
 }
 
-func TestKey_Save_LoadKeystore(t *testing.T) {
+func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 	keyfile := "/tmp/keystore.trhk"
 	os.RemoveAll(keyfile)
 	pin := "trh"
@@ -56,7 +60,7 @@ func TestKey_Save_LoadKeystore(t *testing.T) {
 	password := [32]byte{}
 	copy(password[:], []byte(passwordt)[:])
 	ks := ddb.NewKeystore()
-	ks.WIF = destinationKey
+	ks.Key = destinationKey
 	ks.Address = destinationAddress
 	ks.Passwords["one"] = password
 	err := ks.Save(keyfile, pin)
@@ -73,8 +77,8 @@ func TestKey_Save_LoadKeystore(t *testing.T) {
 		t.Logf("load keystore has wrong address: %s", ks2.Address)
 		t.FailNow()
 	}
-	if ks2.WIF != destinationKey {
-		t.Logf("load keystore has wrong key: %s", ks2.WIF)
+	if ks2.Key != destinationKey {
+		t.Logf("load keystore has wrong key: %s", ks2.Key)
 		t.FailNow()
 	}
 	p2 := ks2.Passwords["one"]
