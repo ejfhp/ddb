@@ -1,12 +1,8 @@
 package ddb
 
 import (
-	"crypto/sha256"
 	"fmt"
 
-	"github.com/bitcoinsv/bsvd/bsvec"
-	"github.com/bitcoinsv/bsvd/chaincfg"
-	"github.com/bitcoinsv/bsvutil"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -21,26 +17,6 @@ type BTrunk struct {
 	BitcoinWIF string
 	BitcoinAdd string
 	Blockchain *Blockchain
-}
-
-//GenerateKeyAndAddress returns key and address to be used when branching an entry. The key is a function of the BTrunk key and the given password.
-func (bt *BTrunk) GenerateKeyAndAddress(password [32]byte) (string, string, error) {
-	keySeed := []byte{}
-	keySeed = append(keySeed, []byte(bt.BitcoinAdd)...)
-	keySeed = append(keySeed, password[:]...)
-	keySeedHash := sha256.Sum256(keySeed)
-	key, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
-	fbwif, err := bsvutil.NewWIF(key, &chaincfg.MainNetParams, true)
-	if err != nil {
-		return "", "", fmt.Errorf("error while generating key: %v", err)
-	}
-	fbWIF := fbwif.String()
-	fbAdd, err := AddressOf(fbWIF)
-	if err != nil {
-		return "", "", fmt.Errorf("error while generating address: %v", err)
-	}
-	return fbWIF, fbAdd, nil
-
 }
 
 //TXOfBranchedEntry generate all the transactions needed to store the given entry. BrancheWIF and branchAddress must be generated through BTrunk.GenerateKeyAndAddress().
