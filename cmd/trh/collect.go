@@ -41,12 +41,16 @@ func cmdCollect(args []string) error {
 	}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	btrunk := &ddb.BTrunk{BitcoinWIF: keystore.Key, BitcoinAdd: keystore.Address, Blockchain: blockchain}
+	cache, err := ddb.NewUserTXCache()
+	if err != nil {
+		return fmt.Errorf("cannot open cache")
+	}
+	blockchain := ddb.NewBlockchain(taal, woc, cache)
+	btrunk := &ddb.BTrunk{MainKey: keystore.Key, MainAddress: keystore.Address, Blockchain: blockchain}
 
 	utxos := make(map[string][]*ddb.UTXO)
 	for _, pwd := range keystore.Passwords {
-		k, a, err := btrunk.GenerateKeyAndAddress(pwd)
+		k, a, err := keystore.GenerateKeyAndAddress(pwd)
 		if err != nil {
 			trail.Println(trace.Alert("error while generating key/address from password").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while generating key/address from password: %w", err)

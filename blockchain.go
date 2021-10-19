@@ -175,7 +175,7 @@ func (b *Blockchain) GetTXs(ids []string, cacheOnly bool) ([]*DataTX, error) {
 }
 
 func (b *Blockchain) ListTXIDs(address string, cacheOnly bool) ([]string, error) {
-	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXID")
+	tr := trace.New().Source("blockchain.go", "Blockchain", "ListTXIDs")
 	trail.Println(trace.Debug("listing TXIDs").UTC().Add("address", address).Append(tr))
 	txids := []string{}
 	if b.explorer != nil && !cacheOnly {

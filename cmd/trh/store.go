@@ -40,8 +40,12 @@ func cmdStore(args []string) error {
 	case "file":
 		woc := ddb.NewWOC()
 		taal := miner.NewTAAL()
-		blockchain := ddb.NewBlockchain(taal, woc, nil)
-		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.Key, BitcoinAdd: keystore.Address, Blockchain: blockchain}
+		cache, err := ddb.NewUserTXCache()
+		if err != nil {
+			return fmt.Errorf("cannot open cache")
+		}
+		blockchain := ddb.NewBlockchain(taal, woc, cache)
+		btrunk := &ddb.BTrunk{MainKey: keystore.Key, MainAddress: keystore.Address, Blockchain: blockchain}
 		lff := strings.Split(flagLabels, ",")
 		labels := []string{}
 		for _, l := range lff {
@@ -53,16 +57,15 @@ func cmdStore(args []string) error {
 			return fmt.Errorf("failed to generate entry from file: %w", err)
 		}
 		password := passwordtoBytes(flagPassword)
-		keystore.Passwords[flagPassword] = password
+		bWIF, bAdd, err := keystore.GenerateKeyAndAddress(password)
+		if err != nil {
+			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
+			return fmt.Errorf("failed to generate branch key and address: %w", err)
+		}
 		err = updateKeyStore(keystore)
 		if err != nil {
 			trail.Println(trace.Alert("failed to save current password in the keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to save the current password in the keystore: %w", err)
-		}
-		bWIF, bAdd, err := btrunk.GenerateKeyAndAddress(password)
-		if err != nil {
-			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
-			return fmt.Errorf("failed to generate branch key and address: %w", err)
 		}
 		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, password, ent, defaultHeader, satoshi.Satoshi(flagMaxSpend), false)
 		if err != nil {

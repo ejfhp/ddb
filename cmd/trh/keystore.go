@@ -13,6 +13,8 @@ import (
 )
 
 const keystoreFile = "keystore.trh"
+const keystoreOldFile = "keystore.trh.old"
+const keystoreUnencrypted = "keystore_plain.trh"
 
 func loadKeyStore() (*ddb.KeyStore, error) {
 	return ddb.LoadKeyStore(keystoreFile, flagPIN)
@@ -22,8 +24,17 @@ func saveKeyStore(k *ddb.KeyStore) error {
 	return k.Save(keystoreFile, flagPIN)
 }
 
+func saveUnencryptedKeyStore(k *ddb.KeyStore) error {
+	return k.SaveUnencrypted(keystoreUnencrypted)
+}
+
+func loadKeyStoreUnencrypted() (*ddb.KeyStore, error) {
+	return ddb.LoadKeyStoreUnencrypted(keystoreUnencrypted)
+
+}
+
 func updateKeyStore(k *ddb.KeyStore) error {
-	return k.Update(keystoreFile, flagPIN)
+	return k.Update(keystoreFile, keystoreOldFile, flagPIN)
 }
 
 func cmdKeystore(args []string) error {
@@ -70,6 +81,15 @@ func cmdKeystore(args []string) error {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
+		updateKeyStore(keyStore)
+	case "tounencrypted":
+		keyStore, err = ddb.LoadKeyStore(keystoreFile, flagPIN)
+		if err != nil {
+			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while loading keystore: %w", err)
+		}
+		saveUnencryptedKeyStore(keyStore)
+		//TODO implement load from unencrypted
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}
@@ -99,7 +119,7 @@ func showKeystore(keystore *ddb.KeyStore) {
 	fmt.Printf("   Bitcoin Address: %s\n", keystore.Address)
 	fmt.Printf("   Passwords:\n")
 	for n, p := range keystore.Passwords {
-		fmt.Printf("      %s: '%s'\n", n, string(p[:]))
+		fmt.Printf("      %s: '%s' .  %d\n", n, string(p[:]), len(n))
 	}
 }
 

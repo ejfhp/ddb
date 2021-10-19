@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/bitcoinsv/bsvd/bsvec"
 	"github.com/bitcoinsv/bsvd/chaincfg"
@@ -44,6 +45,7 @@ type KeyStore struct {
 func NewKeystore() *KeyStore {
 	ks := KeyStore{}
 	ks.Passwords = make(map[string][32]byte)
+	ks.PKeyAdd = make(map[string][]string)
 	return &ks
 }
 
@@ -113,8 +115,8 @@ func (ks *KeyStore) GenerateKeyAndAddress(password [32]byte) (string, string, er
 	if err != nil {
 		return "", "", fmt.Errorf("error while generating address: %v", err)
 	}
-	ks.Passwords[string(password[:])] = password
-	ks.PKeyAdd[string(password[:])] = []string{fbWIF, fbAdd}
+	ks.Passwords[PasswordToString(password)] = password
+	ks.PKeyAdd[PasswordToString(password)] = []string{fbWIF, fbAdd}
 	return fbWIF, fbAdd, nil
 
 }
@@ -173,14 +175,13 @@ func (ks *KeyStore) SaveUnencrypted(filepath string) error {
 	return nil
 }
 
-func (ks *KeyStore) Update(filepath string, pin string) error {
+func (ks *KeyStore) Update(filepath string, oldFile string, pin string) error {
 	tr := trace.New().Source("keys.go", "KeyStore", "Update")
 	copy, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		trail.Println(trace.Alert("cannot read current keystore file").Append(tr).UTC().Error(err))
 		return fmt.Errorf("cannot read current keystore file: %w", err)
 	}
-	oldFile := filepath + ".old"
 	err = os.Remove(oldFile)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -238,11 +239,15 @@ func AddressOf(wifkey string) (string, error) {
 
 }
 
-func PasswordFromString(PIN string) [32]byte {
-	var pinpass = [32]byte{}
-	for i := 0; i < len(pinpass); i++ {
-		pinpass[i] = '#'
+func PasswordFromString(pwd string) [32]byte {
+	var password = [32]byte{}
+	for i := 0; i < len(password); i++ {
+		password[i] = '#'
 	}
-	copy(pinpass[:], PIN[:])
-	return pinpass
+	copy(password[:], pwd[:])
+	return password
+}
+
+func PasswordToString(password [32]byte) string {
+	return strings.TrimSpace(string(password[:]))
 }

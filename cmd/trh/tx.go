@@ -31,7 +31,11 @@ func cmdTx(args []string) error {
 	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
-	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	cache, err := ddb.NewUserTXCache()
+	if err != nil {
+		return fmt.Errorf("cannot open cache")
+	}
+	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	switch opt {
 	case "pin":
 		keystore, err := loadKeyStore()
@@ -39,15 +43,11 @@ func cmdTx(args []string) error {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
-		passwordAddress[""] = keystore.Address
-		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.Key, BitcoinAdd: keystore.Address, Blockchain: blockchain}
-		for _, password := range keystore.Passwords {
-			_, add, err := btrunk.GenerateKeyAndAddress(password)
-			if err != nil {
-				trail.Println(trace.Alert("error while generating address for keystore pasword").Append(tr).UTC().Error(err))
-				return fmt.Errorf("error while generating address for keystore pasword %s: %w", string(password[:]), err)
-			}
-			passwordAddress[string(password[:])] = add
+		updateKeyStore(keystore)
+		passwordAddress["main"] = keystore.Address
+		for pwd, ka := range keystore.PKeyAdd {
+			fmt.Printf("PWD: %s\n", pwd)
+			passwordAddress[pwd] = ka[1]
 		}
 	case "password":
 		keystore, err := loadKeyStore()
@@ -55,14 +55,10 @@ func cmdTx(args []string) error {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
-		btrunk := &ddb.BTrunk{BitcoinWIF: keystore.Key, BitcoinAdd: keystore.Address, Blockchain: blockchain}
-
-		_, add, err := btrunk.GenerateKeyAndAddress(passwordtoBytes(flagPassword))
-		if err != nil {
-			trail.Println(trace.Alert("error while generating address for keystore pasword").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while generating address for pasword %s: %w", flagPassword, err)
+		ka, ok := keystore.PKeyAdd[flagPassword]
+		if ok {
+			passwordAddress[flagPassword] = ka[1]
 		}
-		passwordAddress[flagPassword] = add
 
 	default:
 		return fmt.Errorf("flag combination invalid")
@@ -81,11 +77,7 @@ func cmdTx(args []string) error {
 			trail.Println(trace.Alert("error while retrieving existing transactions").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while retrieving existing transactions: %w", err)
 		}
-		if pwd == "" {
-			fmt.Printf("Main address '%s' \n", add)
-		} else {
-			fmt.Printf("Address '%s' of password '%s'\n", add, pwd)
-		}
+		fmt.Printf("Address '%s' of password '%s'\n", add, pwd)
 		for _, u := range utxos {
 			fmt.Printf(" Found UTXOS: %d satoshi in TX %s, %d\n", u.Value.Satoshi(), u.TXHash, u.TXPos)
 		}

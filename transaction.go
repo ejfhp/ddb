@@ -238,7 +238,7 @@ func DataTXFromBytes(b []byte) (*DataTX, error) {
 
 //OpReturn returns OP_RETURN data
 func (t *DataTX) OpReturn() ([]byte, error) {
-	tr := trace.New().Source("transaction.go", "DataTX", "Data")
+	tr := trace.New().Source("transaction.go", "DataTX", "OpReturn")
 	// trail.Println(trace.Info("reading OP_RETURN from DataTX").UTC().Append(tr))
 	for _, o := range t.Outputs {
 		if o.LockingScript.IsData() {
@@ -254,7 +254,7 @@ func (t *DataTX) OpReturn() ([]byte, error) {
 					continue
 				}
 				if v[0] == bscript.OpRETURN {
-					//fmt.Printf("%d OP_RETURN %d  %v %d\n", i, v[0], v, len(v))
+					// fmt.Printf("OP_RETURN %d  %v %d\n", v[0], v, len(v))
 					continue
 				}
 				//Third place in ops

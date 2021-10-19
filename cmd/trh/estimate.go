@@ -36,7 +36,7 @@ func cmdEstimate(args []string) error {
 		woc := ddb.NewWOC()
 		taal := miner.NewTAAL()
 		blockchain := ddb.NewBlockchain(taal, woc, nil)
-		btrunk := &ddb.BTrunk{BitcoinWIF: ddb.SampleKey, BitcoinAdd: ddb.SampleAddress, Blockchain: blockchain}
+		btrunk := &ddb.BTrunk{MainKey: ddb.SampleKey, MainAddress: ddb.SampleAddress, Blockchain: blockchain}
 		lff := strings.Split(flagLabels, ",")
 		labels := []string{}
 		for _, l := range lff {
@@ -48,7 +48,8 @@ func cmdEstimate(args []string) error {
 			return fmt.Errorf("failed to generate entry from file: %w", err)
 		}
 		password := passwordtoBytes(flagPassword)
-		bWIF, bAdd, err := btrunk.GenerateKeyAndAddress(password)
+		keystore := ddb.NewKeystore()
+		bWIF, bAdd, err := keystore.GenerateKeyAndAddress(password)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)

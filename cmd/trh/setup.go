@@ -20,7 +20,9 @@ var (
 	// flagPathName       string
 	flagLabels         string
 	flagNotes          string
-	flagGenerate       bool
+	flagGenerateKeys   bool
+	flagKeysToPlain    bool
+	flagKeysFromPlain  bool
 	flagOutputDir      string
 	flagDisableCache   bool
 	flagOnlyCache      bool
@@ -40,17 +42,21 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 	flagset.BoolVar(&flagHelp, "h", false, "prints help")
 	//KEYSTORE
 	if command == keystoreCmd {
-		flagset.BoolVar(&flagGenerate, "generate", false, "generate a keystore.trh file")
+		flagset.BoolVar(&flagGenerateKeys, "generate", false, "generate a keystore.trh file")
+		flagset.BoolVar(&flagKeysToPlain, "tounencrypted", false, "export an unencrypted version of keystore.trh to keystore_plain.trh. Only for backup purposes, keep it confidential.")
+		flagset.BoolVar(&flagKeysFromPlain, "fromunencrypted", false, "update keystore.trh from the unencrypted file keystore_plain.trh, only for backup purposes.")
 		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
 		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
 		flagset.StringVar(&flagPhrase, "phrase", "", "passphrase to generate key and password, if key is not set")
 		flagset.StringVar(&flagPassword, "password", "", "encryption password, required if key is set")
 		flagset.StringVar(&flagPIN, "pin", "", "the pin to use to encrypt the keystore")
 		options := map[string][]string{
-			"show":      {"pin"},
-			"genkey":    {"generate", "pin", "key", "password"},
-			"genphrase": {"generate", "pin", "phrase"},
-			"ignored":   {"log", "help", "h", "keygen", "notes", "labels", "maxspend"},
+			"show":            {"pin"},
+			"tounencrypted":   {"pin", "tounencrypted"},
+			"fromunencrypted": {"pin", "fromunencrypted"},
+			"genkey":          {"generate", "pin", "key", "password"},
+			"genphrase":       {"generate", "pin", "phrase"},
+			"ignored":         {"log", "help", "h", "keygen", "notes", "labels", "maxspend"},
 		}
 		return flagset, options
 	}

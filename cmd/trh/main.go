@@ -92,7 +92,7 @@ func main() {
 	case keystoreCmd:
 		err = cmdKeystore(os.Args)
 	case txCmd:
-		err = cmdList(os.Args)
+		err = cmdTx(os.Args)
 	case collectCmd:
 		err = cmdCollect(os.Args)
 	case storeCmd:

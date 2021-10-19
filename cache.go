@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/ejfhp/trail"
@@ -23,6 +24,12 @@ type AddressInfo struct {
 }
 
 var ErrNotCached error = fmt.Errorf("entry not in cache")
+
+func NewUserTXCache() (*TXCache, error) {
+	usercache, _ := os.UserCacheDir()
+	path := filepath.Join(usercache, "trh")
+	return NewTXCache(path)
+}
 
 func NewTXCache(path string) (*TXCache, error) {
 	tr := trace.New().Source("cache.go", "TXCache", "NewTXCache")

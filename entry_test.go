@@ -171,6 +171,39 @@ func TestEntry_EntriesFromParts(t *testing.T) {
 	}
 }
 
+func TestMetaEntry_Encrypt_MetaEntryFromEncrypted(t *testing.T) {
+	// trail.SetWriter(os.Stdout)
+	fil := "testdata/test.txt"
+	bytes, err := ioutil.ReadFile(fil)
+	if err != nil {
+		t.Fatalf("error reading test file: %v", err)
+	}
+	eh := sha256.Sum256(bytes)
+	ehash := hex.EncodeToString(eh[:])
+	ent := &ddb.Entry{Name: fil, Data: bytes, Hash: ehash}
+	mentry := ddb.NewMetaEntry(ent)
+	mentry.Labels = []string{"test"}
+	mentry.Notes = "Notes"
+	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
+	enc, err := mentry.Encrypt(password)
+	if err != nil {
+		t.Logf("Entry encrypt failed: %v", err)
+		t.Fail()
+	}
+	de, err := ddb.MetaEntryFromEncrypted(password, enc)
+	if err != nil {
+		t.Logf("Entry decrypt failed: %v", err)
+		t.Fail()
+	}
+	if de == nil {
+		t.Fatalf("Decoded entry is nil")
+	}
+	if de.Name != ent.Name || de.Labels[0] != mentry.Labels[0] || de.Notes != mentry.Notes {
+		t.Logf("MetaEntry encrypt/decrypt failed, some fields doesn't match: %v", de)
+		t.Fail()
+	}
+}
+
 func TestEntry_ToJSON_EntryPartFromJSON(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	name := "test.txt"

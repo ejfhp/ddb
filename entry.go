@@ -37,6 +37,19 @@ func NewMetaEntry(entry *Entry) *MetaEntry {
 	return &meta
 }
 
+func MetaEntryFromEncrypted(password [32]byte, encrypted []byte) (*MetaEntry, error) {
+	encoded, err := AESDecrypt(password, encrypted)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decrypt data: %w", err)
+	}
+	var mentry MetaEntry
+	err = json.Unmarshal(encoded, &mentry)
+	if err != nil {
+		return nil, fmt.Errorf("cannot unmarshal data: %w", err)
+	}
+	return &mentry, nil
+}
+
 //Encrypt returns the EntryPart JSON encrypted.
 func (me *MetaEntry) Encrypt(password [32]byte) ([]byte, error) {
 	data, err := json.Marshal(me)

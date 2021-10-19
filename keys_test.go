@@ -24,10 +24,6 @@ func TestDecodeWIF(t *testing.T) {
 	}
 }
 
-func TestKeyStore_GenerateKeyAndAddress(t *testing.T) {
-	t.FailNow()
-}
-
 func TestAddressOf(t *testing.T) {
 	keys := map[string]string{
 		"1GB5MLgNF4zDVQc65BdrXKac1GJK8K59Ck": "KxdpCLdUFVuY9KCLaRVGfsSKQWnFobegqVjn8tM8oPo3UBbzgraF",
@@ -85,5 +81,32 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 	if string(p2[:]) != passwordt {
 		t.Logf("load keystore has wrong password: %s", string(p2[:]))
 		t.FailNow()
+	}
+}
+
+func TestKeyStore_GenerateKeyAndAddress(t *testing.T) {
+	// trail.SetWriter(os.Stdout)
+	ks := ddb.NewKeystore()
+	ks.Key = destinationKey
+	ks.Address = destinationAddress
+	passwords := [][32]byte{
+		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
+		{'c', 'i', 'a', 'o', 'm', 'a', 'm', 'm', 'a', 'g', 'u', 'a', 'r', 'd', 'a', 'c', 'o', 'm', 'e', 'm', 'i', 'd', 'i', 'v', 'e', 'r', 't', 'o', '.', '.', '.'},
+	}
+	for i, v := range passwords {
+		bWIF, bAdd, err := ks.GenerateKeyAndAddress(v)
+		if err != nil {
+			t.Logf("%d - failed to generate key and add: %v", i, err)
+			t.FailNow()
+		}
+		b2Add, err := ddb.AddressOf(bWIF)
+		if err != nil {
+			t.Logf("%d - failed to generate address from generated WIF: %v", i, err)
+			t.FailNow()
+		}
+		if b2Add != bAdd {
+			t.Logf("%d - something is wrong in the key-add generation", i)
+			t.FailNow()
+		}
 	}
 }

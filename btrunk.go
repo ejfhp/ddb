@@ -14,15 +14,15 @@ type Results struct {
 }
 
 type BTrunk struct {
-	BitcoinWIF string
-	BitcoinAdd string
-	Blockchain *Blockchain
+	MainKey     string
+	MainAddress string
+	Blockchain  *Blockchain
 }
 
-//TXOfBranchedEntry generate all the transactions needed to store the given entry. BrancheWIF and branchAddress must be generated through BTrunk.GenerateKeyAndAddress().
-func (bt *BTrunk) TXOfBranchedEntry(branchWIF, branchAddress string, password [32]byte, entry *Entry, header string, maxAmountToSpend satoshi.Satoshi, simulate bool) ([]*DataTX, error) {
+//TXOfBranchedEntry generate all the transactions needed to store the given entry. BranchKey (WIF) and branchAddress must be generated through BTrunk.GenerateKeyAndAddress().
+func (bt *BTrunk) TXOfBranchedEntry(branchKey, branchAddress string, password [32]byte, entry *Entry, header string, maxAmountToSpend satoshi.Satoshi, simulate bool) ([]*DataTX, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
-	fBranch, err := bt.newFBranch(branchWIF, branchAddress, password)
+	fBranch, err := bt.newFBranch(branchKey, branchAddress, password)
 	if err != nil {
 		trail.Println(trace.Debug("error while generating new FBranch").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while generating new FBranch: %v", err)
@@ -54,7 +54,7 @@ func (bt *BTrunk) TXOfBranchedEntry(branchWIF, branchAddress string, password [3
 
 	allTXs := make([]*DataTX, 0)
 	//First TX with metaEntry
-	meTX, err := NewDataTX(bt.BitcoinWIF, fBranch.BitcoinAdd, bt.BitcoinAdd, utxo, maxAmountToSpend, mefee, metaEntryData, header)
+	meTX, err := NewDataTX(bt.MainKey, fBranch.BitcoinAdd, bt.MainAddress, utxo, maxAmountToSpend, mefee, metaEntryData, header)
 	if err != nil {
 		trail.Println(trace.Debug("error while making metaEntry DataTX").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while making metaEntry DataTX: %v", err)
@@ -75,7 +75,7 @@ func (bt *BTrunk) TXOfBranchedEntry(branchWIF, branchAddress string, password [3
 		trail.Println(trace.Debug("error getting output from last entity TX").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error getting output from last eintity TX: %v", err)
 	}
-	finTX, err := NewDataTX(fBranch.BitcoinWIF, bt.BitcoinAdd, bt.BitcoinAdd, lastTX.UTXOs()[:1], satoshi.EmptyWallet, finfee, nil, header)
+	finTX, err := NewDataTX(fBranch.BitcoinWIF, bt.MainAddress, bt.MainAddress, lastTX.UTXOs()[:1], satoshi.EmptyWallet, finfee, nil, header)
 	if err != nil {
 		trail.Println(trace.Debug("error while making final DataTX").Append(tr).UTC().Error(err))
 		return nil, fmt.Errorf("error while making final DataTX: %v", err)
@@ -99,16 +99,45 @@ func (bt *BTrunk) getUTXOs(simulate bool) ([]*UTXO, error) {
 	if simulate {
 		utxo = bt.Blockchain.GetFakeUTXO()
 	} else {
-		utxo, err = bt.Blockchain.GetUTXO(bt.BitcoinAdd)
+		utxo, err = bt.Blockchain.GetUTXO(bt.MainAddress)
 		if err != nil {
-			trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", bt.BitcoinAdd).Error(err).Append(tr))
-			return nil, fmt.Errorf("error getting UTXO for address %s: %w", bt.BitcoinAdd, err)
+			trail.Println(trace.Alert("error getting UTXO").UTC().Add("address", bt.MainAddress).Error(err).Append(tr))
+			return nil, fmt.Errorf("error getting UTXO for address %s: %w", bt.MainAddress, err)
 		}
 	}
 	return utxo, nil
 }
 
-//ListEntries of the files stored with the given password.
-func (bt *BTrunk) ListEntries(address string, password [32]byte) ([]string, error) {
-	return []string{}, nil
+//ListEntries of the files stored with the given passwords.
+func (bt *BTrunk) ListEntries(password map[string][32]byte, cacheOnly bool) (map[string][]*MetaEntry, error) {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "ListEntries")
+
+	trail.Println(trace.Debug("listing transactions for main address").Append(tr).UTC().Add("address", bt.MainAddress))
+	TXIDs, err := bt.Blockchain.ListTXIDs(bt.MainAddress, cacheOnly)
+	if err != nil {
+		trail.Println(trace.Alert("error while listing BTrunk transactions").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while listing BTrunk transactions: %v", err)
+	}
+	meList := map[string][]*MetaEntry{}
+	for _, TXID := range TXIDs {
+		tx, err := bt.Blockchain.GetTX(TXID, cacheOnly)
+		if err != nil {
+			trail.Println(trace.Alert("error while getting BTrunk transaction").Append(tr).UTC().Error(err))
+			return nil, fmt.Errorf("error while getting BTrunk transaction: %v", err)
+		}
+		data, _, err := tx.Data()
+		if err != nil {
+			trail.Println(trace.Warning("error while getting transaction data").Append(tr).UTC().Error(err))
+		}
+		for pass, pwd := range password {
+			if meList[pass] == nil {
+				meList[pass] = []*MetaEntry{}
+			}
+			me, _ := MetaEntryFromEncrypted(pwd, data)
+			if me != nil {
+				meList[pass] = append(meList[pass], me)
+			}
+		}
+	}
+	return meList, nil
 }
