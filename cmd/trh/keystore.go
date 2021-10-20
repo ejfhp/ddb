@@ -76,20 +76,27 @@ func cmdKeystore(args []string) error {
 		}
 		toStore = true
 	case "show":
-		keyStore, err = ddb.LoadKeyStore(keystoreFile, flagPIN)
+		keyStore, err = loadKeyStore()
 		if err != nil {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
 		updateKeyStore(keyStore)
 	case "tounencrypted":
-		keyStore, err = ddb.LoadKeyStore(keystoreFile, flagPIN)
+		keyStore, err = loadKeyStore()
 		if err != nil {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
 		saveUnencryptedKeyStore(keyStore)
-		//TODO implement load from unencrypted
+	case "fromunencrypted":
+		//TODO COMPLETE TO AND FROM UNENCRYPTED, PASSWORD ARE SAVED WITH 0000
+		keyStore, err = loadKeyStoreUnencrypted()
+		if err != nil {
+			trail.Println(trace.Alert("error while loading unencrypted keystore").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while loading unenctrypted keystore: %w", err)
+		}
+		updateKeyStore(keyStore)
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}

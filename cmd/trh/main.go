@@ -56,6 +56,7 @@ Options available:
 		printHelp(cmd)
 	}
 	fmt.Printf(`
+
 Examples:
 
 ./trh store -help
@@ -66,6 +67,7 @@ Examples:
 ./trh retrieveAll -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
 ./trh retrieveall -address 16dEpFZ8nEvSv9MJ9MQqZ7ihk6mypQdrZ -password "Bitcoin: A Peer-to-Peer Electron"
 `)
+	fmt.Printf("\nBuilt time: %s\n", buildTimestamp)
 }
 
 func printHelp(command string) {
@@ -80,6 +82,7 @@ func printHelp(command string) {
 	}
 }
 
+//go:generate go run buildscript/timebuilt.go
 func main() {
 	//fmt.Printf("args: %v\n", os.Args)
 	if len(os.Args) < 2 {
