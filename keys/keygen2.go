@@ -1,6 +1,7 @@
-package ddb
+package keys
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"golang.org/x/crypto/sha3"
@@ -38,8 +39,10 @@ func (k *Keygen2) WIF() (string, error) {
 }
 
 func (k *Keygen2) Password() [32]byte {
+	var hash = sha3.Sum256([]byte(k.phrase))
+	text := hex.EncodeToString(hash[:])
 	var password [32]byte
-	copy(password[:], []byte(k.phrase))
+	copy(password[:], []byte(text))
 	return password
 }
 

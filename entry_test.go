@@ -240,6 +240,10 @@ func TestEntry_ToJSON_EntryPartFromJSON(t *testing.T) {
 
 func TestEntry_EncodedToAndReadFromDataTX(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	name := "image.png"
 	file := "testdata/image.png"

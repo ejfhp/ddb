@@ -45,7 +45,7 @@ func cmdStore(args []string) error {
 			return fmt.Errorf("cannot open cache")
 		}
 		blockchain := ddb.NewBlockchain(taal, woc, cache)
-		btrunk := &ddb.BTrunk{MainKey: keystore.Key, MainAddress: keystore.Address, Blockchain: blockchain}
+		btrunk := &ddb.BTrunk{MainKey: keystore.Key(), MainAddress: keystore.Address(), Blockchain: blockchain}
 		lff := strings.Split(flagLabels, ",")
 		labels := []string{}
 		for _, l := range lff {
@@ -57,7 +57,7 @@ func cmdStore(args []string) error {
 			return fmt.Errorf("failed to generate entry from file: %w", err)
 		}
 		password := passwordtoBytes(flagPassword)
-		bWIF, bAdd, err := keystore.GenerateKeyAndAddress(password)
+		bWIF, bAdd, err := keystore.AddNewKeyAndAddress(password)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)

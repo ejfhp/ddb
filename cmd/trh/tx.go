@@ -43,11 +43,9 @@ func cmdTx(args []string) error {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
-		updateKeyStore(keystore)
-		passwordAddress["main"] = keystore.Address
-		for pwd, ka := range keystore.PKeyAdd {
+		for pwd, ka := range keystore.PassNames() {
 			fmt.Printf("PWD: %s\n", pwd)
-			passwordAddress[pwd] = ka[1]
+			passwordAddress[ka] = keystore.Address(ka)
 		}
 	case "password":
 		keystore, err := loadKeyStore()
@@ -55,9 +53,9 @@ func cmdTx(args []string) error {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
-		ka, ok := keystore.PKeyAdd[flagPassword]
-		if ok {
-			passwordAddress[flagPassword] = ka[1]
+		ka := keystore.Address(flagPassword)
+		if ka != "" {
+			passwordAddress[flagPassword] = ka
 		}
 
 	default:

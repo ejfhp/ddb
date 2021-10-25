@@ -11,12 +11,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
-)
-
-const (
-	noncesize = 12
 )
 
 type MetaEntry struct {
@@ -38,7 +35,7 @@ func NewMetaEntry(entry *Entry) *MetaEntry {
 }
 
 func MetaEntryFromEncrypted(password [32]byte, encrypted []byte) (*MetaEntry, error) {
-	encoded, err := AESDecrypt(password, encrypted)
+	encoded, err := keys.AESDecrypt(password, encrypted)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decrypt data: %w", err)
 	}
@@ -56,7 +53,7 @@ func (me *MetaEntry) Encrypt(password [32]byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot encode MetaEntry to JSON: %w", err)
 	}
-	enc, err := AESEncrypt(password, data)
+	enc, err := keys.AESEncrypt(password, data)
 	if err != nil {
 		return nil, fmt.Errorf("cannot encrypt MetaEntry: %w", err)
 	}
@@ -198,7 +195,7 @@ func EntryPartFromJSON(encoded []byte) (*EntryPart, error) {
 }
 
 func EntryPartFromEncrypted(password [32]byte, encrypted []byte) (*EntryPart, error) {
-	encoded, err := AESDecrypt(password, encrypted)
+	encoded, err := keys.AESDecrypt(password, encrypted)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decrypt data: %w", err)
 	}
@@ -225,7 +222,7 @@ func (e *EntryPart) Encrypt(password [32]byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot encode EntryPart to JSON: %w", err)
 	}
-	enc, err := AESEncrypt(password, data)
+	enc, err := keys.AESEncrypt(password, data)
 	if err != nil {
 		return nil, fmt.Errorf("cannot encrypt EntryPart: %w", err)
 	}

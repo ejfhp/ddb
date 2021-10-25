@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -82,7 +83,7 @@ func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee s
 	sourceOutputs := []*SourceOutput{}
 	signers := []*bt.InternalSigner{}
 	for k, utxos := range inputs {
-		key, err := DecodeWIF(k)
+		key, err := keys.DecodeWIF(k)
 		if err != nil {
 			trail.Println(trace.Alert("error decoding WIF").UTC().Error(err).Append(t))
 			return nil, fmt.Errorf("error decoding WIF: %w", err)
@@ -192,7 +193,7 @@ func NewTX(sourceKey string, destinationAddress string, changeAddress string, in
 		tx.AddOutput(outputChange)
 	}
 
-	k, err := DecodeWIF(sourceKey)
+	k, err := keys.DecodeWIF(sourceKey)
 	if err != nil {
 		trail.Println(trace.Alert("error decoding sourcKey").UTC().Error(err).Append(t))
 		return nil, fmt.Errorf("error decoding key: %w", err)
@@ -351,10 +352,9 @@ func addDataHeader(header string, data []byte) ([]byte, error) {
 }
 
 func fakeKeyAddUTXO(num int) (string, string, []*UTXO) {
-	address := SampleAddress
-	key := SampleKey
-	// var changeAddress string = "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
-	// var changeKey string = "L2mk9qzXebT1gfwUuALMJrbqBtrJxGUN5JnVeqQTGRXytqpXsPr8"
+	//Sample Address and Key
+	address := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	key := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	utxos := make([]*UTXO, 0, num)

@@ -49,7 +49,7 @@ func cmdEstimate(args []string) error {
 		}
 		password := passwordtoBytes(flagPassword)
 		keystore := ddb.NewKeystore()
-		bWIF, bAdd, err := keystore.GenerateKeyAndAddress(password)
+		bWIF, bAdd, err := keystore.AddNewKeyAndAddress(password)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)

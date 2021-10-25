@@ -13,6 +13,11 @@ import (
 
 func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
+	changeKey := "L2mk9qzXebT1gfwUuALMJrbqBtrJxGUN5JnVeqQTGRXytqpXsPr8"
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	passwords := [][32]byte{
@@ -89,6 +94,8 @@ func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 }
 
 func TestBTrunk_ListEntries(t *testing.T) {
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()

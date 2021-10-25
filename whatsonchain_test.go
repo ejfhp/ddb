@@ -66,6 +66,7 @@ func TestWOC_GetRAWTXHEX(t *testing.T) {
 
 func TestWOC_GetTXIDs(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
 	woc := ddb.NewWOC()
 	txids, err := woc.GetTXIDs(destinationAddress)
 	if err != nil {

@@ -1,10 +1,10 @@
-package ddb_test
+package keys_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 )
 
 func TestKeygen2_New(t *testing.T) {
@@ -14,7 +14,7 @@ func TestKeygen2_New(t *testing.T) {
 		"ciao",
 	}
 	for i, n := range nums {
-		k, err := ddb.NewKeygen2(n, phrases[i])
+		k, err := keys.NewKeygen2(n, phrases[i])
 		if err != nil {
 			t.Logf("cannot generate Keygen2: %v", err)
 			t.Fail()
@@ -38,7 +38,7 @@ func BenchmarkKeygen2_ManyWIF(b *testing.B) {
 	template := "this is the phrase number %d, let's hope"
 	for i := 0; i < b.N; i += 1791 {
 		ph := fmt.Sprintf(template, i)
-		k, err := ddb.NewKeygen2(i, ph)
+		k, err := keys.NewKeygen2(i, ph)
 		if err != nil {
 			b.Logf("cannot generate Keygen2 %s: %v", ph, err)
 			b.Fail()
@@ -48,7 +48,7 @@ func BenchmarkKeygen2_ManyWIF(b *testing.B) {
 			b.Logf("cannot generate WIF %s: %v", ph, err)
 			b.FailNow()
 		}
-		address, err := ddb.AddressOf(wif)
+		address, err := keys.AddressOf(wif)
 		if err != nil {
 			b.Logf("cannot get address %s %s: %v", wif, ph, err)
 			b.FailNow()
@@ -76,7 +76,7 @@ func TestKeygen2_Keys(t *testing.T) {
 		"KwVye3MjpGWM6o11swJJbaErapfVn3WP3JCiXZjEHWRAqsDTgDss",
 	}
 	for i, n := range nums {
-		k, err := ddb.NewKeygen2(n, phrases[i])
+		k, err := keys.NewKeygen2(n, phrases[i])
 		if err != nil {
 			t.Logf("cannot generate Keygen: %v", err)
 			t.Fail()
@@ -86,7 +86,7 @@ func TestKeygen2_Keys(t *testing.T) {
 			t.Logf("cannot generate WIF: %v", err)
 			t.Fail()
 		}
-		_, err = ddb.DecodeWIF(wif)
+		_, err = keys.DecodeWIF(wif)
 		if err != nil {
 			t.Logf("cannot get address of WIF: %v", err)
 			t.Fail()

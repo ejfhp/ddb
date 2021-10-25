@@ -1,4 +1,4 @@
-package ddb
+package keys
 
 import (
 	"fmt"

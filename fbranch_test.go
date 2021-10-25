@@ -16,6 +16,8 @@ func TestFBranch_ProcessEntry(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	passwords := [][32]byte{
 		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
 	}
@@ -62,6 +64,8 @@ func TestFBranch_EstimateEntryFee(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
@@ -208,6 +212,8 @@ func TestFBranch_GetEntryFromTXID_Text(t *testing.T) {
 	txid := "afbdf4a215f5e7dc3beca36e1625f3597995afa5906b2bbfee6a572d87764426"
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
@@ -266,6 +272,8 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 	taal := miner.NewTAAL()
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
 	entries, err := fbranch.GetEntriesFromTXID(txids, false)
 	if err != nil {
@@ -320,6 +328,8 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 		t.Logf("cache preparation failed: %v", err)
 		t.FailNow()
 	}
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
@@ -380,6 +390,8 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 		t.Logf("cache preparation failed: %v", err)
 		t.FailNow()
 	}
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}
@@ -445,6 +457,8 @@ func TestFBranch_DownloadAll(t *testing.T) {
 		t.Logf("cache preparation failed: %v", err)
 		t.FailNow()
 	}
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	password := [32]byte{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	fbranch := &ddb.FBranch{BitcoinWIF: destinationKey, BitcoinAdd: destinationAddress, Password: password, Blockchain: blockchain}

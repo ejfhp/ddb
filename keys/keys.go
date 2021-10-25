@@ -1,4 +1,4 @@
-package ddb
+package keys
 
 import (
 	"crypto/sha256"
@@ -16,37 +16,30 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
-const SampleAddress = "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
-const SampleKey = "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+const (
+	Main = "main"
+)
 
 type Keygen interface {
 	WIF() (string, error)
 	Password() [32]byte
 }
 
-func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
-	t := trace.New().Source("keys.go", "", "DecodeWIF")
-	wif, err := bsvutil.DecodeWIF(wifkey)
-	if err != nil {
-		trail.Println(trace.Alert("cannot decode WIF").UTC().Error(err).Append(t))
-		return nil, fmt.Errorf("cannot decode WIF: %w", err)
-	}
-	priv := wif.PrivKey
-	return priv, nil
-}
-
 type KeyStore struct {
-	Key       string              `json:"wif"`
-	Address   string              `json:"address"`
-	Passwords map[string][32]byte `json:"password"`
-	PKeyAdd   map[string][]string `json:"pwifadd"`
+	passwords map[string][32]byte
+	pKeyAdd   map[string][]string
 }
 
-func NewKeystore() *KeyStore {
+func NewKeystore(mainKey string, password string) (*KeyStore, error) {
 	ks := KeyStore{}
-	ks.Passwords = make(map[string][32]byte)
-	ks.PKeyAdd = make(map[string][]string)
-	return &ks
+	ks.passwords = make(map[string][32]byte)
+	ks.pKeyAdd = make(map[string][]string)
+	add, err := AddressOf(mainKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate address from key '%s': %w", mainKey, err)
+	}
+	ks.pKeyAdd[Main] = []string{mainKey, add}
+	return &ks, nil
 }
 
 func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
@@ -99,10 +92,47 @@ func LoadKeyStoreUnencrypted(filepath string) (*KeyStore, error) {
 	return &k, nil
 }
 
-//GenerateKeyAndAddress returns key and address to be used when branching an entry. The key is a function of the BTrunk key and the given password.
-func (ks *KeyStore) GenerateKeyAndAddress(password [32]byte) (string, string, error) {
+func (ks *KeyStore) PassNames() []string {
+	pws := make([]string, 0, len(ks.passwords))
+	for k, _ := range ks.passwords {
+		pws = append(pws, k)
+	}
+	return pws
+}
+
+func (ks *KeyStore) Password(name string) [32]byte {
+	return ks.passwords[name]
+}
+
+func (ks *KeyStore) Key(name string) string {
+	ka, ok := ks.pKeyAdd[name]
+	if ok {
+		return ka[0]
+	}
+	return ""
+}
+func (ks *KeyStore) Address(name string) string {
+	ka, ok := ks.pKeyAdd[name]
+	if ok {
+		return ka[1]
+	}
+	return ""
+}
+
+func (ks KeyStore) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Passwords map[string][32]byte `json:"password"`
+		PKeyAdd   map[string][]string `json:"pwifadd"`
+	}{
+		Passwords: ks.passwords,
+		PKeyAdd:   ks.pKeyAdd,
+	})
+}
+
+//AddNewKeyAndAddress returns key and address to be used when branching an entry. Password, key and address are stored in the Keystore.
+func (ks *KeyStore) AddNewKeyAndAddress(password [32]byte) (string, string, error) {
 	keySeed := []byte{}
-	keySeed = append(keySeed, []byte(ks.Address)...)
+	keySeed = append(keySeed, []byte(ks.Address(Main))...)
 	keySeed = append(keySeed, password[:]...)
 	keySeedHash := sha256.Sum256(keySeed)
 	key, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
@@ -115,8 +145,9 @@ func (ks *KeyStore) GenerateKeyAndAddress(password [32]byte) (string, string, er
 	if err != nil {
 		return "", "", fmt.Errorf("error while generating address: %v", err)
 	}
-	ks.Passwords[PasswordToString(password)] = password
-	ks.PKeyAdd[PasswordToString(password)] = []string{fbWIF, fbAdd}
+	pass := PasswordToString(password)
+	ks.passwords[pass] = password
+	ks.pKeyAdd[pass] = []string{fbWIF, fbAdd}
 	return fbWIF, fbAdd, nil
 
 }
@@ -204,7 +235,7 @@ func (ks *KeyStore) Update(filepath string, oldFile string, pin string) error {
 			return fmt.Errorf("cannot load current keystore file: %w", err)
 		}
 	}
-	if ck.Key != ks.Key {
+	if ck.Key(Main) != ks.Key(Main) {
 		trail.Println(trace.Alert("in memory keystore and saved keystore have a different key").Append(tr).UTC())
 		return fmt.Errorf("in memory keystore and saved keystore have a different key")
 	}
@@ -237,6 +268,17 @@ func AddressOf(wifkey string) (string, error) {
 	}
 	return add.EncodeAddress(), nil
 
+}
+
+func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
+	t := trace.New().Source("keys.go", "", "DecodeWIF")
+	wif, err := bsvutil.DecodeWIF(wifkey)
+	if err != nil {
+		trail.Println(trace.Alert("cannot decode WIF").UTC().Error(err).Append(t))
+		return nil, fmt.Errorf("cannot decode WIF: %w", err)
+	}
+	priv := wif.PrivKey
+	return priv, nil
 }
 
 func PasswordFromString(pwd string) [32]byte {

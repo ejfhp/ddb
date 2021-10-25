@@ -72,6 +72,7 @@ func TestBlockchain_Submit(t *testing.T) {
 
 func TestBlockchain_ListTXIDs(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
 	miner := miner.NewTAAL()
 	expl := ddb.NewWOC()
 	blk := ddb.NewBlockchain(miner, expl, nil)

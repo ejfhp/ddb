@@ -1,4 +1,4 @@
-package ddb
+package keys
 
 import (
 	"crypto/aes"
@@ -6,6 +6,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+)
+
+const (
+	noncesize = 12
 )
 
 // Key should be 32 bytes (AES-256).

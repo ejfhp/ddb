@@ -1,4 +1,4 @@
-package ddb_test
+package keys_test
 
 import (
 	"crypto/sha256"
@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 )
 
 func TestEncryptDecryptText(t *testing.T) {
@@ -38,12 +38,12 @@ func TestEncryptDecryptText(t *testing.T) {
 		che mena dritto altrui per ogne calle.`),
 	}
 	for i, txt := range tests {
-		crypted, err := ddb.AESEncrypt(key, []byte(txt))
+		crypted, err := keys.AESEncrypt(key, []byte(txt))
 		if err != nil {
 			t.Logf("first encryption has failed: %v", err)
 			t.Fail()
 		}
-		decrypted, err := ddb.AESDecrypt(key, crypted)
+		decrypted, err := keys.AESDecrypt(key, crypted)
 		if err != nil {
 			t.Logf("first decryption has failed: %v", err)
 			t.Fail()
@@ -69,12 +69,12 @@ func TestEncryptDecryptFile(t *testing.T) {
 		image,
 	}
 	for i, txt := range tests {
-		crypted, err := ddb.AESEncrypt(key, []byte(txt))
+		crypted, err := keys.AESEncrypt(key, []byte(txt))
 		if err != nil {
 			t.Logf("first encryption has failed: %v", err)
 			t.Fail()
 		}
-		decrypted, err := ddb.AESDecrypt(key, crypted)
+		decrypted, err := keys.AESDecrypt(key, crypted)
 		if err != nil {
 			t.Logf("first decryption has failed: %v", err)
 			t.Fail()

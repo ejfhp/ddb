@@ -11,6 +11,10 @@ import (
 
 func TestTransaction_NewTX(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
@@ -53,6 +57,9 @@ func TestTransaction_NewTX(t *testing.T) {
 
 func TestTransaction_NewTX_NoOPRETURN(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	bsv := satoshi.Bitcoin(0.000402740)
@@ -87,6 +94,9 @@ func TestTransaction_NewTX_NoOPRETURN(t *testing.T) {
 
 func TestTransaction_NewMultiInputTX(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	bsv := satoshi.Bitcoin(0.000402740)
@@ -123,6 +133,10 @@ func TestTransaction_NewMultiInputTX(t *testing.T) {
 }
 func TestTransaction_NewDataTX(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
@@ -171,6 +185,10 @@ func TestTransaction_NewDataTX(t *testing.T) {
 
 func TestTransaction_DataTX_UTXOs(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
@@ -202,6 +220,10 @@ func TestTransaction_DataTX_UTXOs(t *testing.T) {
 
 func TestTransaction_NewDataTX_EmptyWallet(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")
@@ -288,6 +310,10 @@ func TestTransaction_DataTXFromHex_Fee(t *testing.T) {
 }
 
 func Helper_FakeTX(t *testing.T) *ddb.DataTX {
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte(fmt.Sprintf("TRH - The Rabbit Hole, by ejfhp - %s", time.Now().Format(time.RFC3339Nano)))
@@ -305,6 +331,10 @@ func Helper_FakeTX(t *testing.T) *ddb.DataTX {
 
 func TestTransaction_NewDataTX_Data(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
+	//EMPTY TEST ADDRESS
+	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
 	txid := "e6706b900df5a46253b8788f691cbe1506c1e9b76766f1f9d6b3602e1458f055"
 	scriptHex := "76a9142f353ff06fe8c4d558b9f58dce952948252e5df788ac"
 	payload := []byte("ddb - Remind My... by ejfhp")

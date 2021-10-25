@@ -90,7 +90,6 @@ func cmdKeystore(args []string) error {
 		}
 		saveUnencryptedKeyStore(keyStore)
 	case "fromunencrypted":
-		//TODO COMPLETE TO AND FROM UNENCRYPTED, PASSWORD ARE SAVED WITH 0000
 		keyStore, err = loadKeyStoreUnencrypted()
 		if err != nil {
 			trail.Println(trace.Alert("error while loading unencrypted keystore").Append(tr).UTC().Error(err))

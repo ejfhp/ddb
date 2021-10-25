@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -28,7 +29,7 @@ func cmdCollect(args []string) error {
 	if !ok {
 		return fmt.Errorf("flag combination invalid")
 	}
-	var keystore *ddb.KeyStore
+	var keystore *keys.KeyStore
 	switch opt {
 	case "pin":
 		keystore, err = loadKeyStore()
@@ -46,22 +47,17 @@ func cmdCollect(args []string) error {
 		return fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	btrunk := &ddb.BTrunk{MainKey: keystore.Key, MainAddress: keystore.Address, Blockchain: blockchain}
+	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
 
 	utxos := make(map[string][]*ddb.UTXO)
-	for _, pwd := range keystore.Passwords {
-		k, a, err := keystore.GenerateKeyAndAddress(pwd)
-		if err != nil {
-			trail.Println(trace.Alert("error while generating key/address from password").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while generating key/address from password: %w", err)
-		}
-		u, err := blockchain.GetUTXO(a)
+	for _, pwd := range keystore.PassNames() {
+		u, err := blockchain.GetUTXO(keystore.Address(pwd))
 		if err != nil && err.Error() != "found no UTXO" {
 			trail.Println(trace.Alert("error while retrieving UTXO").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while retrieving UTXO for address %s: %w", a, err)
+			return fmt.Errorf("error while retrieving UTXO for address %s: %w", keystore.Address(pwd), err)
 		}
 		if len(u) > 0 {
-			utxos[k] = u
+			utxos[keystore.Address(pwd)] = u
 		}
 	}
 	if len(utxos) > 0 {
@@ -70,7 +66,7 @@ func cmdCollect(args []string) error {
 			trail.Println(trace.Alert("error while estimating collecting tx fee").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while estimating collecting tx fee: %w", err)
 		}
-		collectingTX, err := ddb.NewMultiInputTX(keystore.Address, utxos, fee)
+		collectingTX, err := ddb.NewMultiInputTX(keystore.Address(keys.Main), utxos, fee)
 		if err != nil {
 			trail.Println(trace.Alert("error while building collecting TX").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while building collecting TX: %w", err)
