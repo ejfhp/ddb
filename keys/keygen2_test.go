@@ -14,7 +14,8 @@ func TestKeygen2_New(t *testing.T) {
 		"ciao",
 	}
 	for i, n := range nums {
-		k, err := keys.NewKeygen2(n, phrases[i])
+		k := keys.Keygen2{}
+		err := k.Init(n, phrases[i])
 		if err != nil {
 			t.Logf("cannot generate Keygen2: %v", err)
 			t.Fail()
@@ -24,7 +25,11 @@ func TestKeygen2_New(t *testing.T) {
 			t.Logf("cannot generate WIF: %v", err)
 			t.Fail()
 		}
-		pass := k.Password()
+		pass, err := k.Password()
+		if err != nil {
+			t.Logf("cannot generate password: %v", err)
+			t.Fail()
+		}
 		t.Logf("password: '%s'\n", string(pass[:]))
 		if len(pass) != 32 {
 			t.Logf("wrong password: '%s'", string(pass[:]))
@@ -38,7 +43,8 @@ func BenchmarkKeygen2_ManyWIF(b *testing.B) {
 	template := "this is the phrase number %d, let's hope"
 	for i := 0; i < b.N; i += 1791 {
 		ph := fmt.Sprintf(template, i)
-		k, err := keys.NewKeygen2(i, ph)
+		k := keys.Keygen2{}
+		err := k.Init(i, ph)
 		if err != nil {
 			b.Logf("cannot generate Keygen2 %s: %v", ph, err)
 			b.Fail()
@@ -76,7 +82,8 @@ func TestKeygen2_Keys(t *testing.T) {
 		"KwVye3MjpGWM6o11swJJbaErapfVn3WP3JCiXZjEHWRAqsDTgDss",
 	}
 	for i, n := range nums {
-		k, err := keys.NewKeygen2(n, phrases[i])
+		k := keys.Keygen2{}
+		err := k.Init(n, phrases[i])
 		if err != nil {
 			t.Logf("cannot generate Keygen: %v", err)
 			t.Fail()

@@ -12,23 +12,33 @@ import (
 )
 
 type Keygen2 struct {
-	num    int
-	phrase string
+	initialized bool
+	num         int
+	phrase      string
 }
 
-func NewKeygen2(number int, phrase string) (*Keygen2, error) {
+func (k *Keygen2) Init(number int, phrase string) error {
 	if len(phrase) < MinPhraseLen {
-		return nil, fmt.Errorf("secret phrase should be longer than %d chars", MinPhraseLen)
+		return fmt.Errorf("secret phrase should be longer than %d chars", MinPhraseLen)
 	}
-	return &Keygen2{num: number, phrase: phrase}, nil
+	k.num = number
+	k.phrase = phrase
+	return nil
 }
 
 func (k *Keygen2) Describe() {
+	if !k.initialized {
+		fmt.Printf("NOT INITIALIZED\n")
+
+	}
 	fmt.Printf("NUM: %d\n", k.num)
 	fmt.Printf("PHRASE: %s\n", k.phrase)
 }
 
 func (k *Keygen2) WIF() (string, error) {
+	if !k.initialized {
+		return "", fmt.Errorf("keygen not initialized")
+	}
 	var hash = sha3_256([]byte(k.phrase), k.num)
 	priv, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), hash)
 	wif, err := bsvutil.NewWIF(priv, &chaincfg.MainNetParams, true)
@@ -38,12 +48,15 @@ func (k *Keygen2) WIF() (string, error) {
 	return wif.String(), nil
 }
 
-func (k *Keygen2) Password() [32]byte {
+func (k *Keygen2) Password() ([32]byte, error) {
+	if !k.initialized {
+		return [32]byte{}, fmt.Errorf("keygen not initialized")
+	}
 	var hash = sha3.Sum256([]byte(k.phrase))
 	text := hex.EncodeToString(hash[:])
 	var password [32]byte
 	copy(password[:], []byte(text))
-	return password
+	return password, nil
 }
 
 func sha3_256(word []byte, repeat int) []byte {

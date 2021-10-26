@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
@@ -55,18 +56,15 @@ func cmdKeystore(args []string) error {
 	if !ok {
 		return fmt.Errorf("flag combination invalid")
 	}
-	var keyStore *ddb.KeyStore
+	var keyStore *keys.KeyStore
 	toStore := false
 	switch opt {
 	case "genkey":
-		keyStore = ddb.NewKeystore()
-		keyStore.Key = flagBitcoinKey
-		keyStore.Address, err = ddb.AddressOf(flagBitcoinKey)
+		keyStore, err = keys.NewKeystore(flagBitcoinKey, flagPassword)
 		if err != nil {
 			trail.Println(trace.Alert("provided key has issues").Append(tr).UTC().Add("bitcoinKey", flagBitcoinKey).Error(err))
 			return fmt.Errorf("provided key %s has issues: %w", flagBitcoinKey, err)
 		}
-		keyStore.Passwords["main"] = passwordtoBytes(flagPassword)
 		toStore = true
 	case "genphrase":
 		keyStore, err = keyStoreFromPassphrase(flagPhrase)
@@ -130,7 +128,6 @@ func showKeystore(keystore *ddb.KeyStore) {
 }
 
 func keyStoreFromPassphrase(passphrase string) (*ddb.KeyStore, error) {
-	keyStore := ddb.NewKeystore()
 	wif, password, err := processPassphrase(passphrase, int(flagKeygenID))
 	if err != nil {
 		return nil, fmt.Errorf("error while generating key using passphrase: %w", err)
@@ -140,6 +137,7 @@ func keyStoreFromPassphrase(passphrase string) (*ddb.KeyStore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("generated key '%s' has issues: %w", flagBitcoinKey, err)
 	}
+	keyStore, err := keys.NewKeystore(wif, string(password[:]))
 	keyStore.Passwords["main"] = password
 	return keyStore, nil
 }
