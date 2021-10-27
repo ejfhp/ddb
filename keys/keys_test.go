@@ -72,11 +72,11 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 		t.FailNow()
 	}
 	if ks2.Address(keys.Main) != destinationAddress {
-		t.Logf("load keystore has wrong address: %s", ks2.Address)
+		t.Logf("load keystore has wrong address: %s", ks2.Address(keys.Main))
 		t.FailNow()
 	}
 	if ks2.Key(keys.Main) != destinationKey {
-		t.Logf("load keystore has wrong key: %s", ks2.Key)
+		t.Logf("load keystore has wrong key: %s", ks2.Key(keys.Main))
 		t.FailNow()
 	}
 	p2 := ks2.Password("one")
@@ -94,6 +94,10 @@ func TestKeyStore_GenerateKeyAndAddress(t *testing.T) {
 	}
 	for i, v := range passwords {
 		ks, err := keys.NewKeystore(destinationKey, "mainpassword")
+		if err != nil {
+			t.Logf("%d - failed to generate ney keystore: %v", i, err)
+			t.FailNow()
+		}
 		bWIF, bAdd, err := ks.AddNewKeyAndAddress(v)
 		if err != nil {
 			t.Logf("%d - failed to generate key and add: %v", i, err)

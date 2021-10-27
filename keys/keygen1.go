@@ -24,13 +24,13 @@ const (
 var conf_numbers = []int{2, 3, 5, 7}
 
 var hashers map[int64]hasher = map[int64]hasher{
-	0: sha3_256_1,
-	1: sha3_256_2,
-	2: sha3_256_2,
+	0: sha3_256_a,
+	1: sha3_256_b,
+	2: sha3_256_b,
 	3: sha3_384_1,
-	4: sha256_256_2,
+	4: sha256_256_b,
 	5: sha3_384_2,
-	6: sha256_256_1,
+	6: sha256_256_a,
 }
 
 type Keygen1 struct {
@@ -71,8 +71,8 @@ func (k *Keygen1) Init(number int, phrase string) error {
 func (k *Keygen1) Describe() {
 	if !k.initialized {
 		fmt.Printf("NOT INITIALIZED\n")
-
 	}
+	fmt.Printf("Keygen ver. 1\n")
 	fmt.Printf("NUM: %d\n", k.num)
 	fmt.Printf("PHRASE: %s\n", k.phrase)
 	fmt.Printf("CONFS, 1:%d 2:%d 3:%d 4:%d\n", k.confs[0], k.confs[1], k.confs[2], k.confs[3])
@@ -96,18 +96,19 @@ func (k *Keygen1) WIF() (string, error) {
 	return wif.String(), nil
 }
 
-func (k *Keygen1) Password() ([32]byte, error) {
+func (k *Keygen1) Password() (string, error) {
 	if !k.initialized {
-		return [32]byte{}, fmt.Errorf("keygen not initialized")
+		return "", fmt.Errorf("keygen not initialized")
 	}
 	var password [32]byte
 	copy(password[:], []byte(k.phrase)[:32])
-	return password, nil
+	k.initialized = true
+	return PasswordToString(password), nil
 }
 
 type hasher func(words [][]byte, repeat int, hash []byte) []byte
 
-func sha3_256_1(words [][]byte, repeat int, hash []byte) []byte {
+func sha3_256_a(words [][]byte, repeat int, hash []byte) []byte {
 	var out [32]byte
 	in := hash
 	for i := 0; i < repeat; i++ {
@@ -120,7 +121,7 @@ func sha3_256_1(words [][]byte, repeat int, hash []byte) []byte {
 	return out[:]
 }
 
-func sha3_256_2(words [][]byte, repeat int, hash []byte) []byte {
+func sha3_256_b(words [][]byte, repeat int, hash []byte) []byte {
 	var out [32]byte
 	in := hash
 	for i := 0; i < repeat; i++ {
@@ -159,7 +160,7 @@ func sha3_384_2(words [][]byte, repeat int, hash []byte) []byte {
 	return out[:]
 }
 
-func sha256_256_1(words [][]byte, repeat int, hash []byte) []byte {
+func sha256_256_a(words [][]byte, repeat int, hash []byte) []byte {
 	var out [32]byte
 	in := hash
 	for i := 0; i < repeat; i++ {
@@ -172,7 +173,7 @@ func sha256_256_1(words [][]byte, repeat int, hash []byte) []byte {
 	return out[:]
 }
 
-func sha256_256_2(words [][]byte, repeat int, hash []byte) []byte {
+func sha256_256_b(words [][]byte, repeat int, hash []byte) []byte {
 	var out [32]byte
 	in := hash
 	for i := 0; i < repeat; i++ {

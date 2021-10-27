@@ -13,18 +13,19 @@ const (
 )
 
 type Keygen interface {
-	Init() error
+	Init(number int, phrase string) error
 	WIF() (string, error)
-	Password() ([32]byte, error)
+	Password() (string, error)
 }
 
-func MakeKeygen(version int) Keygen {
+func MakeKeygen(version int) (Keygen, error) {
 	switch version {
 	case KeygenVersion1:
-		return &Keygen1{}
+		return &Keygen1{}, nil
 	case KeygenVersion2:
-		return &Keygen2{}
+		return &Keygen2{}, nil
 	}
+	return nil, fmt.Errorf("Keygen version not found: %d", version)
 
 }
 
@@ -32,7 +33,7 @@ func exctactNum(passphrase string) (int, error) {
 	var passnum int
 	reg, err := regexp.Compile("[^0-9 ]+")
 	if err != nil {
-		return 0 fmt.Errorf("error compiling regexp: %w", err)
+		return 0, fmt.Errorf("error compiling regexp: %w", err)
 	}
 	phrasenum := reg.ReplaceAllString(passphrase, "")
 	for _, n := range strings.Split(phrasenum, " ") {
@@ -46,16 +47,16 @@ func exctactNum(passphrase string) (int, error) {
 		passnum = int(num)
 	}
 	if passnum == 0 {
-		return 0 fmt.Errorf("passphrase must contain a number not 0")
+		return 0, fmt.Errorf("passphrase must contain a number not 0")
 	}
 	return passnum, nil
 }
 
-func processPassphrase(passphrase string, keygenID int) (string, [32]byte, error) {
+func processPassphrase(passphrase string, keygenVersion int) (string, string, error) {
 	var passnum int
 	reg, err := regexp.Compile("[^0-9 ]+")
 	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error compiling regexp: %w", err)
+		return "", "", fmt.Errorf("error compiling regexp: %w", err)
 	}
 	phrasenum := reg.ReplaceAllString(passphrase, "")
 	for _, n := range strings.Split(phrasenum, " ") {
@@ -69,25 +70,33 @@ func processPassphrase(passphrase string, keygenID int) (string, [32]byte, error
 		passnum = int(num)
 	}
 	if passnum == 0 {
-		return "", [32]byte{}, fmt.Errorf("passphrase must contain a number")
+		return "", "", fmt.Errorf("passphrase must contain a number")
 	}
-	var keygen ddb.Keygen
-	if keygenID == 1 {
-		keygen, err = ddb.NewKeygen1(passnum, passphrase)
-		if err != nil {
-			return "", [32]byte{}, fmt.Errorf("error building Keygen2: %w", err)
-		}
-	} else {
-		keygen, err = ddb.NewKeygen2(passnum, passphrase)
-		if err != nil {
-			return "", [32]byte{}, fmt.Errorf("error building Keygen2: %w", err)
-		}
-
+	keygen, err := MakeKeygen(keygenVersion)
+	if err != nil {
+		return "", "", fmt.Errorf("error building Keygen: %w", err)
 	}
+	keygen.Init(passnum, passphrase)
 	wif, err := keygen.WIF()
 	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error while generating bitcoin key: %w", err)
+		return "", "", fmt.Errorf("error while generating bitcoin key: %w", err)
 	}
-	password := keygen.Password()
+	password, err := keygen.Password()
+	if err != nil {
+		return "", "", fmt.Errorf("error while generating password: %w", err)
+	}
 	return wif, password, nil
+}
+
+func PasswordFromString(pwd string) [32]byte {
+	var password = [32]byte{}
+	for i := 0; i < len(password); i++ {
+		password[i] = '#'
+	}
+	copy(password[:], pwd[:])
+	return password
+}
+
+func PasswordToString(password [32]byte) string {
+	return strings.TrimSpace(string(password[:]))
 }

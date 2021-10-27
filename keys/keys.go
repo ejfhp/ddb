@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/bitcoinsv/bsvd/bsvec"
 	"github.com/bitcoinsv/bsvd/chaincfg"
@@ -19,11 +18,6 @@ import (
 const (
 	Main = "main"
 )
-
-type Keygen interface {
-	WIF() (string, error)
-	Password() [32]byte
-}
 
 type KeyStore struct {
 	passwords map[string][32]byte
@@ -279,17 +273,4 @@ func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 	}
 	priv := wif.PrivKey
 	return priv, nil
-}
-
-func PasswordFromString(pwd string) [32]byte {
-	var password = [32]byte{}
-	for i := 0; i < len(password); i++ {
-		password[i] = '#'
-	}
-	copy(password[:], pwd[:])
-	return password
-}
-
-func PasswordToString(password [32]byte) string {
-	return strings.TrimSpace(string(password[:]))
 }
