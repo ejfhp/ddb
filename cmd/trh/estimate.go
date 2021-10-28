@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
@@ -31,12 +32,17 @@ func cmdEstimate(args []string) error {
 	if !ok {
 		return fmt.Errorf("flag combination invalid")
 	}
+	keystore, err := loadKeyStore()
+	if err != nil {
+		trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
+		return fmt.Errorf("error while loading keystore: %w", err)
+	}
 	switch opt {
 	case "file":
 		woc := ddb.NewWOC()
 		taal := miner.NewTAAL()
 		blockchain := ddb.NewBlockchain(taal, woc, nil)
-		btrunk := &ddb.BTrunk{MainKey: ddb.SampleKey, MainAddress: ddb.SampleAddress, Blockchain: blockchain}
+		btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
 		lff := strings.Split(flagLabels, ",")
 		labels := []string{}
 		for _, l := range lff {
@@ -47,9 +53,8 @@ func cmdEstimate(args []string) error {
 			trail.Println(trace.Alert("failed to generate entry from file").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate entry from file: %w", err)
 		}
-		password := passwordtoBytes(flagPassword)
-		keystore := ddb.NewKeystore()
-		bWIF, bAdd, err := keystore.AddNewKeyAndAddress(password)
+		//TODO rename methos AddKeyAndAddress.. the password could already exists
+		bWIF, bAdd, err := keystore.AddNewKeyAndAddress(flagPassword)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)

@@ -52,7 +52,8 @@ func exctactNum(passphrase string) (int, error) {
 	return passnum, nil
 }
 
-func processPassphrase(passphrase string, keygenVersion int) (string, string, error) {
+//FromPassphrase generate WIF and password with the given keygen
+func FromPassphrase(passphrase string, keygenVersion int) (string, string, error) {
 	var passnum int
 	reg, err := regexp.Compile("[^0-9 ]+")
 	if err != nil {

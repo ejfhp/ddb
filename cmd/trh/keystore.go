@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/ejfhp/ddb"
@@ -17,24 +15,24 @@ const keystoreFile = "keystore.trh"
 const keystoreOldFile = "keystore.trh.old"
 const keystoreUnencrypted = "keystore_plain.trh"
 
-func loadKeyStore() (*ddb.KeyStore, error) {
-	return ddb.LoadKeyStore(keystoreFile, flagPIN)
+func loadKeyStore() (*keys.KeyStore, error) {
+	return keys.LoadKeyStore(keystoreFile, flagPIN)
 }
 
-func saveKeyStore(k *ddb.KeyStore) error {
+func saveKeyStore(k *keys.KeyStore) error {
 	return k.Save(keystoreFile, flagPIN)
 }
 
-func saveUnencryptedKeyStore(k *ddb.KeyStore) error {
+func saveUnencryptedKeyStore(k *keys.KeyStore) error {
 	return k.SaveUnencrypted(keystoreUnencrypted)
 }
 
-func loadKeyStoreUnencrypted() (*ddb.KeyStore, error) {
-	return ddb.LoadKeyStoreUnencrypted(keystoreUnencrypted)
+func loadKeyStoreUnencrypted() (*keys.KeyStore, error) {
+	return keys.LoadKeyStoreUnencrypted(keystoreUnencrypted)
 
 }
 
-func updateKeyStore(k *ddb.KeyStore) error {
+func updateKeyStore(k *keys.KeyStore) error {
 	return k.Update(keystoreFile, keystoreOldFile, flagPIN)
 }
 
@@ -67,7 +65,7 @@ func cmdKeystore(args []string) error {
 		}
 		toStore = true
 	case "genphrase":
-		keyStore, err = keyStoreFromPassphrase(flagPhrase)
+		keyStore, err = keyStoreFromPassphrase(flagPhrase, int(flagKeygenID))
 		if err != nil {
 			trail.Println(trace.Alert("error while generating keystore from passphrase").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while generating keystore from passphrase: %w", err)
@@ -108,38 +106,35 @@ func cmdKeystore(args []string) error {
 	return nil
 }
 
-func showKeystore(keystore *ddb.KeyStore) {
+func showKeystore(keystore *keys.KeyStore) {
 	fmt.Printf("*** KEYSTORE ***\n")
 	fmt.Printf("\n")
 	fmt.Printf("    KEY WIF\n")
-	ddb.PrintQRCode(os.Stdout, keystore.Address)
-	fmt.Printf("    %s\n", keystore.Key)
+	ddb.PrintQRCode(os.Stdout, keystore.Key(keys.Main))
+	fmt.Printf("    %s\n", keystore.Key(keys.Main))
 	fmt.Printf("\n")
 	fmt.Printf("    ADDRESS\n")
-	ddb.PrintQRCode(os.Stdout, keystore.Address)
-	fmt.Printf("   %s\n", keystore.Address)
+	ddb.PrintQRCode(os.Stdout, keystore.Address(keys.Main))
+	fmt.Printf("   %s\n", keystore.Address(keys.Main))
 	fmt.Printf("\n")
-	fmt.Printf("   Bitcoin Key (WIF): %s\n", keystore.Key)
-	fmt.Printf("   Bitcoin Address: %s\n", keystore.Address)
+	fmt.Printf("   Bitcoin Key (WIF): %s\n", keystore.Key(keys.Main))
+	fmt.Printf("   Bitcoin Address: %s\n", keystore.Address(keys.Main))
 	fmt.Printf("   Passwords:\n")
-	for n, p := range keystore.Passwords {
-		fmt.Printf("      %s: '%s' .  %d\n", n, string(p[:]), len(n))
+	for n, p := range keystore.PassNames() {
+		fmt.Printf("      %s: '%s' .  %d\n", n, p, len(p))
 	}
 }
 
-func keyStoreFromPassphrase(passphrase string) (*ddb.KeyStore, error) {
-	wif, password, err := processPassphrase(passphrase, int(flagKeygenID))
+func keyStoreFromPassphrase(passphrase string, keygenID int) (*keys.KeyStore, error) {
+	wif, password, err := keys.FromPassphrase(passphrase, keygenID)
 	if err != nil {
 		return nil, fmt.Errorf("error while generating key using passphrase: %w", err)
 	}
-	keyStore.Key = wif
-	keyStore.Address, err = ddb.AddressOf(wif)
+	keystore, err := keys.NewKeystore(wif, password)
 	if err != nil {
-		return nil, fmt.Errorf("generated key '%s' has issues: %w", flagBitcoinKey, err)
+		return nil, fmt.Errorf("error while generating keystore from passphrase '%s' with keygen '%d': %w", passphrase, keygenID, err)
 	}
-	keyStore, err := keys.NewKeystore(wif, string(password[:]))
-	keyStore.Passwords["main"] = password
-	return keyStore, nil
+	return keystore, nil
 }
 
 func extractPassphrase(args []string) (string, error) {
@@ -154,45 +149,4 @@ func extractPassphrase(args []string) (string, error) {
 	}
 	passphrase := strings.Join(args[startidx:], " ")
 	return passphrase, nil
-}
-
-func processPassphrase(passphrase string, keygenID int) (string, [32]byte, error) {
-	var passnum int
-	reg, err := regexp.Compile("[^0-9 ]+")
-	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error compiling regexp: %w", err)
-	}
-	phrasenum := reg.ReplaceAllString(passphrase, "")
-	for _, n := range strings.Split(phrasenum, " ") {
-		num, err := strconv.ParseInt(n, 10, 64)
-		if err != nil {
-			continue
-		}
-		if num < 0 {
-			num = num * -1
-		}
-		passnum = int(num)
-	}
-	if passnum == 0 {
-		return "", [32]byte{}, fmt.Errorf("passphrase must contain a number")
-	}
-	var keygen ddb.Keygen
-	if keygenID == 1 {
-		keygen, err = ddb.NewKeygen1(passnum, passphrase)
-		if err != nil {
-			return "", [32]byte{}, fmt.Errorf("error building Keygen2: %w", err)
-		}
-	} else {
-		keygen, err = ddb.NewKeygen2(passnum, passphrase)
-		if err != nil {
-			return "", [32]byte{}, fmt.Errorf("error building Keygen2: %w", err)
-		}
-
-	}
-	wif, err := keygen.WIF()
-	if err != nil {
-		return "", [32]byte{}, fmt.Errorf("error while generating bitcoin key: %w", err)
-	}
-	password := keygen.Password()
-	return wif, password, nil
 }

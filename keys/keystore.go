@@ -98,6 +98,14 @@ func (ks *KeyStore) Password(name string) [32]byte {
 	return ks.passwords[name]
 }
 
+func (ks *KeyStore) Passwords() map[string][32]byte {
+	pwsCopy := make(map[string][32]byte)
+	for n, p := range pwsCopy {
+		pwsCopy[n] = p
+	}
+	return pwsCopy
+}
+
 func (ks *KeyStore) Key(name string) string {
 	ka, ok := ks.pKeyAdd[name]
 	if ok {
@@ -111,6 +119,14 @@ func (ks *KeyStore) Address(name string) string {
 		return ka[1]
 	}
 	return ""
+}
+
+func (ks *KeyStore) KeysAndAddresses() map[string][]string {
+	ka := make(map[string][]string)
+	for n, p := range ka {
+		ka[n] = p
+	}
+	return ka
 }
 
 func (ks KeyStore) MarshalJSON() ([]byte, error) {

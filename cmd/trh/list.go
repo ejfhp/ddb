@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
@@ -43,9 +44,9 @@ func cmdList(args []string) error {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
-		passwordAddress[""] = keystore.Address
-		btrunk := &ddb.BTrunk{MainKey: keystore.Key, MainAddress: keystore.Address, Blockchain: blockchain}
-		mEntries, err := btrunk.ListEntries(keystore.Passwords, false)
+		passwordAddress[""] = keystore.Address(keys.Main)
+		btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
+		mEntries, err := btrunk.ListEntries(keystore.Passwords(), false)
 		if err != nil {
 			trail.Println(trace.Alert("error while listing MetaEntry").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while listing MetaEntry for password: %w", err)
