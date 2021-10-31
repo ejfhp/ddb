@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/bitcoinsv/bsvd/bsvec"
 	"github.com/bitcoinsv/bsvd/chaincfg"
@@ -19,26 +20,32 @@ const (
 	Main = "main"
 )
 
+type Node struct {
+	Key      string   `json:"key"`
+	Address  string   `json:"address"`
+	Password [32]byte `json:"password"`
+	PassName string   `json:"passname"`
+}
+
 type KeyStore struct {
-	passwords map[string][32]byte
-	pKeyAdd   map[string][]string
+	nodes map[string]*Node
 }
 
 func NewKeystore(mainKey string, password string) (*KeyStore, error) {
 	ks := KeyStore{}
-	ks.passwords = make(map[string][32]byte)
-	ks.pKeyAdd = make(map[string][]string)
+	ks.nodes = make(map[string]*Node)
 	add, err := AddressOf(mainKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate address from key '%s': %w", mainKey, err)
 	}
-	ks.pKeyAdd[Main] = []string{mainKey, add}
+	node := Node{Key: mainKey, Address: add, PassName: password, Password: passwordToBytes(password)}
+	ks.nodes[Main] = &node
 	return &ks, nil
 }
 
 func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
 	tr := trace.New().Source("keys.go", "KeyStore", "LoadKeyStore")
-	var pinpass = PasswordFromString(pin)
+	var pinpass = passwordToBytes(pin)
 	file, err := os.Open(filepath)
 	if err != nil {
 		trail.Println(trace.Alert("cannot open KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
@@ -55,13 +62,7 @@ func LoadKeyStore(filepath string, pin string) (*KeyStore, error) {
 		trail.Println(trace.Alert("cannot decrypt KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot decrypt KeyStore file: %w", err)
 	}
-	var k KeyStore
-	err = json.Unmarshal(encoded, &k)
-	if err != nil {
-		trail.Println(trace.Alert("cannot decode KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
-		return nil, fmt.Errorf("cannot decode KeyStore file: %w", err)
-	}
-	return &k, nil
+	return UnmarshalJSON(encoded)
 }
 
 func LoadKeyStoreUnencrypted(filepath string) (*KeyStore, error) {
@@ -77,89 +78,109 @@ func LoadKeyStoreUnencrypted(filepath string) (*KeyStore, error) {
 		trail.Println(trace.Alert("error while reading KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
 		return nil, fmt.Errorf("error while reading KeyStore file: %w", err)
 	}
-	var k KeyStore
-	err = json.Unmarshal(read, &k)
-	if err != nil {
-		trail.Println(trace.Alert("cannot decode KeyStore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
-		return nil, fmt.Errorf("cannot decode KeyStore file: %w", err)
+	return UnmarshalJSON(read)
+}
+
+func (ks KeyStore) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Nodes map[string]*Node `json:"nodes"`
+	}{
+		Nodes: ks.nodes,
+	})
+}
+
+func UnmarshalJSON(data []byte) (*KeyStore, error) {
+	var un struct {
+		Nodes map[string]*Node `json:"nodes"`
 	}
+	err := json.Unmarshal(data, &un)
+	if err != nil {
+		return nil, err
+	}
+	k := KeyStore{nodes: un.Nodes}
 	return &k, nil
 }
 
 func (ks *KeyStore) PassNames() []string {
-	pws := make([]string, 0, len(ks.passwords))
-	for k, _ := range ks.passwords {
+	pws := make([]string, 0, len(ks.nodes))
+	for k, _ := range ks.nodes {
 		pws = append(pws, k)
 	}
 	return pws
 }
 
+func (ks *KeyStore) Nodes() []*Node {
+	ns := make([]*Node, 0, len(ks.nodes))
+	for _, n := range ks.nodes {
+		ns = append(ns, n)
+	}
+	return ns
+}
+
 func (ks *KeyStore) Password(name string) [32]byte {
-	return ks.passwords[name]
+	n, ok := ks.nodes[name]
+	if ok {
+		return n.Password
+	}
+	return [32]byte{}
 }
 
 func (ks *KeyStore) Passwords() map[string][32]byte {
 	pwsCopy := make(map[string][32]byte)
-	for n, p := range pwsCopy {
-		pwsCopy[n] = p
+	for p, n := range ks.nodes {
+		pwsCopy[p] = n.Password
 	}
 	return pwsCopy
 }
 
-func (ks *KeyStore) Key(name string) string {
-	ka, ok := ks.pKeyAdd[name]
+func (ks *KeyStore) Key(passname string) string {
+	n, ok := ks.nodes[passname]
 	if ok {
-		return ka[0]
+		return n.Key
 	}
 	return ""
 }
-func (ks *KeyStore) Address(name string) string {
-	ka, ok := ks.pKeyAdd[name]
+func (ks *KeyStore) Address(passname string) string {
+	n, ok := ks.nodes[passname]
 	if ok {
-		return ka[1]
+		return n.Address
 	}
 	return ""
 }
 
 func (ks *KeyStore) KeysAndAddresses() map[string][]string {
 	ka := make(map[string][]string)
-	for n, p := range ka {
-		ka[n] = p
+	for p, n := range ks.nodes {
+		ka[p] = []string{n.Key, n.Address}
 	}
 	return ka
 }
 
-func (ks KeyStore) MarshalJSON() ([]byte, error) {
-	return json.Marshal(struct {
-		Passwords map[string][32]byte `json:"password"`
-		PKeyAdd   map[string][]string `json:"pwifadd"`
-	}{
-		Passwords: ks.passwords,
-		PKeyAdd:   ks.pKeyAdd,
-	})
-}
-
-//AddNewKeyAndAddress returns key and address to be used when branching an entry. Password, key and address are stored in the Keystore.
-func (ks *KeyStore) AddNewKeyAndAddress(password [32]byte) (string, string, error) {
+//NodeFromPassword returns a node containing key and an address derived from the main address and the password.
+func (ks *KeyStore) NodeFromPassword(password string) (*Node, error) {
 	keySeed := []byte{}
+	//The new key is a function of the main address and the current password
 	keySeed = append(keySeed, []byte(ks.Address(Main))...)
 	keySeed = append(keySeed, password[:]...)
 	keySeedHash := sha256.Sum256(keySeed)
 	key, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
 	fbwif, err := bsvutil.NewWIF(key, &chaincfg.MainNetParams, true)
 	if err != nil {
-		return "", "", fmt.Errorf("error while generating key: %v", err)
+		return nil, fmt.Errorf("error while generating key: %v", err)
 	}
 	fbWIF := fbwif.String()
 	fbAdd, err := AddressOf(fbWIF)
 	if err != nil {
-		return "", "", fmt.Errorf("error while generating address: %v", err)
+		return nil, fmt.Errorf("error while generating address: %v", err)
 	}
-	pass := PasswordToString(password)
-	ks.passwords[pass] = password
-	ks.pKeyAdd[pass] = []string{fbWIF, fbAdd}
-	return fbWIF, fbAdd, nil
+	pass := passwordToBytes(password)
+	node := Node{Key: fbWIF, Address: fbAdd, Password: pass, PassName: password}
+	return &node, nil
 
+}
+
+func (ks *KeyStore) StoreNode(node *Node) {
+	ks.nodes[node.PassName] = node
 }
 
 func (ks *KeyStore) Save(filepath string, pin string) error {
@@ -169,7 +190,7 @@ func (ks *KeyStore) Save(filepath string, pin string) error {
 		trail.Println(trace.Alert("cannot encode KeyStore").UTC().Error(err).Append(tr))
 		return fmt.Errorf("cannot encode KeyStore: %w", err)
 	}
-	var pinpass = PasswordFromString(pin)
+	var pinpass = passwordToBytes(pin)
 	encrypted, err := AESEncrypt(pinpass, encoded)
 	if err != nil {
 		trail.Println(trace.Alert("cannot encrypt KeyStore").UTC().Error(err).Append(tr))
@@ -289,4 +310,14 @@ func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 	}
 	priv := wif.PrivKey
 	return priv, nil
+}
+
+func passwordToBytes(password string) [32]byte {
+	var pass [32]byte
+	copy(pass[:], []byte(password))
+	return pass
+}
+
+func passwordToString(password [32]byte) string {
+	return strings.TrimSpace(string(password[:]))
 }

@@ -5,8 +5,8 @@ import (
 )
 
 type Retrieve struct {
-	diary     *ddb.FBranch
-	env       *Environment
+	diary *ddb.FBranch
+	// env       *Environment
 	outfolder string
 }
 

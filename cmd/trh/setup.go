@@ -1,15 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/ejfhp/ddb"
-	"github.com/ejfhp/trail"
-	"github.com/ejfhp/trail/trace"
 )
 
 var (
@@ -191,120 +184,114 @@ func sameContent(slice1, slice2 []string) bool {
 	return same
 }
 
-func passwordtoBytes(password string) [32]byte {
-	var pass [32]byte
-	copy(pass[:], []byte(password))
-	return pass
-}
+// type Environment struct {
+// 	passphrase    string
+// 	log           bool
+// 	help          bool
+// 	workingDir    string
+// 	key           string
+// 	address       string
+// 	password      [32]byte
+// 	passwordSet   bool
+// 	outFolder     string
+// 	cacheFolder   string
+// 	cacheDisabled bool
+// 	cacheOnly     bool
+// }
 
-type Environment struct {
-	passphrase    string
-	log           bool
-	help          bool
-	workingDir    string
-	key           string
-	address       string
-	password      [32]byte
-	passwordSet   bool
-	outFolder     string
-	cacheFolder   string
-	cacheDisabled bool
-	cacheOnly     bool
-}
+// func (e *Environment) passwordString() string {
+// 	return string(bytes.Trim(e.password[:], string([]byte{0})))
+// }
 
-func (e *Environment) passwordString() string {
-	return string(bytes.Trim(e.password[:], string([]byte{0})))
-}
+// func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, error) {
+// 	tr := trace.New().Source("setup.go", "Environment", "BuildEnvironment")
+// 	err := flagset.Parse(args[2:])
+// 	if err != nil {
+// 		trail.Println(trace.Alert("error while parsing args").Append(tr).UTC().Error(err))
+// 		return nil, fmt.Errorf("error while parsing args: %w", err)
+// 	}
+// 	env := Environment{}
+// 	env.log = flagLog
+// 	if env.log {
+// 		trail.SetWriter(os.Stderr)
+// 	}
+// 	env.help = flagHelp
 
-func prepareEnvironment(args []string, flagset *flag.FlagSet) (*Environment, error) {
-	tr := trace.New().Source("setup.go", "Environment", "BuildEnvironment")
-	err := flagset.Parse(args[2:])
-	if err != nil {
-		trail.Println(trace.Alert("error while parsing args").Append(tr).UTC().Error(err))
-		return nil, fmt.Errorf("error while parsing args: %w", err)
-	}
-	env := Environment{}
-	env.log = flagLog
-	if env.log {
-		trail.SetWriter(os.Stderr)
-	}
-	env.help = flagHelp
+// 	env.workingDir, err = filepath.Abs(filepath.Dir(args[0]))
+// 	if err != nil {
+// 		trail.Println(trace.Alert("error gettign current working dir").Append(tr).UTC().Error(err))
+// 		return nil, fmt.Errorf("error gettign current working dir")
+// 	}
 
-	env.workingDir, err = filepath.Abs(filepath.Dir(args[0]))
-	if err != nil {
-		trail.Println(trace.Alert("error gettign current working dir").Append(tr).UTC().Error(err))
-		return nil, fmt.Errorf("error gettign current working dir")
-	}
+// 	keygenID := flagKeygenID
+// 	if keygenID < 1 || keygenID > 2 {
+// 		trail.Println(trace.Warning("keygenID out of range using default").Append(tr).UTC())
+// 		keygenID = 2
+// 	}
+// 	trail.Println(trace.Info("keygenID defined").Append(tr).UTC().Add("keygenID", fmt.Sprintf("%d", keygenID)))
 
-	keygenID := flagKeygenID
-	if keygenID < 1 || keygenID > 2 {
-		trail.Println(trace.Warning("keygenID out of range using default").Append(tr).UTC())
-		keygenID = 2
-	}
-	trail.Println(trace.Info("keygenID defined").Append(tr).UTC().Add("keygenID", fmt.Sprintf("%d", keygenID)))
+// 	passphrase, err := extractPassphrase(args)
+// 	if err != nil {
+// 		trail.Println(trace.Warning("passphrase not found").Append(tr).UTC().Error(err))
+// 	}
+// 	trail.Println(trace.Info("passphrase extracted").Append(tr).UTC().Add("passphrase", passphrase))
+// 	if passphrase != "" {
+// 		env.passphrase = passphrase
+// 		env.key, env.password, err = processPassphrase(passphrase, int(keygenID))
+// 		if err != nil {
+// 			trail.Println(trace.Warning("error processing passphrase").Append(tr).UTC().Add("passphrase", passphrase).Error(err))
+// 			return nil, fmt.Errorf("error procesing passphrase")
+// 		}
+// 		env.passwordSet = true
+// 	}
 
-	passphrase, err := extractPassphrase(args)
-	if err != nil {
-		trail.Println(trace.Warning("passphrase not found").Append(tr).UTC().Error(err))
-	}
-	trail.Println(trace.Info("passphrase extracted").Append(tr).UTC().Add("passphrase", passphrase))
-	if passphrase != "" {
-		env.passphrase = passphrase
-		env.key, env.password, err = processPassphrase(passphrase, int(keygenID))
-		if err != nil {
-			trail.Println(trace.Warning("error processing passphrase").Append(tr).UTC().Add("passphrase", passphrase).Error(err))
-			return nil, fmt.Errorf("error procesing passphrase")
-		}
-		env.passwordSet = true
-	}
+// 	if flagBitcoinKey != "" {
+// 		trail.Println(trace.Info("using key from command line").Append(tr).UTC().Add("key", flagBitcoinKey))
+// 		env.key = flagBitcoinKey
+// 	}
+// 	if flagBitcoinAddress != "" && env.key == "" {
+// 		trail.Println(trace.Info("using address from command line").Append(tr).UTC().Add("address", flagBitcoinAddress))
+// 		env.address = flagBitcoinAddress
+// 	}
+// 	if flagPassword != "" {
+// 		trail.Println(trace.Info("using password from command line").Append(tr).UTC().Add("flagPassword", flagPassword))
+// 		for i := 0; i < len(env.password); i++ {
+// 			env.password[i] = 0
+// 		}
+// 		copy(env.password[:], []byte(flagPassword))
+// 		env.passwordSet = true
+// 	}
 
-	if flagBitcoinKey != "" {
-		trail.Println(trace.Info("using key from command line").Append(tr).UTC().Add("key", flagBitcoinKey))
-		env.key = flagBitcoinKey
-	}
-	if flagBitcoinAddress != "" && env.key == "" {
-		trail.Println(trace.Info("using address from command line").Append(tr).UTC().Add("address", flagBitcoinAddress))
-		env.address = flagBitcoinAddress
-	}
-	if flagPassword != "" {
-		trail.Println(trace.Info("using password from command line").Append(tr).UTC().Add("flagPassword", flagPassword))
-		for i := 0; i < len(env.password); i++ {
-			env.password[i] = 0
-		}
-		copy(env.password[:], []byte(flagPassword))
-		env.passwordSet = true
-	}
+// 	if flagOutputDir != "" {
+// 		env.outFolder = flagOutputDir
+// 	}
+// 	if flagDisableCache && flagOnlyCache {
+// 		trail.Println(trace.Warning("onlycache and nocache both enabled").Append(tr).UTC())
+// 		return nil, fmt.Errorf("onlycache and nocache both enabled")
+// 	}
+// 	env.cacheDisabled = flagDisableCache
+// 	env.cacheOnly = flagOnlyCache
+// 	trail.Println(trace.Info("environment prepared").Append(tr).UTC().Add("key", env.key).Add("address", env.address).Add("password", env.passwordString()))
+// 	return &env, nil
+// }
 
-	if flagOutputDir != "" {
-		env.outFolder = flagOutputDir
-	}
-	if flagDisableCache && flagOnlyCache {
-		trail.Println(trace.Warning("onlycache and nocache both enabled").Append(tr).UTC())
-		return nil, fmt.Errorf("onlycache and nocache both enabled")
-	}
-	env.cacheDisabled = flagDisableCache
-	env.cacheOnly = flagOnlyCache
-	trail.Println(trace.Info("environment prepared").Append(tr).UTC().Add("key", env.key).Add("address", env.address).Add("password", env.passwordString()))
-	return &env, nil
-}
-
-func prepareCache(env *Environment) (*ddb.TXCache, error) {
-	tr := trace.New().Source("setup.go", "", "prepareCache")
-	if env.cacheDisabled {
-		trail.Println(trace.Info("cache disabled").Append(tr).UTC())
-		return nil, nil
-	}
-	usercache, _ := os.UserCacheDir()
-	cacheDir := filepath.Join(usercache, "trh")
-	if env.cacheFolder != "" {
-	}
-	cache, err := ddb.NewTXCache(cacheDir)
-	if err != nil {
-		trail.Println(trace.Info("error while building cache").Append(tr).UTC())
-		return nil, fmt.Errorf("error while parsing args: %w", err)
-	}
-	return cache, nil
-}
+// func prepareCache(env *Environment) (*ddb.TXCache, error) {
+// 	tr := trace.New().Source("setup.go", "", "prepareCache")
+// 	if env.cacheDisabled {
+// 		trail.Println(trace.Info("cache disabled").Append(tr).UTC())
+// 		return nil, nil
+// 	}
+// 	usercache, _ := os.UserCacheDir()
+// 	cacheDir := filepath.Join(usercache, "trh")
+// 	if env.cacheFolder != "" {
+// 	}
+// 	cache, err := ddb.NewTXCache(cacheDir)
+// 	if err != nil {
+// 		trail.Println(trace.Info("error while building cache").Append(tr).UTC())
+// 		return nil, fmt.Errorf("error while parsing args: %w", err)
+// 	}
+// 	return cache, nil
+// }
 
 // func prepareDiary(env *Environment, cache *ddb.TXCache) (*ddb.FBranch, error) {
 // 	tr := trace.New().Source("setup.go", "", "prepareCache")

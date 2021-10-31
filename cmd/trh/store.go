@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
@@ -45,7 +46,7 @@ func cmdStore(args []string) error {
 			return fmt.Errorf("cannot open cache")
 		}
 		blockchain := ddb.NewBlockchain(taal, woc, cache)
-		btrunk := &ddb.BTrunk{MainKey: keystore.Key(), MainAddress: keystore.Address(), Blockchain: blockchain}
+		btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
 		lff := strings.Split(flagLabels, ",")
 		labels := []string{}
 		for _, l := range lff {
@@ -56,8 +57,9 @@ func cmdStore(args []string) error {
 			trail.Println(trace.Alert("failed to generate entry from file").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate entry from file: %w", err)
 		}
-		password := passwordtoBytes(flagPassword)
-		bWIF, bAdd, err := keystore.AddNewKeyAndAddress(password)
+		node, err := keystore.NodeFromPassword(flagPassword)
+		// password := passwordtoBytes(flagPassword)
+		// bWIF, bAdd, err := keystore.AddNewKeyAndAddress(password)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)
@@ -67,7 +69,7 @@ func cmdStore(args []string) error {
 			trail.Println(trace.Alert("failed to save current password in the keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to save the current password in the keystore: %w", err)
 		}
-		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, password, ent, defaultHeader, satoshi.Satoshi(flagMaxSpend), false)
+		txs, err := btrunk.TXOfBranchedEntry(node.Key, node.Address, node.Password, ent, defaultHeader, satoshi.Satoshi(flagMaxSpend), false)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate txs for entry: %w", err)

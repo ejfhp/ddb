@@ -53,13 +53,12 @@ func cmdEstimate(args []string) error {
 			trail.Println(trace.Alert("failed to generate entry from file").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate entry from file: %w", err)
 		}
-		//TODO rename methos AddKeyAndAddress.. the password could already exists
-		bWIF, bAdd, err := keystore.AddNewKeyAndAddress(flagPassword)
+		node, err := keystore.NodeFromPassword(flagPassword)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate branch key and address").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate branch key and address: %w", err)
 		}
-		txs, err := btrunk.TXOfBranchedEntry(bWIF, bAdd, passwordtoBytes(""), ent, defaultHeader, satoshi.Bitcoin(ddb.FakeTXValue).Satoshi(), true)
+		txs, err := btrunk.TXOfBranchedEntry(node.Key, node.Address, node.Password, ent, defaultHeader, satoshi.Bitcoin(ddb.FakeTXValue).Satoshi(), true)
 		if err != nil {
 			trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
 			return fmt.Errorf("failed to generate txs for entry: %w", err)

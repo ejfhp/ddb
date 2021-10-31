@@ -49,15 +49,15 @@ func (k *Keygen2) WIF() (string, error) {
 	return wif.String(), nil
 }
 
-func (k *Keygen2) Password() (string, error) {
+func (k *Keygen2) Password() ([32]byte, error) {
 	if !k.initialized {
-		return "", fmt.Errorf("keygen not initialized")
+		return [32]byte{}, fmt.Errorf("keygen not initialized")
 	}
 	var hash = sha3.Sum256([]byte(k.phrase))
 	text := hex.EncodeToString(hash[:])
 	var password [32]byte
 	copy(password[:], []byte(text))
-	return PasswordToString(password), nil
+	return password, nil
 }
 
 func sha3_256_2(word []byte, repeat int) []byte {

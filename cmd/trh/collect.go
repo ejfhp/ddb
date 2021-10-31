@@ -50,14 +50,14 @@ func cmdCollect(args []string) error {
 	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
 
 	utxos := make(map[string][]*ddb.UTXO)
-	for _, pwd := range keystore.PassNames() {
-		u, err := blockchain.GetUTXO(keystore.Address(pwd))
+	for _, n := range keystore.Nodes() {
+		u, err := blockchain.GetUTXO(n.Address)
 		if err != nil && err.Error() != "found no UTXO" {
 			trail.Println(trace.Alert("error while retrieving UTXO").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while retrieving UTXO for address %s: %w", keystore.Address(pwd), err)
+			return fmt.Errorf("error while retrieving UTXO for address %s: %w", n.Address, err)
 		}
 		if len(u) > 0 {
-			utxos[keystore.Address(pwd)] = u
+			utxos[n.Address] = u
 		}
 	}
 	if len(utxos) > 0 {

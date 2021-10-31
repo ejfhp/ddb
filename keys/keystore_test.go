@@ -52,15 +52,18 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 	keyfile := "/tmp/keystore.trhk"
 	os.RemoveAll(keyfile)
 	pin := "trh"
-	passwordt := "tantovalagattaallardochecilascia"
-	password := [32]byte{}
-	copy(password[:], []byte(passwordt)[:])
-	ks, err := keys.NewKeystore(destinationKey, string(passwordt))
+	password := "tantovalagattaallardochecilascia"
+	ks, err := keys.NewKeystore(destinationKey, password)
 	if err != nil {
 		t.Logf("failed to create keystore: %v", err)
 		t.FailNow()
 	}
-	ks.AddNewKeyAndAddress(password)
+	node, err := ks.NodeFromPassword(password)
+	if err != nil {
+		t.Logf("failed to create none: %v", err)
+		t.FailNow()
+	}
+	ks.StoreNode(node)
 	err = ks.Save(keyfile, pin)
 	if err != nil {
 		t.Logf("failed to save keystore: %v", err)
@@ -79,8 +82,8 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 		t.Logf("load keystore has wrong key: %s", ks2.Key(keys.Main))
 		t.FailNow()
 	}
-	p2 := ks2.Password("one")
-	if string(p2[:]) != passwordt {
+	p2 := ks2.Password(keys.Main)
+	if string(p2[:]) != password {
 		t.Logf("load keystore has wrong password: %s", string(p2[:]))
 		t.FailNow()
 	}
@@ -98,17 +101,17 @@ func TestKeyStore_GenerateKeyAndAddress(t *testing.T) {
 			t.Logf("%d - failed to generate ney keystore: %v", i, err)
 			t.FailNow()
 		}
-		bWIF, bAdd, err := ks.AddNewKeyAndAddress(v)
+		node, err := ks.NodeFromPassword(string(v[:]))
 		if err != nil {
 			t.Logf("%d - failed to generate key and add: %v", i, err)
 			t.FailNow()
 		}
-		b2Add, err := keys.AddressOf(bWIF)
+		b2Add, err := keys.AddressOf(node.Key)
 		if err != nil {
 			t.Logf("%d - failed to generate address from generated WIF: %v", i, err)
 			t.FailNow()
 		}
-		if b2Add != bAdd {
+		if b2Add != node.Address {
 			t.Logf("%d - something is wrong in the key-add generation", i)
 			t.FailNow()
 		}

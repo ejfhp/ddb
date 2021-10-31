@@ -1,7 +1,6 @@
 package keys
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"golang.org/x/crypto/sha3"
@@ -49,13 +48,13 @@ func (k *Keygen3) WIF() (string, error) {
 	return wif.String(), nil
 }
 
-func (k *Keygen3) Password() (string, error) {
+func (k *Keygen3) Password() ([32]byte, error) {
 	if !k.initialized {
-		return "", fmt.Errorf("keygen not initialized")
+		return [32]byte{}, fmt.Errorf("keygen not initialized")
 	}
 	var hash = sha3.Sum256([]byte(k.phrase))
-	password := base64.URLEncoding.EncodeToString(hash[:])[:10]
-	return password, nil
+	k.initialized = true
+	return hash, nil
 }
 
 func sha3_256_3(word []byte, repeat int) []byte {

@@ -10,12 +10,13 @@ import (
 const (
 	KeygenVersion1 = 1
 	KeygenVersion2 = 2
+	KeygenVersion3 = 3
 )
 
 type Keygen interface {
 	Init(number int, phrase string) error
 	WIF() (string, error)
-	Password() (string, error)
+	Password() ([32]byte, error)
 }
 
 func MakeKeygen(version int) (Keygen, error) {
@@ -24,6 +25,8 @@ func MakeKeygen(version int) (Keygen, error) {
 		return &Keygen1{}, nil
 	case KeygenVersion2:
 		return &Keygen2{}, nil
+	case KeygenVersion3:
+		return &Keygen3{}, nil
 	}
 	return nil, fmt.Errorf("Keygen version not found: %d", version)
 
@@ -86,18 +89,18 @@ func FromPassphrase(passphrase string, keygenVersion int) (string, string, error
 	if err != nil {
 		return "", "", fmt.Errorf("error while generating password: %w", err)
 	}
-	return wif, password, nil
+	return wif, passwordToString(password), nil
 }
 
-func PasswordFromString(pwd string) [32]byte {
-	var password = [32]byte{}
-	for i := 0; i < len(password); i++ {
-		password[i] = '#'
-	}
-	copy(password[:], pwd[:])
-	return password
-}
+// func PasswordFromString(pwd string) [32]byte {
+// 	var password = [32]byte{}
+// 	for i := 0; i < len(password); i++ {
+// 		password[i] = '#'
+// 	}
+// 	copy(password[:], pwd[:])
+// 	return password
+// }
 
-func PasswordToString(password [32]byte) string {
-	return strings.TrimSpace(string(password[:]))
-}
+// func PasswordToString(password [32]byte) string {
+// 	return strings.TrimSpace(string(password[:]))
+// }

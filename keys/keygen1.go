@@ -96,14 +96,14 @@ func (k *Keygen1) WIF() (string, error) {
 	return wif.String(), nil
 }
 
-func (k *Keygen1) Password() (string, error) {
+func (k *Keygen1) Password() ([32]byte, error) {
 	if !k.initialized {
-		return "", fmt.Errorf("keygen not initialized")
+		return [32]byte{}, fmt.Errorf("keygen not initialized")
 	}
 	var password [32]byte
 	copy(password[:], []byte(k.phrase)[:32])
 	k.initialized = true
-	return PasswordToString(password), nil
+	return password, nil
 }
 
 type hasher func(words [][]byte, repeat int, hash []byte) []byte

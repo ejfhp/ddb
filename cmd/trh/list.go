@@ -29,7 +29,6 @@ func cmdList(args []string) error {
 	if !ok {
 		return fmt.Errorf("flag combination invalid")
 	}
-	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -37,32 +36,37 @@ func cmdList(args []string) error {
 		return fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
+	keystore, err := loadKeyStore()
+	if err != nil {
+		trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
+		return fmt.Errorf("error while loading keystore: %w", err)
+	}
+	var mEntries map[string][]*ddb.MetaEntry
+	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
 	switch opt {
 	case "pin":
-		keystore, err := loadKeyStore()
-		if err != nil {
-			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while loading keystore: %w", err)
-		}
-		passwordAddress[""] = keystore.Address(keys.Main)
-		btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
-		mEntries, err := btrunk.ListEntries(keystore.Passwords(), false)
+		mEntries, err = btrunk.ListEntries(keystore.Passwords(), false)
 		if err != nil {
 			trail.Println(trace.Alert("error while listing MetaEntry").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while listing MetaEntry for password: %w", err)
 		}
-		for pass, mes := range mEntries {
-			fmt.Printf("Entry for password '%s':\n", pass)
-			for i, me := range mes {
-				fmt.Printf("%d found entry: %s\t%s\n", i, me.Name, me.Hash)
-			}
-
-		}
 	case "password":
+		passmap := map[string][32]byte{flagPassword: keystore.Password(flagPassword)}
+		mEntries, err = btrunk.ListEntries(passmap, false)
+		if err != nil {
+			trail.Println(trace.Alert("error while listing MetaEntry").Append(tr).UTC().Error(err))
+			return fmt.Errorf("error while listing MetaEntry for password: %w", err)
+		}
 
 	default:
 		return fmt.Errorf("flag combination invalid")
 	}
+	for pass, mes := range mEntries {
+		fmt.Printf("Entry for password '%s':\n", pass)
+		for i, me := range mes {
+			fmt.Printf("%d found entry: %s\t%s\n", i, me.Name, me.Hash)
+		}
 
+	}
 	return nil
 }

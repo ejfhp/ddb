@@ -31,7 +31,7 @@ func TestKeygen3_New(t *testing.T) {
 			t.Fail()
 		}
 		t.Logf("password: '%s'\n", string(pass[:]))
-		if len(pass) != 10 {
+		if len(pass) != 32 {
 			t.Logf("wrong password: '%s' %d", pass, len(pass))
 			t.Fail()
 		}
