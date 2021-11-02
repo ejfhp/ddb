@@ -38,7 +38,7 @@ func newFlagset(command string) (*flag.FlagSet, map[string][]string) {
 		flagset.BoolVar(&flagGenerateKeys, "generate", false, "generate a keystore.trh file")
 		flagset.BoolVar(&flagKeysToPlain, "tounencrypted", false, "export an unencrypted version of keystore.trh to keystore_plain.trh. Only for backup purposes, keep it confidential.")
 		flagset.BoolVar(&flagKeysFromPlain, "fromunencrypted", false, "update keystore.trh from the unencrypted file keystore_plain.trh, only for backup purposes.")
-		flagset.Int64Var(&flagKeygenID, "keygen", 2, "keygen to be used for key and password generation")
+		flagset.Int64Var(&flagKeygenID, "keygen", 3, "keygen to be used for key and password generation")
 		flagset.StringVar(&flagBitcoinKey, "key", "", "bitcoin key")
 		flagset.StringVar(&flagPhrase, "phrase", "", "passphrase to generate key and password, if key is not set")
 		flagset.StringVar(&flagPassword, "password", "", "encryption password, required if key is set")

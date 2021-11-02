@@ -63,7 +63,7 @@ func (k *Keygen2) Password() ([32]byte, error) {
 func sha3_256_2(word []byte, repeat int) []byte {
 	start := sha3.Sum256(word)
 	var out [32]byte
-	copy(out[:], start[:32])
+	copy(out[:], start[:])
 	for i := 0; i < repeat; i++ {
 		out = sha3.Sum256(out[:])
 	}
