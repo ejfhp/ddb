@@ -19,7 +19,7 @@ const (
 	fakePassword = "B3QGlJVqH7ZmhLo_oT8WcElm9OzOLxM5"
 )
 
-func Estimate(file string, labels []string, notes string) error {
+func Estimate(file string, labels []string, notes string) (satoshi.Satoshi, error) {
 	tr := trace.New().Source("estimate.go", "", "cmdEstimate")
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
@@ -28,25 +28,27 @@ func Estimate(file string, labels []string, notes string) error {
 	ent, err := ddb.NewEntryFromFile(filepath.Base(file), file, labels, notes)
 	if err != nil {
 		trail.Println(trace.Alert("failed to generate entry from file").Append(tr).UTC().Error(err))
-		return fmt.Errorf("failed to generate entry from file: %w", err)
+		return 0, fmt.Errorf("failed to generate entry from file: %w", err)
 	}
 
-	pwd := (*[32]byte)([]byte(fakePassword))
+	// pwd := (*[32]byte)([]byte(fakePassword))
+	pwd := [32]byte{}
+	copy(pwd[:], []byte(fakePassword))
 	txs, err := btrunk.TXOfBranchedEntry(fakeKey, fakeAddress, pwd, ent, fakeHeader, satoshi.Bitcoin(fakeValue).Satoshi(), true)
 	if err != nil {
 		trail.Println(trace.Alert("failed to generate txs for entry").Append(tr).UTC().Error(err))
-		return fmt.Errorf("failed to generate txs for entry: %w", err)
+		return 0, fmt.Errorf("failed to generate txs for entry: %w", err)
 	}
 	totFee := satoshi.Satoshi(0)
 	for i, t := range txs {
 		_, _, fee, err := t.TotInOutFee()
 		if err != nil {
 			trail.Println(trace.Alert("failed to get fee from tx").Append(tr).UTC().Error(err))
-			return fmt.Errorf("failed to get fee from tx num %d: %w", i, err)
+			return 0, fmt.Errorf("failed to get fee from tx num %d: %w", i, err)
 		}
 		totFee = totFee.Add(fee)
 	}
 	fmt.Printf("Estimated fee: %d satoshi\n", totFee)
 	fmt.Printf("Estimated traffic: %d tx\n", len(txs))
-	return nil
+	return totFee, nil
 }
