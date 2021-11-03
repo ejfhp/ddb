@@ -10,7 +10,82 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
-func cmdTx(args []string) error {
+func ListAllTx(pin string) ([]string, error) {
+	passwordAddress := map[string]string{}
+	woc := ddb.NewWOC()
+	taal := miner.NewTAAL()
+	cache, err := ddb.NewUserTXCache()
+	if err != nil {
+		return nil, fmt.Errorf("cannot open cache")
+	}
+	blockchain := ddb.NewBlockchain(taal, woc, cache)
+	keystore, err := loadKeyStore(pin)
+	if err != nil {
+		trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while loading keystore: %w", err)
+	}
+	for _, pn := range keystore.PassNames() {
+		passwordAddress[pn] = keystore.Address(pn)
+	}
+	allTXs := []string{}
+	for pwd, add := range passwordAddress {
+		txs, err := blockchain.ListTXIDs(add, false)
+		if err != nil {
+			return nil, fmt.Errorf("error while retrieving existing transactions: %w", err)
+		}
+		fmt.Printf("Address '%s' of password '%s'\n", add, pwd)
+		for _, tx := range txs {
+			fmt.Printf(" Found TX: %s\n", tx)
+			allTXs = append(allTXs, tx)
+		}
+	}
+	return allTXs, nil
+}
+
+//TODO single password TXs and UTXOs
+
+func ListAllTx(pin string) ([]string, error) {
+	passwordAddress := map[string]string{}
+	woc := ddb.NewWOC()
+	taal := miner.NewTAAL()
+	cache, err := ddb.NewUserTXCache()
+	if err != nil {
+		return nil, fmt.Errorf("cannot open cache")
+	}
+	blockchain := ddb.NewBlockchain(taal, woc, cache)
+	keystore, err := loadKeyStore(pin)
+	if err != nil {
+		trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while loading keystore: %w", err)
+	}
+	for pwd, ka := range keystore.PassNames() {
+		fmt.Printf("PWD: %s\n", pwd)
+		passwordAddress[ka] = keystore.Address(ka)
+	}
+	for pwd, add := range passwordAddress {
+		utxos, err := blockchain.GetUTXO(add)
+		if err != nil {
+			if err.Error() != "found no UTXO" {
+				return nil, fmt.Errorf("error while retrieving unspend outputs (UTXO): %w", err)
+			}
+			utxos = []*ddb.UTXO{}
+		}
+		txs, err := blockchain.ListTXIDs(add, false)
+		if err != nil {
+			return nil, fmt.Errorf("error while retrieving existing transactions: %w", err)
+		}
+		fmt.Printf("Address '%s' of password '%s'\n", add, pwd)
+		for _, u := range utxos {
+			fmt.Printf(" Found UTXOS: %d satoshi in TX %s, %d\n", u.Value.Satoshi(), u.TXHash, u.TXPos)
+		}
+		for _, tx := range txs {
+			fmt.Printf(" Found TX: %s\n", tx)
+		}
+	}
+	return txs, nil
+}
+
+func ListTXOfSinglePassword(args []string) error {
 	tr := trace.New().Source("tx.go", "", "cmdTx")
 	flagset, options := newFlagset(txCmd)
 	err := flagset.Parse(args[2:])

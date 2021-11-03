@@ -30,6 +30,7 @@ func Estimate(file string, labels []string, notes string) error {
 		trail.Println(trace.Alert("failed to generate entry from file").Append(tr).UTC().Error(err))
 		return fmt.Errorf("failed to generate entry from file: %w", err)
 	}
+
 	pwd := (*[32]byte)([]byte(fakePassword))
 	txs, err := btrunk.TXOfBranchedEntry(fakeKey, fakeAddress, pwd, ent, fakeHeader, satoshi.Bitcoin(fakeValue).Satoshi(), true)
 	if err != nil {

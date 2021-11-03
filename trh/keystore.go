@@ -1,26 +1,25 @@
-package main
+package trh
 
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/ejfhp/ddb"
 	"github.com/ejfhp/ddb/keys"
-	"github.com/ejfhp/trail"
-	"github.com/ejfhp/trail/trace"
 )
 
-const keystoreFile = "keystore.trh"
-const keystoreOldFile = "keystore.trh.old"
-const keystoreUnencrypted = "keystore_plain.trh"
+const (
+	keystoreFile        = "keystore.trh"
+	keystoreOldFile     = "keystore.trh.old"
+	keystoreUnencrypted = "keystore_plain.trh"
+)
 
-func loadKeyStore() (*keys.KeyStore, error) {
-	return keys.LoadKeyStore(keystoreFile, flagPIN)
+func loadKeyStore(pin string) (*keys.KeyStore, error) {
+	return keys.LoadKeyStore(keystoreFile, pin)
 }
 
-func saveKeyStore(k *keys.KeyStore) error {
-	return k.Save(keystoreFile, flagPIN)
+func saveKeyStore(k *keys.KeyStore, pin string) error {
+	return k.Save(keystoreFile, pin)
 }
 
 func saveUnencryptedKeyStore(k *keys.KeyStore) error {
@@ -32,76 +31,64 @@ func loadKeyStoreUnencrypted() (*keys.KeyStore, error) {
 
 }
 
-func updateKeyStore(k *keys.KeyStore) error {
-	return k.Update(keystoreFile, keystoreOldFile, flagPIN)
+func updateKeyStore(k *keys.KeyStore, pin string) error {
+	return k.Update(keystoreFile, keystoreOldFile, pin)
 }
 
-func cmdKeystore(args []string) error {
-	tr := trace.New().Source("keystore.go", "", "cmdKeystore")
-	flagset, options := newFlagset(keystoreCmd)
-	err := flagset.Parse(args[2:])
+func KeystoreGenFromKey(bitcoinKey string, password string, pin string) error {
+	keyStore, err := keys.NewKeystore(bitcoinKey, password)
 	if err != nil {
-		return fmt.Errorf("error while parsing args: %w", err)
+		return fmt.Errorf("provided key %s has issues: %w", bitcoinKey, err)
 	}
-	if flagLog {
-		trail.SetWriter(os.Stderr)
+	saveKeyStore(keyStore, pin)
+	if err != nil {
+		return fmt.Errorf("error while saving keystore to local file %s: %w", keystoreFile, err)
 	}
-	if flagHelp {
-		printHelp(keystoreCmd)
-		return nil
+	showKeystore(keyStore)
+	return nil
+}
+
+func KeystoreGenFromPhrase(phrase string, keygenID int, pin string) error {
+	wif, password, err := keys.FromPassphrase(phrase, keygenID)
+	if err != nil {
+		return fmt.Errorf("error while generating key using passphrase: %w", err)
 	}
-	opt, ok := areFlagConsistent(flagset, options)
-	if !ok {
-		return fmt.Errorf("flag combination invalid")
+	keyStore, err := keys.NewKeystore(wif, password)
+	if err != nil {
+		return fmt.Errorf("error while generating keystore from passphrase '%s' with keygen '%d': %w", phrase, keygenID, err)
 	}
-	var keyStore *keys.KeyStore
-	toStore := false
-	switch opt {
-	case "genkey":
-		keyStore, err = keys.NewKeystore(flagBitcoinKey, flagPassword)
-		if err != nil {
-			trail.Println(trace.Alert("provided key has issues").Append(tr).UTC().Add("bitcoinKey", flagBitcoinKey).Error(err))
-			return fmt.Errorf("provided key %s has issues: %w", flagBitcoinKey, err)
-		}
-		toStore = true
-	case "genphrase":
-		keyStore, err = keyStoreFromPassphrase(flagPhrase, int(flagKeygenID))
-		if err != nil {
-			trail.Println(trace.Alert("error while generating keystore from passphrase").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while generating keystore from passphrase: %w", err)
-		}
-		toStore = true
-	case "show":
-		keyStore, err = loadKeyStore()
-		if err != nil {
-			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while loading keystore: %w", err)
-		}
-		updateKeyStore(keyStore)
-	case "tounencrypted":
-		keyStore, err = loadKeyStore()
-		if err != nil {
-			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while loading keystore: %w", err)
-		}
-		saveUnencryptedKeyStore(keyStore)
-	case "fromunencrypted":
-		keyStore, err = loadKeyStoreUnencrypted()
-		if err != nil {
-			trail.Println(trace.Alert("error while loading unencrypted keystore").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while loading unenctrypted keystore: %w", err)
-		}
-		updateKeyStore(keyStore)
-	default:
-		return fmt.Errorf("flag combination invalid")
+	saveKeyStore(keyStore, pin)
+	if err != nil {
+		return fmt.Errorf("error while saving keystore to local file %s: %w", keystoreFile, err)
 	}
-	if toStore {
-		saveKeyStore(keyStore)
-		if err != nil {
-			trail.Println(trace.Alert("error while saving keystore to local file").Append(tr).UTC().Error(err))
-			return fmt.Errorf("error while saving keystore to local file %s: %w", keystoreFile, err)
-		}
+	showKeystore(keyStore)
+	return nil
+}
+
+func KeystoreShow(pin string) error {
+	keyStore, err := loadKeyStore(pin)
+	if err != nil {
+		return fmt.Errorf("error while loading keystore: %w", err)
 	}
+	showKeystore(keyStore)
+	return nil
+}
+
+func KeystoreSaveUnencrypted(pin string) error {
+	keyStore, err := loadKeyStore(pin)
+	if err != nil {
+		return fmt.Errorf("error while loading keystore: %w", err)
+	}
+	saveUnencryptedKeyStore(keyStore)
+	return nil
+}
+
+func KeystoreRestoreFromUnencrypted(pin string) error {
+	keyStore, err := loadKeyStoreUnencrypted()
+	if err != nil {
+		return fmt.Errorf("error while loading unenctrypted keystore: %w", err)
+	}
+	updateKeyStore(keyStore, pin)
 	showKeystore(keyStore)
 	return nil
 }
@@ -123,30 +110,4 @@ func showKeystore(keystore *keys.KeyStore) {
 	for n, p := range keystore.Passwords() {
 		fmt.Printf("      %s: '%s' .  %d\n", n, p, len(p))
 	}
-}
-
-func keyStoreFromPassphrase(passphrase string, keygenID int) (*keys.KeyStore, error) {
-	wif, password, err := keys.FromPassphrase(passphrase, keygenID)
-	if err != nil {
-		return nil, fmt.Errorf("error while generating key using passphrase: %w", err)
-	}
-	keystore, err := keys.NewKeystore(wif, password)
-	if err != nil {
-		return nil, fmt.Errorf("error while generating keystore from passphrase '%s' with keygen '%d': %w", passphrase, keygenID, err)
-	}
-	return keystore, nil
-}
-
-func extractPassphrase(args []string) (string, error) {
-	startidx := -1
-	for i, t := range args {
-		if t == "+" {
-			startidx = i + 1
-		}
-	}
-	if startidx < 0 || startidx >= len(args) {
-		return "", fmt.Errorf("passphrase is missing")
-	}
-	passphrase := strings.Join(args[startidx:], " ")
-	return passphrase, nil
 }
