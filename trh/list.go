@@ -8,7 +8,7 @@ import (
 	"github.com/ejfhp/ddb/miner"
 )
 
-func ListAll(pin string) error {
+func ListAll(keystore keys.KeyStore) error {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -16,10 +16,6 @@ func ListAll(pin string) error {
 		return fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	keystore, err := loadKeyStore(pin)
-	if err != nil {
-		return fmt.Errorf("error while loading keystore: %w", err)
-	}
 	var mEntries map[string][]*ddb.MetaEntry
 	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
 	mEntries, err = btrunk.ListEntries(keystore.Passwords(), false)
@@ -35,7 +31,7 @@ func ListAll(pin string) error {
 	return nil
 }
 
-func ListSinglePassword(pin string, password string) error {
+func ListSinglePassword(keystore keys.KeyStore, password string) error {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -43,10 +39,6 @@ func ListSinglePassword(pin string, password string) error {
 		return fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	keystore, err := loadKeyStore(pin)
-	if err != nil {
-		return fmt.Errorf("error while loading keystore: %w", err)
-	}
 	var mEntries map[string][]*ddb.MetaEntry
 	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
 	passmap := map[string][32]byte{password: keystore.Password(password)}

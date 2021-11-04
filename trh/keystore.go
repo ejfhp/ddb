@@ -8,47 +8,20 @@ import (
 	"github.com/ejfhp/ddb/keys"
 )
 
-const (
-	keystoreFile        = "keystore.trh"
-	keystoreOldFile     = "keystore.trh.old"
-	keystoreUnencrypted = "keystore_plain.trh"
-)
-
-func loadKeyStore(pin string) (*keys.KeyStore, error) {
-	return keys.LoadKeyStore(keystoreFile, pin)
-}
-
-func saveKeyStore(k *keys.KeyStore, pin string) error {
-	return k.Save(keystoreFile, pin)
-}
-
-func saveUnencryptedKeyStore(k *keys.KeyStore) error {
-	return k.SaveUnencrypted(keystoreUnencrypted)
-}
-
-func loadKeyStoreUnencrypted() (*keys.KeyStore, error) {
-	return keys.LoadKeyStoreUnencrypted(keystoreUnencrypted)
-
-}
-
-func updateKeyStore(k *keys.KeyStore, pin string) error {
-	return k.Update(keystoreFile, keystoreOldFile, pin)
-}
-
-func KeystoreGenFromKey(bitcoinKey string, password string, pin string) error {
+func KeystoreGenFromKey(bitcoinKey string, password string, pin string, pathname string) (*keys.KeyStore, error) {
 	keyStore, err := keys.NewKeystore(bitcoinKey, password)
 	if err != nil {
-		return fmt.Errorf("provided key %s has issues: %w", bitcoinKey, err)
+		return nil, fmt.Errorf("provided key %s has issues: %w", bitcoinKey, err)
 	}
-	saveKeyStore(keyStore, pin)
+	err = keyStore.Save(pathname, pin)
 	if err != nil {
-		return fmt.Errorf("error while saving keystore to local file %s: %w", keystoreFile, err)
+		return nil, fmt.Errorf("error while saving keystore to file %s: %w", pathname, err)
 	}
 	showKeystore(keyStore)
-	return nil
+	return keyStore, nil
 }
 
-func KeystoreGenFromPhrase(phrase string, keygenID int, pin string) error {
+func KeystoreGenFromPhrase(phrase string, keygenID int, pin string, pathname string) error {
 	wif, password, err := keys.FromPassphrase(phrase, keygenID)
 	if err != nil {
 		return fmt.Errorf("error while generating key using passphrase: %w", err)
@@ -57,39 +30,45 @@ func KeystoreGenFromPhrase(phrase string, keygenID int, pin string) error {
 	if err != nil {
 		return fmt.Errorf("error while generating keystore from passphrase '%s' with keygen '%d': %w", phrase, keygenID, err)
 	}
-	saveKeyStore(keyStore, pin)
+	err = keyStore.Save(pathname, pin)
 	if err != nil {
-		return fmt.Errorf("error while saving keystore to local file %s: %w", keystoreFile, err)
+		return fmt.Errorf("error while saving keystore to local file %s: %w", pathname, err)
 	}
 	showKeystore(keyStore)
 	return nil
 }
 
-func KeystoreShow(pin string) error {
-	keyStore, err := loadKeyStore(pin)
+func KeystoreShow(pin string, pathname string) error {
+	keystore, err := keys.LoadKeyStore(pathname, pin)
 	if err != nil {
 		return fmt.Errorf("error while loading keystore: %w", err)
 	}
-	showKeystore(keyStore)
+	showKeystore(keystore)
 	return nil
 }
 
-func KeystoreSaveUnencrypted(pin string) error {
-	keyStore, err := loadKeyStore(pin)
+func KeystoreSaveUnencrypted(pin string, pathname string) error {
+	keystore, err := keys.LoadKeyStore(pathname, pin)
 	if err != nil {
 		return fmt.Errorf("error while loading keystore: %w", err)
 	}
-	saveUnencryptedKeyStore(keyStore)
+	err = keystore.SaveUnencrypted(pathname)
+	if err != nil {
+		return fmt.Errorf("error saving unencrypted keystore to %s: %w", pathname, err)
+	}
 	return nil
 }
 
-func KeystoreRestoreFromUnencrypted(pin string) error {
-	keyStore, err := loadKeyStoreUnencrypted()
+func KeystoreRestoreFromUnencrypted(pin string, pathname string) error {
+	keystore, err := keys.LoadKeyStoreUnencrypted(pathname)
 	if err != nil {
 		return fmt.Errorf("error while loading unenctrypted keystore: %w", err)
 	}
-	updateKeyStore(keyStore, pin)
-	showKeystore(keyStore)
+	err = keystore.Update(pathname, pathname+".old", pin)
+	if err != nil {
+		return fmt.Errorf("error while updating keystore: %w", err)
+	}
+	showKeystore(keystore)
 	return nil
 }
 

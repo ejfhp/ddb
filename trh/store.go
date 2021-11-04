@@ -11,6 +11,7 @@ import (
 )
 
 func Store(pin string, password string, pathfile string, labels []string, notes string, txheader string, maxSpend int) error {
+	//TODO substitute keysstore
 	keystore, err := loadKeyStore(pin)
 	if err != nil {
 		return fmt.Errorf("error while loading keystore: %w", err)

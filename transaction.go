@@ -17,7 +17,7 @@ const (
 	APP_NAME    = "ddb"  //3 bytes, this must not be changed
 	VER_AES     = "0001" //4 bytes
 	headerLen   = 9
-	FakeTXValue = 100
+	FakeTXValue = 20000000
 )
 
 type SourceOutput struct {
