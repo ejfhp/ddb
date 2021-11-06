@@ -11,7 +11,7 @@ import (
 )
 
 //Collect gather all the UTXO left in branches to the main address. Return the txids.
-func Collect(keystore *keys.KeyStore) (map[string]string, error) {
+func Collect(keystore *keys.Keystore) (map[string]string, error) {
 	tr := trace.New().Source("collect.go", "", "cmdCollect")
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()

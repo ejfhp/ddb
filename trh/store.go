@@ -10,12 +10,7 @@ import (
 	"github.com/ejfhp/ddb/satoshi"
 )
 
-func Store(pin string, password string, pathfile string, labels []string, notes string, txheader string, maxSpend int) error {
-	//TODO substitute keysstore
-	keystore, err := loadKeyStore(pin)
-	if err != nil {
-		return fmt.Errorf("error while loading keystore: %w", err)
-	}
+func Store(keystore *keys.Keystore, password string, pathfile string, labels []string, notes string, txheader string, maxSpend int) error {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -33,7 +28,7 @@ func Store(pin string, password string, pathfile string, labels []string, notes 
 		return fmt.Errorf("failed to generate branch key and address: %w", err)
 	}
 	//Storing password in Keystore before to try to store the file on the blockchain
-	err = updateKeyStore(keystore, pin)
+	err = keystore.Update()
 	if err != nil {
 		return fmt.Errorf("failed to save the current password in the keystore: %w", err)
 	}

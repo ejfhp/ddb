@@ -29,7 +29,7 @@ func cmdCollect(args []string) error {
 	if !ok {
 		return fmt.Errorf("flag combination invalid")
 	}
-	var keystore *keys.KeyStore
+	var keystore *keys.Keystore
 	switch opt {
 	case "pin":
 		keystore, err = loadKeyStore()

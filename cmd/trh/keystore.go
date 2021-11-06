@@ -15,27 +15,6 @@ const keystoreFile = "keystore.trh"
 const keystoreOldFile = "keystore.trh.old"
 const keystoreUnencrypted = "keystore_plain.trh"
 
-func loadKeyStore() (*keys.KeyStore, error) {
-	return keys.LoadKeyStore(keystoreFile, flagPIN)
-}
-
-func saveKeyStore(k *keys.KeyStore) error {
-	return k.Save(keystoreFile, flagPIN)
-}
-
-func saveUnencryptedKeyStore(k *keys.KeyStore) error {
-	return k.SaveUnencrypted(keystoreUnencrypted)
-}
-
-func loadKeyStoreUnencrypted() (*keys.KeyStore, error) {
-	return keys.LoadKeyStoreUnencrypted(keystoreUnencrypted)
-
-}
-
-func updateKeyStore(k *keys.KeyStore) error {
-	return k.Update(keystoreFile, keystoreOldFile, flagPIN)
-}
-
 func cmdKeystore(args []string) error {
 	tr := trace.New().Source("keystore.go", "", "cmdKeystore")
 	flagset, options := newFlagset(keystoreCmd)
@@ -54,7 +33,7 @@ func cmdKeystore(args []string) error {
 	if !ok {
 		return fmt.Errorf("flag combination invalid")
 	}
-	var keyStore *keys.KeyStore
+	var keyStore *keys.Keystore
 	toStore := false
 	switch opt {
 	case "genkey":
@@ -72,12 +51,12 @@ func cmdKeystore(args []string) error {
 		}
 		toStore = true
 	case "show":
-		keyStore, err = loadKeyStore()
+		keyStore, err = keys.LoadKeystore(keystoreFile)
 		if err != nil {
 			trail.Println(trace.Alert("error while loading keystore").Append(tr).UTC().Error(err))
 			return fmt.Errorf("error while loading keystore: %w", err)
 		}
-		updateKeyStore(keyStore)
+		keyStore.Update()
 	case "tounencrypted":
 		keyStore, err = loadKeyStore()
 		if err != nil {
@@ -106,7 +85,7 @@ func cmdKeystore(args []string) error {
 	return nil
 }
 
-func showKeystore(keystore *keys.KeyStore) {
+func showKeystore(keystore *keys.Keystore) {
 	fmt.Printf("*** KEYSTORE ***\n")
 	fmt.Printf("\n")
 	fmt.Printf("    KEY WIF\n")
@@ -125,7 +104,7 @@ func showKeystore(keystore *keys.KeyStore) {
 	}
 }
 
-func keyStoreFromPassphrase(passphrase string, keygenID int) (*keys.KeyStore, error) {
+func keyStoreFromPassphrase(passphrase string, keygenID int) (*keys.Keystore, error) {
 	wif, password, err := keys.FromPassphrase(passphrase, keygenID)
 	if err != nil {
 		return nil, fmt.Errorf("error while generating key using passphrase: %w", err)

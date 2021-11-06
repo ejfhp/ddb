@@ -22,7 +22,7 @@ const (
 	exitStoreError
 )
 
-var commands = map[string]string{
+var commands = map[string][]string{
 	keystoreCmd: "creates and shows keystore file",
 	txCmd:       "lists transaction connected to keystore and password",
 	listCmd:     "list",

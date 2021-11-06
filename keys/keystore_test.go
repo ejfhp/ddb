@@ -69,7 +69,7 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 		t.Logf("failed to save keystore: %v", err)
 		t.FailNow()
 	}
-	ks2, err := keys.LoadKeyStore(keyfile, pin)
+	ks2, err := keys.LoadKeystore(keyfile, pin)
 	if err != nil {
 		t.Logf("failed to load keystore: %v", err)
 		t.FailNow()

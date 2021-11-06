@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/miner"
 )
 
-func ListAllTX(pin string) ([]string, error) {
+func ListAllTX(keystore *keys.Keystore) ([]string, error) {
 	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
@@ -16,7 +17,6 @@ func ListAllTX(pin string) ([]string, error) {
 		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	keystore, err := loadKeyStore(pin)
 	if err != nil {
 		return nil, fmt.Errorf("error while loading keystore: %w", err)
 	}
@@ -38,7 +38,7 @@ func ListAllTX(pin string) ([]string, error) {
 	return allTXs, nil
 }
 
-func ListSinglePasswordTX(pin string, password string) ([]string, error) {
+func ListSinglePasswordTX(keystore *keys.Keystore, password string) ([]string, error) {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -46,10 +46,6 @@ func ListSinglePasswordTX(pin string, password string) ([]string, error) {
 		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	keystore, err := loadKeyStore(pin)
-	if err != nil {
-		return nil, fmt.Errorf("error while loading keystore: %w", err)
-	}
 	address := keystore.Address(password)
 	txs, err := blockchain.ListTXIDs(address, false)
 	if err != nil {
@@ -62,7 +58,7 @@ func ListSinglePasswordTX(pin string, password string) ([]string, error) {
 	return txs, nil
 }
 
-func ListUTXOs(pin string) error {
+func ListUTXOs(keystore *keys.Keystore) error {
 	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
@@ -71,10 +67,6 @@ func ListUTXOs(pin string) error {
 		return fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	keystore, err := loadKeyStore(pin)
-	if err != nil {
-		return fmt.Errorf("error while loading keystore: %w", err)
-	}
 	for _, ka := range keystore.PassNames() {
 		passwordAddress[ka] = keystore.Address(ka)
 	}
