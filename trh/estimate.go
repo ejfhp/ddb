@@ -17,7 +17,7 @@ const (
 	fakePassword = "B3QGlJVqH7ZmhLo_oT8WcElm9OzOLxM5"
 )
 
-func Estimate(file string, labels []string, notes string) (satoshi.Satoshi, int, error) {
+func (t *TRH) Estimate(file string, labels []string, notes string) (satoshi.Satoshi, int, error) {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, nil)

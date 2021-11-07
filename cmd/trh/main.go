@@ -1,9 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
+
+	"github.com/ejfhp/ddb/trh"
 )
 
 const (
@@ -22,15 +26,27 @@ const (
 	exitStoreError
 )
 
-var commands = map[string][]string{
-	keystoreCmd: "creates and shows keystore file",
-	txCmd:       "lists transaction connected to keystore and password",
-	listCmd:     "list",
-	storeCmd:    "stores a file on the blockchain",
-	collectCmd:  "collects amount left on branched transactions due to errors",
-	// "retrieveall": "retrieveall",
-	estimateCmd: "estimates the amount to spend to save a file on the blockchain",
+type command struct {
+	name        string
+	description string
+	params      []string
 }
+
+var commands = map[string]command{
+	"kshow":      {name: "keystore_show", description: "keystore show", params: []string{"pin"}},
+	"ktoun":      {name: "keystore_tounencrypt", description: "keystore export to unencrypted", params: []string{"pin"}},
+	"kfromun":    {name: "keystore_fromunenecr", description: "keystore load from unencrypted", params: []string{"pin"}},
+	"kgenfromkp": {name: "keystore_fromkeypass", description: "keystore generate from key and password", params: []string{"pin", "key", "password"}},
+	"kgenfromph": {name: "keystore_frompassphr", description: "keystore generate from phrase", params: []string{"pin", "phrase"}},
+	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"password", "file"}},
+	"txshow":     {name: "tx_showall", description: "transactions show all", params: []string{"pin"}},
+	"txshowp":    {name: "tx_showpass", description: "transaction show of password", params: []string{"pin", "password"}},
+	"collect":    {name: "collect_all", description: "collect unspent money", params: []string{"pin"}},
+	"store":      {name: "storefile_file", description: "store file", params: []string{"password", "file", "pin"}},
+	"list":       {name: "listfile_all", description: "list all files stored", params: []string{"pin"}},
+	"listp":      {name: "listfile_ofpwd", description: "list files stored with password", params: []string{"pin", "password"}},
+}
+var flagLog bool
 
 func printMainHelp() {
 	fmt.Printf(`
@@ -42,19 +58,11 @@ Read instruction on https://ejfhp.com/projects/trh/
 
 Commands:
 `)
-	for cmd, desc := range commands {
-		fmt.Printf("       %s: %s\n", cmd, desc)
+	w := tabwriter.NewWriter(os.Stdout, 0, 10, 10, ' ', tabwriter.TabIndent)
+	for cmd, d := range commands {
+		fmt.Fprintf(w, "%s\t<%s>\t%s\t\n", cmd, strings.Join(d.params, "> <"), d.description)
 	}
-	fmt.Printf(`
-
-
-Options available:
-
-`)
-	for cmd, _ := range commands {
-		fmt.Printf("\n")
-		printHelp(cmd)
-	}
+	w.Flush()
 	fmt.Printf(`
 
 Examples:
@@ -70,51 +78,44 @@ Examples:
 	fmt.Printf("\nBuilt time: %s\n", buildTimestamp)
 }
 
-func printHelp(command string) {
-	fmt.Printf("Options for command '%s': \n", command)
-	flagsetK, optionsK := newFlagset(command)
-	flagsetK.PrintDefaults()
-	fmt.Printf("Accepted combinations:\n")
-	for n, c := range optionsK {
-		if n != "ignored" {
-			fmt.Printf("     %s\n", c)
-		}
-	}
-}
-
 //go:generate go run buildscript/timebuilt.go
 func main() {
-	//fmt.Printf("args: %v\n", os.Args)
-	if len(os.Args) < 2 {
+	flag.BoolVar(&flagLog, "log", false, "enable log")
+	flag.Parse()
+
+	cmds := flag.Args()
+	if len(cmds) < 2 {
 		printMainHelp()
 		os.Exit(0)
 	}
-	command := strings.ToLower(os.Args[1])
-	var err error
-	switch command {
-	case keystoreCmd:
-		err = cmdKeystore(os.Args)
-	case txCmd:
-		err = cmdTx(os.Args)
-	case collectCmd:
-		err = cmdCollect(os.Args)
-	case storeCmd:
-		err = cmdStore(os.Args)
-	case listCmd:
-		err = cmdList(os.Args)
-	case estimateCmd:
-		err = cmdEstimate(os.Args)
-	// case commandRetrieveAll:
-	// 	cmdRetrieveAll()
-	default:
-		printMainHelp()
-	}
-	if err != nil {
-		fmt.Printf("ERROR: %v\n", err)
-		if err.Error() == "flag combination invalid" {
-			printHelp(command)
-		}
+	cmd := cmds[0]
+	command, ok := commands[cmd]
+	if !ok {
+		fmt.Printf("Command not found.\n")
 		os.Exit(1)
 	}
+	inputs := flag.Args()[1:]
+	if len(inputs) != len(command.params) {
+		fmt.Printf("Wrong number of input.\n")
+		os.Exit(1)
+	}
+	th := &trh.TRH{}
+	switch command.name {
+	case "keystore_show":
+		fmt.Printf("show\n")
+		th.KeystoreShow(inputs[0], inputs[1])
+	case "keystore_tounencrypt":
+	case "keystore_fromunenecr":
+	case "keystore_fromkeypass":
+	case "keystore_frompassphr":
+	case "estimate_file":
+	case "tx_showall":
+	case "tx_showpass":
+	case "collect_all":
+	case "storefile_file":
+	case "listfile_all":
+	case "listfile_ofpwd":
+	}
+
 	os.Exit(0)
 }

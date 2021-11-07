@@ -8,7 +8,7 @@ import (
 	"github.com/ejfhp/ddb/miner"
 )
 
-func ListAll(keystore keys.Keystore) error {
+func (t *TRH) ListAll(keystore keys.Keystore) error {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -31,7 +31,7 @@ func ListAll(keystore keys.Keystore) error {
 	return nil
 }
 
-func ListSinglePassword(keystore keys.Keystore, password string) error {
+func (t *TRH) ListSinglePassword(keystore keys.Keystore, password string) error {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()

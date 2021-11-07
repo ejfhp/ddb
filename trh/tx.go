@@ -8,7 +8,7 @@ import (
 	"github.com/ejfhp/ddb/miner"
 )
 
-func ListAllTX(keystore *keys.Keystore) ([]string, error) {
+func (t *TRH) ListAllTX(keystore *keys.Keystore) ([]string, error) {
 	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
@@ -38,7 +38,7 @@ func ListAllTX(keystore *keys.Keystore) ([]string, error) {
 	return allTXs, nil
 }
 
-func ListSinglePasswordTX(keystore *keys.Keystore, password string) ([]string, error) {
+func (t *TRH) ListSinglePasswordTX(keystore *keys.Keystore, password string) ([]string, error) {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -58,7 +58,7 @@ func ListSinglePasswordTX(keystore *keys.Keystore, password string) ([]string, e
 	return txs, nil
 }
 
-func ListUTXOs(keystore *keys.Keystore) error {
+func (t *TRH) ListUTXOs(keystore *keys.Keystore) error {
 	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()

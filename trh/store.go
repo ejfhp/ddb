@@ -10,7 +10,7 @@ import (
 	"github.com/ejfhp/ddb/satoshi"
 )
 
-func Store(keystore *keys.Keystore, password string, pathfile string, labels []string, notes string, txheader string, maxSpend int) error {
+func (t *TRH) Store(keystore *keys.Keystore, password string, pathfile string, labels []string, notes string, txheader string, maxSpend int) error {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()

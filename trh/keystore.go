@@ -8,7 +8,7 @@ import (
 	"github.com/ejfhp/ddb/keys"
 )
 
-func KeystoreGenFromKey(bitcoinKey string, password string, pin string, pathname string) (*keys.Keystore, error) {
+func (t *TRH) KeystoreGenFromKey(bitcoinKey string, password string, pin string, pathname string) (*keys.Keystore, error) {
 	keyStore, err := keys.NewKeystore(bitcoinKey, password)
 	if err != nil {
 		return nil, fmt.Errorf("provided key %s has issues: %w", bitcoinKey, err)
@@ -21,7 +21,7 @@ func KeystoreGenFromKey(bitcoinKey string, password string, pin string, pathname
 	return keyStore, nil
 }
 
-func KeystoreGenFromPhrase(phrase string, keygenID int, pin string, pathname string) error {
+func (t *TRH) KeystoreGenFromPhrase(phrase string, keygenID int, pin string, pathname string) error {
 	wif, password, err := keys.FromPassphrase(phrase, keygenID)
 	if err != nil {
 		return fmt.Errorf("error while generating key using passphrase: %w", err)
@@ -38,7 +38,7 @@ func KeystoreGenFromPhrase(phrase string, keygenID int, pin string, pathname str
 	return nil
 }
 
-func KeystoreShow(pin string, pathname string) error {
+func (t *TRH) KeystoreShow(pin string, pathname string) error {
 	keystore, err := keys.LoadKeystore(pathname, pin)
 	if err != nil {
 		return fmt.Errorf("error while loading keystore: %w", err)
@@ -47,7 +47,7 @@ func KeystoreShow(pin string, pathname string) error {
 	return nil
 }
 
-func KeystoreSaveUnencrypted(pin string, pathname string) error {
+func (t *TRH) KeystoreSaveUnencrypted(pin string, pathname string) error {
 	keystore, err := keys.LoadKeystore(pathname, pin)
 	if err != nil {
 		return fmt.Errorf("error while loading keystore: %w", err)
@@ -59,7 +59,7 @@ func KeystoreSaveUnencrypted(pin string, pathname string) error {
 	return nil
 }
 
-func KeystoreRestoreFromUnencrypted(pin string, pathname string) error {
+func (t *TRH) KeystoreRestoreFromUnencrypted(pin string, pathname string) error {
 	keystore, err := keys.LoadKeystoreUnencrypted(pathname)
 	if err != nil {
 		return fmt.Errorf("error while loading unenctrypted keystore: %w", err)

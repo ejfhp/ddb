@@ -15,7 +15,8 @@ func TestKeystore_KeystoreGenFromKey(t *testing.T) {
 	password := "testpassword"
 	pin := "0000"
 	pathname := filepath.Join(os.TempDir(), "keystore.trh")
-	keystore, err := trh.KeystoreGenFromKey(key, password, pin, pathname)
+	th := &trh.TRH{}
+	keystore, err := th.KeystoreGenFromKey(key, password, pin, pathname)
 	if err != nil {
 		t.Logf("keystore form key failed: %v", err)
 		t.FailNow()

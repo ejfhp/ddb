@@ -8,7 +8,8 @@ import (
 
 func TestEstimate_Estimate(t *testing.T) {
 	file := "../testdata/image.png"
-	fee, numtx, err := trh.Estimate(file, []string{"label1", "label2"}, "a lot of notes")
+	tr := &trh.TRH{}
+	fee, numtx, err := tr.Estimate(file, []string{"label1", "label2"}, "a lot of notes")
 	if err != nil {
 		t.Logf("estimate returns error: %v", err)
 		t.FailNow()
