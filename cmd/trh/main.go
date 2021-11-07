@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -34,10 +36,10 @@ type command struct {
 
 var commands = map[string]command{
 	"kshow":      {name: "keystore_show", description: "keystore show", params: []string{"pin"}},
-	"ktoun":      {name: "keystore_tounencrypt", description: "keystore export to unencrypted", params: []string{"pin"}},
-	"kfromun":    {name: "keystore_fromunenecr", description: "keystore load from unencrypted", params: []string{"pin"}},
+	"ktouncry":   {name: "keystore_tounencrypted", description: "keystore export to unencrypted", params: []string{"pin"}},
+	"kfromuncry": {name: "keystore_fromunenecrypted", description: "keystore load from unencrypted", params: []string{"pin"}},
 	"kgenfromkp": {name: "keystore_fromkeypass", description: "keystore generate from key and password", params: []string{"pin", "key", "password"}},
-	"kgenfromph": {name: "keystore_frompassphr", description: "keystore generate from phrase", params: []string{"pin", "phrase"}},
+	"kgenfromph": {name: "keystore_frompassphrase", description: "keystore generate from phrase", params: []string{"pin", "phrase"}},
 	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"password", "file"}},
 	"txshow":     {name: "tx_showall", description: "transactions show all", params: []string{"pin"}},
 	"txshowp":    {name: "tx_showpass", description: "transaction show of password", params: []string{"pin", "password"}},
@@ -59,8 +61,14 @@ Read instruction on https://ejfhp.com/projects/trh/
 Commands:
 `)
 	w := tabwriter.NewWriter(os.Stdout, 0, 10, 10, ' ', tabwriter.TabIndent)
-	for cmd, d := range commands {
-		fmt.Fprintf(w, "%s\t<%s>\t%s\t\n", cmd, strings.Join(d.params, "> <"), d.description)
+	cmdNames := make([]string, 0, len(commands))
+	for k := range commands {
+		cmdNames = append(cmdNames, k)
+	}
+	sort.Strings(cmdNames)
+	for _, cn := range cmdNames {
+		cmd := commands[cn]
+		fmt.Fprintf(w, "%s\t<%s>\t%s\t\n", cn, strings.Join(cmd.params, "> <"), cmd.description)
 	}
 	w.Flush()
 	fmt.Printf(`
@@ -99,15 +107,33 @@ func main() {
 		fmt.Printf("Wrong number of input.\n")
 		os.Exit(1)
 	}
+	ksf := getKeystorePath()
+	fmt.Printf("TRH Keystore file is: %s\n", ksf)
+	var err error
 	th := &trh.TRH{}
 	switch command.name {
 	case "keystore_show":
-		fmt.Printf("show\n")
-		th.KeystoreShow(inputs[0], inputs[1])
-	case "keystore_tounencrypt":
-	case "keystore_fromunenecr":
+		err = th.KeystoreShow(inputs[0], ksf)
+	case "keystore_tounencrypted":
+		ksfu := ksf + ".plain"
+		err = th.KeystoreSaveUnencrypted(inputs[0], ksf, ksfu)
+		if err == nil {
+			fmt.Printf("WARNING: Keystore file saved unencrypted to: %s\n", ksfu)
+		}
+		fmt.Printf("")
+	case "keystore_fromunenecrypted":
+		ksfu := ksf + ".plain"
+		err = th.KeystoreRestoreFromUnencrypted(inputs[0], ksfu, ksf) //TODO COMPLETE
+		if err == nil {
+			fmt.Printf("Keystore restored to: %s\n", ksf)
+		}
+		fmt.Printf("")
 	case "keystore_fromkeypass":
-	case "keystore_frompassphr":
+		_, err := th.KeystoreGenFromKey(inputs[0], inputs[1], inputs[2], ksf)
+		if err == nil {
+			fmt.Printf("Keystore created: %s\n", ksf)
+		}
+	case "keystore_frompassphrase":
 	case "estimate_file":
 	case "tx_showall":
 	case "tx_showpass":
@@ -116,6 +142,25 @@ func main() {
 	case "listfile_all":
 	case "listfile_ofpwd":
 	}
+	if err == nil {
+		fmt.Printf("\n\nCommand terminated succesfully.\n")
+	} else {
+		fmt.Printf("\n\nCommand terminated with error: %v\n", err)
+
+	}
 
 	os.Exit(0)
+}
+
+func getKeystorePath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error retrieving user dir: %v", err)
+		home, err = os.Getwd()
+		if err != nil {
+			fmt.Printf("Error retrieving working dir: %v", err)
+			home = "."
+		}
+	}
+	return filepath.Join(home, "keystore.trh")
 }

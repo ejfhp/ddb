@@ -231,7 +231,7 @@ func (ks *Keystore) SaveUnencrypted(filepath string) error {
 		return fmt.Errorf("cannot encode Keystore: %w", err)
 	}
 	if _, err := os.Stat(filepath); err == nil {
-		return fmt.Errorf("Keystore already exsist")
+		return fmt.Errorf("Keystore unencrypted already exsist")
 	}
 	file, err := os.Create(filepath)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"github.com/ejfhp/ddb/keys"
 )
 
-func (t *TRH) KeystoreGenFromKey(bitcoinKey string, password string, pin string, pathname string) (*keys.Keystore, error) {
+func (t *TRH) KeystoreGenFromKey(pin string, bitcoinKey string, password string, pathname string) (*keys.Keystore, error) {
 	keyStore, err := keys.NewKeystore(bitcoinKey, password)
 	if err != nil {
 		return nil, fmt.Errorf("provided key %s has issues: %w", bitcoinKey, err)
@@ -47,24 +47,24 @@ func (t *TRH) KeystoreShow(pin string, pathname string) error {
 	return nil
 }
 
-func (t *TRH) KeystoreSaveUnencrypted(pin string, pathname string) error {
+func (t *TRH) KeystoreSaveUnencrypted(pin string, pathname string, pathplain string) error {
 	keystore, err := keys.LoadKeystore(pathname, pin)
 	if err != nil {
 		return fmt.Errorf("error while loading keystore: %w", err)
 	}
-	err = keystore.SaveUnencrypted(pathname)
+	err = keystore.SaveUnencrypted(pathplain)
 	if err != nil {
-		return fmt.Errorf("error saving unencrypted keystore to %s: %w", pathname, err)
+		return fmt.Errorf("error saving unencrypted keystore to %s: %w", pathplain, err)
 	}
 	return nil
 }
 
-func (t *TRH) KeystoreRestoreFromUnencrypted(pin string, pathname string) error {
-	keystore, err := keys.LoadKeystoreUnencrypted(pathname)
+func (t *TRH) KeystoreRestoreFromUnencrypted(pin string, pathplain string, pathname string) error {
+	keystore, err := keys.LoadKeystoreUnencrypted(pathplain)
 	if err != nil {
 		return fmt.Errorf("error while loading unenctrypted keystore: %w", err)
 	}
-	err = keystore.Update()
+	err = keystore.Save(pathname, pin)
 	if err != nil {
 		return fmt.Errorf("error while updating keystore: %w", err)
 	}
