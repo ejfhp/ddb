@@ -8,8 +8,7 @@ import (
 	"github.com/ejfhp/ddb/miner"
 )
 
-func (t *TRH) ListAllTX(keystore *keys.Keystore) ([]string, error) {
-	passwordAddress := map[string]string{}
+func (t *TRH) ListAllTX(keystore *keys.Keystore) (map[string][]string, error) {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -20,20 +19,13 @@ func (t *TRH) ListAllTX(keystore *keys.Keystore) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while loading keystore: %w", err)
 	}
-	for _, pn := range keystore.PassNames() {
-		passwordAddress[pn] = keystore.Address(pn)
-	}
-	allTXs := []string{}
-	for pwd, add := range passwordAddress {
-		txs, err := blockchain.ListTXIDs(add, false)
+	allTXs := make(map[string][]string)
+	for _, pwd := range keystore.PassNames() {
+		txs, err := blockchain.ListTXIDs(keystore.Address(pwd), false)
 		if err != nil {
 			return nil, fmt.Errorf("error while retrieving existing transactions: %w", err)
 		}
-		fmt.Printf("Address '%s' of password '%s'\n", add, pwd)
-		for _, tx := range txs {
-			fmt.Printf(" Found TX: %s\n", tx)
-			allTXs = append(allTXs, tx)
-		}
+		allTXs[pwd] = txs
 	}
 	return allTXs, nil
 }

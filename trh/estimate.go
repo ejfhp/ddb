@@ -42,7 +42,5 @@ func (t *TRH) Estimate(file string, labels []string, notes string) (satoshi.Sato
 		}
 		totFee = totFee.Add(fee)
 	}
-	fmt.Printf("Estimated fee: %d satoshi\n", totFee)
-	fmt.Printf("Estimated traffic: %d tx\n", len(txs))
 	return totFee, len(txs), nil
 }

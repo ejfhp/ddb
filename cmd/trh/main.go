@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/trh"
 )
 
@@ -40,7 +41,7 @@ var commands = map[string]command{
 	"kfromuncry": {name: "keystore_fromunenecrypted", description: "keystore load from unencrypted", params: []string{"pin"}},
 	"kgenfromkp": {name: "keystore_fromkeypass", description: "keystore generate from key and password", params: []string{"pin", "key", "password"}},
 	"kgenfromph": {name: "keystore_frompassphrase", description: "keystore generate from phrase", params: []string{"pin", "phrase"}},
-	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"password", "file"}},
+	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"file", "comma separated labels", "notes"}},
 	"txshow":     {name: "tx_showall", description: "transactions show all", params: []string{"pin"}},
 	"txshowp":    {name: "tx_showpass", description: "transaction show of password", params: []string{"pin", "password"}},
 	"collect":    {name: "collect_all", description: "collect unspent money", params: []string{"pin"}},
@@ -75,13 +76,13 @@ Commands:
 
 Examples:
 
-./trh store -help
-./trh describe -log -key <key>
-./trh keystore generate -phrase "Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF"
-./trh estimate -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
-./trh store -file bitcoin.pdf -log + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
-./trh retrieveAll -outdir /Users/diego/Desktop/ + Bitcoin: A Peer-to-Peer Electronic Cash System - 2008 PDF
-./trh retrieveall -address 16dEpFZ8nEvSv9MJ9MQqZ7ihk6mypQdrZ -password "Bitcoin: A Peer-to-Peer Electron"
+   trh kshow 1346
+   trh ktouncry 1346
+   trh kfromuncry 1346
+   trh kgenfromkp 1346 Kxn6wiqVGzGjMq7JA8m9fxRdukwzzjGgYkXir5eyRwvvrRs7GZKZ alice 
+   trh kgenfromph 1346 "Lunedi 8 Novembre 2021"
+   trh estimate keystore.trh "keystore,bitcoin,trh" "very important"
+   trh txshow 7946
 `)
 	fmt.Printf("\nBuilt time: %s\n", buildTimestamp)
 }
@@ -100,6 +101,7 @@ func main() {
 	command, ok := commands[cmd]
 	if !ok {
 		fmt.Printf("Command not found.\n")
+		fmt.Printf("Run TRH without params for help.\n")
 		os.Exit(1)
 	}
 	inputs := flag.Args()[1:]
@@ -123,7 +125,7 @@ func main() {
 		fmt.Printf("")
 	case "keystore_fromunenecrypted":
 		ksfu := ksf + ".plain"
-		err = th.KeystoreRestoreFromUnencrypted(inputs[0], ksfu, ksf) //TODO COMPLETE
+		err = th.KeystoreRestoreFromUnencrypted(inputs[0], ksfu, ksf)
 		if err == nil {
 			fmt.Printf("Keystore restored to: %s\n", ksf)
 		}
@@ -134,8 +136,36 @@ func main() {
 			fmt.Printf("Keystore created: %s\n", ksf)
 		}
 	case "keystore_frompassphrase":
+		_, err := th.KeystoreGenFromPhrase(inputs[0], inputs[1], 3, ksf)
+		if err == nil {
+			fmt.Printf("Keystore created: %s\n", ksf)
+		}
 	case "estimate_file":
+		labels := strings.Split(inputs[1], ",")
+		lbls := make([]string, len(labels))
+		for i, l := range labels {
+			lbls[i] = strings.TrimSpace(l)
+		}
+		cost, numtx, err := th.Estimate(inputs[0], lbls, inputs[2])
+		if err == nil {
+			fmt.Printf("Estimated cost: %d satoshi\n", cost)
+			fmt.Printf("Estimated num of txs: %d satoshi\n", numtx)
+		}
 	case "tx_showall":
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			break
+		}
+		alltxs, err := th.ListAllTX(ks)
+		if err == nil {
+			fmt.Printf("IDs of transactions tied to this keystore:\n")
+			for pwd, txs := range alltxs {
+				fmt.Printf(" Password: '%s' address: '%s'\n", pwd, ks.Address(pwd))
+				for _, id := range txs {
+					fmt.Printf("  %s\n", id)
+				}
+			}
+		}
 	case "tx_showpass":
 	case "collect_all":
 	case "storefile_file":

@@ -9,33 +9,33 @@ import (
 )
 
 func (t *TRH) KeystoreGenFromKey(pin string, bitcoinKey string, password string, pathname string) (*keys.Keystore, error) {
-	keyStore, err := keys.NewKeystore(bitcoinKey, password)
+	keystore, err := keys.NewKeystore(bitcoinKey, password)
 	if err != nil {
 		return nil, fmt.Errorf("provided key %s has issues: %w", bitcoinKey, err)
 	}
-	err = keyStore.Save(pathname, pin)
+	err = keystore.Save(pathname, pin)
 	if err != nil {
 		return nil, fmt.Errorf("error while saving keystore to file %s: %w", pathname, err)
 	}
-	showKeystore(keyStore)
-	return keyStore, nil
+	showKeystore(keystore)
+	return keystore, nil
 }
 
-func (t *TRH) KeystoreGenFromPhrase(phrase string, keygenID int, pin string, pathname string) error {
+func (t *TRH) KeystoreGenFromPhrase(pin string, phrase string, keygenID int, pathname string) (*keys.Keystore, error) {
 	wif, password, err := keys.FromPassphrase(phrase, keygenID)
 	if err != nil {
-		return fmt.Errorf("error while generating key using passphrase: %w", err)
+		return nil, fmt.Errorf("error while generating key using passphrase: %w", err)
 	}
-	keyStore, err := keys.NewKeystore(wif, password)
+	keystore, err := keys.NewKeystore(wif, password)
 	if err != nil {
-		return fmt.Errorf("error while generating keystore from passphrase '%s' with keygen '%d': %w", phrase, keygenID, err)
+		return nil, fmt.Errorf("error while generating keystore from passphrase '%s' with keygen '%d': %w", phrase, keygenID, err)
 	}
-	err = keyStore.Save(pathname, pin)
+	err = keystore.Save(pathname, pin)
 	if err != nil {
-		return fmt.Errorf("error while saving keystore to local file %s: %w", pathname, err)
+		return nil, fmt.Errorf("error while saving keystore to local file %s: %w", pathname, err)
 	}
-	showKeystore(keyStore)
-	return nil
+	showKeystore(keystore)
+	return keystore, nil
 }
 
 func (t *TRH) KeystoreShow(pin string, pathname string) error {
