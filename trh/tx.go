@@ -43,10 +43,6 @@ func (t *TRH) ListSinglePasswordTX(keystore *keys.Keystore, password string) ([]
 	if err != nil {
 		return nil, fmt.Errorf("error while retrieving existing transactions: %w", err)
 	}
-	fmt.Printf("Address '%s' of password '%s'\n", address, password)
-	for _, tx := range txs {
-		fmt.Printf(" Found TX: %s\n", tx)
-	}
 	return txs, nil
 }
 

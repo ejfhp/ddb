@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -42,10 +43,10 @@ var commands = map[string]command{
 	"kgenfromkp": {name: "keystore_fromkeypass", description: "keystore generate from key and password", params: []string{"pin", "key", "password"}},
 	"kgenfromph": {name: "keystore_frompassphrase", description: "keystore generate from phrase", params: []string{"pin", "phrase"}},
 	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"file", "comma separated labels", "notes"}},
-	"txshow":     {name: "tx_showall", description: "transactions show all", params: []string{"pin"}},
-	"txshowp":    {name: "tx_showpass", description: "transaction show of password", params: []string{"pin", "password"}},
+	"txshow":     {name: "tx_showall", description: "show all transactions", params: []string{"pin"}},
+	"txshowp":    {name: "tx_showpass", description: "show transactions of password", params: []string{"pin", "password"}},
 	"collect":    {name: "collect_all", description: "collect unspent money", params: []string{"pin"}},
-	"store":      {name: "storefile_file", description: "store file", params: []string{"password", "file", "pin"}},
+	"store":      {name: "storefile_file", description: "store file", params: []string{"pin", "password", "file", "comma separated labels", "notes", "max spend (satoshi)"}},
 	"list":       {name: "listfile_all", description: "list all files stored", params: []string{"pin"}},
 	"listp":      {name: "listfile_ofpwd", description: "list files stored with password", params: []string{"pin", "password"}},
 }
@@ -79,10 +80,12 @@ Examples:
    trh kshow 1346
    trh ktouncry 1346
    trh kfromuncry 1346
-   trh kgenfromkp 1346 Kxn6wiqVGzGjMq7JA8m9fxRdukwzzjGgYkXir5eyRwvvrRs7GZKZ alice 
+   trh kgenfromkp 1346 Kxn6wiqVGzGjMq7JA8m9fxRdukwzzjGgYkXir5eyRwvvrRs7GZKZ therabbithole 
    trh kgenfromph 1346 "Lunedi 8 Novembre 2021"
    trh estimate keystore.trh "keystore,bitcoin,trh" "very important"
-   trh txshow 7946
+   trh txshow 1346
+   trh txshowp 1346 main
+   trh collect 1346
 `)
 	fmt.Printf("\nBuilt time: %s\n", buildTimestamp)
 }
@@ -111,6 +114,8 @@ func main() {
 	}
 	ksf := getKeystorePath()
 	fmt.Printf("TRH Keystore file is: %s\n", ksf)
+	fmt.Printf("%s: %s\n", command.name, command.description)
+	fmt.Printf("\n")
 	var err error
 	th := &trh.TRH{}
 	switch command.name {
@@ -161,14 +166,57 @@ func main() {
 			fmt.Printf("IDs of transactions tied to this keystore:\n")
 			for pwd, txs := range alltxs {
 				fmt.Printf(" Password: '%s' address: '%s'\n", pwd, ks.Address(pwd))
+				fmt.Printf("Number of transactions found: %d\n", len(txs))
 				for _, id := range txs {
 					fmt.Printf("  %s\n", id)
 				}
 			}
 		}
 	case "tx_showpass":
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			break
+		}
+		txs, err := th.ListSinglePasswordTX(ks, inputs[1])
+		fmt.Printf("Number of transactions found: %d\n", len(txs))
+		if err == nil {
+			fmt.Printf("IDs of transactions tied to this keystore:\n")
+			fmt.Printf(" Password: '%s' address: '%s'\n", inputs[1], ks.Address(inputs[1]))
+			for _, id := range txs {
+				fmt.Printf("  %s\n", id)
+			}
+		}
 	case "collect_all":
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			break
+		}
+		txResults, err := th.Collect(ks)
+		if err == nil {
+			if len(txResults) == 0 {
+				fmt.Printf("No UTXO found and so no transaction has been submitted.\n")
+				break
+			}
+			fmt.Printf("IDs of transactions to collect UTXO of the keystore:\n")
+			for id := range txResults {
+				fmt.Printf("  %s\n", id)
+			}
+		}
 	case "storefile_file":
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			break
+		}
+		labels := strings.Split(inputs[3], ",")
+		lbls := make([]string, len(labels))
+		for i, l := range labels {
+			lbls[i] = strings.TrimSpace(l)
+		}
+		maxSpend, err := strconv.ParseUint(inputs[5], 10, 64)
+		if err != nil {
+			break
+		}
+		err = th.Store(ks, inputs[1], inputs[2], lbls, inputs[4], defaultHeader, maxSpend)
 	case "listfile_all":
 	case "listfile_ofpwd":
 	}
