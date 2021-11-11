@@ -12,6 +12,7 @@ import (
 
 	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/trh"
+	"github.com/ejfhp/trail"
 )
 
 const (
@@ -43,10 +44,12 @@ var commands = map[string]command{
 	"kgenfromkp": {name: "keystore_fromkeypass", description: "keystore generate from key and password", params: []string{"pin", "key", "password"}},
 	"kgenfromph": {name: "keystore_frompassphrase", description: "keystore generate from phrase", params: []string{"pin", "phrase"}},
 	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"file", "comma separated labels", "notes"}},
+	"utxos":      {name: "utxo_show", description: "show all utxos", params: []string{"pin"}},
 	"txshow":     {name: "tx_showall", description: "show all transactions", params: []string{"pin"}},
 	"txshowp":    {name: "tx_showpass", description: "show transactions of password", params: []string{"pin", "password"}},
 	"collect":    {name: "collect_all", description: "collect unspent money", params: []string{"pin"}},
-	"store":      {name: "storefile_file", description: "store file", params: []string{"pin", "password", "file", "comma separated labels", "notes", "max spend (satoshi)"}},
+	"store":      {name: "storefile_file", description: "store file", params: []string{"pin", "file", "comma separated labels", "notes", "max spend (satoshi)"}},
+	"storewithp": {name: "storefile_filepassword", description: "store file", params: []string{"pin", "password", "file", "comma separated labels", "notes", "max spend (satoshi)"}},
 	"list":       {name: "listfile_all", description: "list all files stored", params: []string{"pin"}},
 	"listp":      {name: "listfile_ofpwd", description: "list files stored with password", params: []string{"pin", "password"}},
 }
@@ -94,7 +97,9 @@ Examples:
 func main() {
 	flag.BoolVar(&flagLog, "log", false, "enable log")
 	flag.Parse()
-
+	if flagLog {
+		trail.SetWriter(os.Stderr)
+	}
 	cmds := flag.Args()
 	if len(cmds) < 2 {
 		printMainHelp()
@@ -116,49 +121,71 @@ func main() {
 	fmt.Printf("TRH Keystore file is: %s\n", ksf)
 	fmt.Printf("%s: %s\n", command.name, command.description)
 	fmt.Printf("\n")
-	var err error
+	var mainerr error
 	th := &trh.TRH{}
 	switch command.name {
 	case "keystore_show":
-		err = th.KeystoreShow(inputs[0], ksf)
+		mainerr = th.KeystoreShow(inputs[0], ksf)
 	case "keystore_tounencrypted":
 		ksfu := ksf + ".plain"
-		err = th.KeystoreSaveUnencrypted(inputs[0], ksf, ksfu)
-		if err == nil {
+		mainerr = th.KeystoreSaveUnencrypted(inputs[0], ksf, ksfu)
+		if mainerr == nil {
 			fmt.Printf("WARNING: Keystore file saved unencrypted to: %s\n", ksfu)
 		}
 		fmt.Printf("")
 	case "keystore_fromunenecrypted":
 		ksfu := ksf + ".plain"
-		err = th.KeystoreRestoreFromUnencrypted(inputs[0], ksfu, ksf)
-		if err == nil {
+		mainerr = th.KeystoreRestoreFromUnencrypted(inputs[0], ksfu, ksf)
+		if mainerr == nil {
 			fmt.Printf("Keystore restored to: %s\n", ksf)
 		}
 		fmt.Printf("")
 	case "keystore_fromkeypass":
-		_, err := th.KeystoreGenFromKey(inputs[0], inputs[1], inputs[2], ksf)
-		if err == nil {
+		_, mainerr = th.KeystoreGenFromKey(inputs[0], inputs[1], inputs[2], ksf)
+		if mainerr == nil {
 			fmt.Printf("Keystore created: %s\n", ksf)
 		}
 	case "keystore_frompassphrase":
-		_, err := th.KeystoreGenFromPhrase(inputs[0], inputs[1], 3, ksf)
-		if err == nil {
+		_, mainerr = th.KeystoreGenFromPhrase(inputs[0], inputs[1], 3, ksf)
+		if mainerr == nil {
 			fmt.Printf("Keystore created: %s\n", ksf)
 		}
 	case "estimate_file":
-		labels := strings.Split(inputs[1], ",")
+		filePar := inputs[0]
+		labelPar := inputs[1]
+		notePar := inputs[2]
+		labels := strings.Split(labelPar, ",")
 		lbls := make([]string, len(labels))
 		for i, l := range labels {
 			lbls[i] = strings.TrimSpace(l)
 		}
-		cost, numtx, err := th.Estimate(inputs[0], lbls, inputs[2])
+		txs, cost, err := th.Estimate(filePar, lbls, notePar)
 		if err == nil {
 			fmt.Printf("Estimated cost: %d satoshi\n", cost)
-			fmt.Printf("Estimated num of txs: %d satoshi\n", numtx)
+			fmt.Printf("Estimated num of txs: %d\n", len(txs))
 		}
+		mainerr = err
+	case "utxo_show":
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			mainerr = err
+			break
+		}
+		utxos, err := th.ListUTXOs(ks)
+		if err == nil {
+			tot := uint64(0)
+			fmt.Printf("UTOXs tied to this keystore:\n")
+			for id, amount := range utxos {
+				tot = tot + amount
+				fmt.Printf(" TXID: '%s' amount: '%d' satoshi\n", id, amount)
+			}
+			fmt.Printf("Total: %d\n", tot)
+		}
+		mainerr = err
 	case "tx_showall":
 		ks, err := keys.LoadKeystore(ksf, inputs[0])
 		if err != nil {
+			mainerr = err
 			break
 		}
 		alltxs, err := th.ListAllTX(ks)
@@ -172,9 +199,11 @@ func main() {
 				}
 			}
 		}
+		mainerr = err
 	case "tx_showpass":
 		ks, err := keys.LoadKeystore(ksf, inputs[0])
 		if err != nil {
+			mainerr = err
 			break
 		}
 		txs, err := th.ListSinglePasswordTX(ks, inputs[1])
@@ -186,9 +215,11 @@ func main() {
 				fmt.Printf("  %s\n", id)
 			}
 		}
+		mainerr = err
 	case "collect_all":
 		ks, err := keys.LoadKeystore(ksf, inputs[0])
 		if err != nil {
+			mainerr = err
 			break
 		}
 		txResults, err := th.Collect(ks)
@@ -198,36 +229,60 @@ func main() {
 				break
 			}
 			fmt.Printf("IDs of transactions to collect UTXO of the keystore:\n")
-			for id := range txResults {
+			for _, id := range txResults {
 				fmt.Printf("  %s\n", id)
 			}
 		}
+		mainerr = err
 	case "storefile_file":
-		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		pinPar := inputs[0]
+		filePar := inputs[1]
+		labelPar := inputs[2]
+		notePar := inputs[3]
+		spendPar := inputs[4]
+		ks, err := keys.LoadKeystore(ksf, pinPar)
 		if err != nil {
+			mainerr = err
 			break
 		}
-		labels := strings.Split(inputs[3], ",")
+		labels := strings.Split(labelPar, ",")
 		lbls := make([]string, len(labels))
 		for i, l := range labels {
 			lbls[i] = strings.TrimSpace(l)
 		}
-		maxSpend, err := strconv.ParseUint(inputs[5], 10, 64)
+		maxSpend, err := strconv.ParseUint(spendPar, 10, 64)
 		if err != nil {
+			mainerr = err
 			break
 		}
-		err = th.Store(ks, inputs[1], inputs[2], lbls, inputs[4], defaultHeader, maxSpend)
+		node, _ := ks.Node(keys.Main)
+		_, cost, err := th.Estimate(filePar, lbls, notePar)
+		if err != nil {
+			mainerr = err
+			break
+		}
+		if maxSpend < cost {
+			fmt.Printf("Amount to spend (%d) is not enough, estimation is: %d\n", maxSpend, cost)
+			break
+		}
+		txs, err := th.Store(ks, node, filePar, lbls, notePar, defaultHeader, maxSpend)
+		if err == nil {
+			fmt.Printf("IDs of transactions that store the file\n")
+			for num, txid := range txs {
+				fmt.Printf("%d: %s\n", num, txid)
+			}
+		}
+		mainerr = err
 	case "listfile_all":
 	case "listfile_ofpwd":
 	}
-	if err == nil {
+	if mainerr == nil {
 		fmt.Printf("\n\nCommand terminated succesfully.\n")
+		os.Exit(0)
 	} else {
-		fmt.Printf("\n\nCommand terminated with error: %v\n", err)
-
+		fmt.Printf("\n\nCommand terminated with error: %v\n", mainerr)
+		os.Exit(1)
 	}
-
-	os.Exit(0)
 }
 
 func getKeystorePath() string {

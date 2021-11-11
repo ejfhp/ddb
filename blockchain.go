@@ -61,7 +61,7 @@ func (b *Blockchain) EstimateStandardTXFee(numUTXO int) (satoshi.Satoshi, error)
 }
 
 //Submit submits all the transactions to the miner to be included in the blockchain, returns the TX IDs with result
-func (b *Blockchain) Submit(txs []*DataTX) (map[string]string, error) {
+func (b *Blockchain) Submit(txs []*DataTX) ([][]string, error) {
 	tr := trace.New().Source("blockchain.go", "Blockchain", "Submit")
 	txsdata := make([]string, len(txs))
 	for i, tx := range txs {
@@ -72,12 +72,11 @@ func (b *Blockchain) Submit(txs []*DataTX) (map[string]string, error) {
 		trail.Println(trace.Alert("cannot submit MultiTXs to miner").UTC().Add("TXs cardinality", fmt.Sprintf("%d", len(txs))).Add("miner", b.miner.GetName()).Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot submit TX to miner: %w", err)
 	}
+	if len(restxs) != len(txsdata) {
+		return nil, fmt.Errorf("something weird happened, miner response miss some transactions")
+	}
 	for i, tx := range txs {
-		result, ok := restxs[tx.GetTxID()]
-		if !ok {
-			trail.Println(trace.Alert("something weird happened, TX is not in miner response").UTC().Add("TXID", tx.GetTxID()).Append(tr))
-			return nil, fmt.Errorf("something weird happened, TX is not in miner response: %s", tx.GetTxID())
-		}
+		result := restxs[i][1]
 		if result != miner.ResponseSuccess {
 			continue
 		}

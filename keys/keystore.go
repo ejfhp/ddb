@@ -133,6 +133,11 @@ func (ks *Keystore) Password(name string) [32]byte {
 	return [32]byte{}
 }
 
+func (ks *Keystore) Node(name string) (*Node, bool) {
+	n, ok := ks.nodes[name]
+	return n, ok
+}
+
 func (ks *Keystore) Passwords() map[string][32]byte {
 	pwsCopy := make(map[string][32]byte)
 	for p, n := range ks.nodes {

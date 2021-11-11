@@ -46,30 +46,30 @@ func (t *TRH) ListSinglePasswordTX(keystore *keys.Keystore, password string) ([]
 	return txs, nil
 }
 
-func (t *TRH) ListUTXOs(keystore *keys.Keystore) error {
+func (t *TRH) ListUTXOs(keystore *keys.Keystore) (map[string]uint64, error) {
 	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
 	if err != nil {
-		return fmt.Errorf("cannot open cache")
+		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	for _, ka := range keystore.PassNames() {
 		passwordAddress[ka] = keystore.Address(ka)
 	}
-	for pwd, add := range passwordAddress {
+	res := make(map[string]uint64)
+	for _, add := range passwordAddress {
 		utxos, err := blockchain.GetUTXO(add)
 		if err != nil {
 			if err.Error() != "found no UTXO" {
-				return fmt.Errorf("error while retrieving unspend outputs (UTXO): %w", err)
+				return nil, fmt.Errorf("error while retrieving unspend outputs (UTXO): %w", err)
 			}
 			utxos = []*ddb.UTXO{}
 		}
-		fmt.Printf("Address '%s' of password '%s'\n", add, pwd)
 		for _, u := range utxos {
-			fmt.Printf(" Found UTXOS: %d satoshi in TX %s, %d\n", u.Value.Satoshi(), u.TXHash, u.TXPos)
+			res[u.TXHash] = uint64(u.Value.Satoshi())
 		}
 	}
-	return nil
+	return res, nil
 }

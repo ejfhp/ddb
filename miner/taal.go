@@ -47,7 +47,6 @@ func (l *TAAL) GetFees() (Fees, error) {
 		trail.Println(trace.Alert("error while reading response").UTC().Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while reading response: %w", err)
 	}
-	trail.Println(trace.Info("miner response").UTC().Add("response", string(body)).Error(err).Append(t))
 
 	mapiResponse := make(map[string]interface{})
 	err = json.Unmarshal(body, &mapiResponse)
@@ -111,32 +110,26 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	}
 	payload, err := json.Marshal(mapiSubmitTX)
 	if err != nil {
-		trail.Println(trace.Alert("error while marshalling MapiSubmitTX").UTC().Add("url", url).Error(err).Append(t))
 		return "", fmt.Errorf("error while marshalling MapiSubmitTX: %w", err)
 	}
 	resp, err := http.Post(url, "application/json", bytes.NewReader(payload))
 	if err != nil {
-		trail.Println(trace.Alert("error while posting TX").UTC().Add("url", url).Error(err).Append(t))
 		return "", fmt.Errorf("error while posting TX: %w", err)
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
-	trail.Println(trace.Info("miner response").UTC().Add("url", url).Add("response", string(body)).Append(t))
 	if resp.StatusCode != 200 {
-		trail.Println(trace.Alert("miner replied with bad status").UTC().Add("url", url).Add("status", resp.Status).Append(t))
 		return "", fmt.Errorf("miner replied with bad status: %s", resp.Status)
 
 	}
 	mapiResponse := make(map[string]interface{})
 	err = json.Unmarshal(body, &mapiResponse)
 	if err != nil {
-		trail.Println(trace.Alert("error while unmarshalling mapi response").UTC().Add("url", url).Error(err).Append(t))
 		return "", fmt.Errorf("error while unmarshalling mapi response: %w", err)
 	}
 	responsePayload := mapiResponse["payload"].(string)
 	mapiPayload := SingleTXResponse{}
 	err = json.Unmarshal([]byte(responsePayload), &mapiPayload)
 	if err != nil {
-		trail.Println(trace.Alert("error while unmarshalling mapi payload").UTC().Add("url", url).Error(err).Append(t))
 		return "", fmt.Errorf("error while unmarshalling mapi payload: %w", err)
 	}
 	if mapiPayload.ReturnResult != "success" {
@@ -148,7 +141,8 @@ func (l *TAAL) SubmitTX(rawTX string) (string, error) {
 	return txid, nil
 }
 
-func (l *TAAL) SubmitMultiTX(rawTXs []string) (map[string]string, error) {
+//SubmitMultiTX sumbmits multiple transactions and return an array of txid and corressponding result
+func (l *TAAL) SubmitMultiTX(rawTXs []string) ([][]string, error) {
 	t := trace.New().Source("taal.go", "TAAL", "SubmitMultiTX")
 	url := fmt.Sprintf("%s/txs", l.BaseURL)
 	trail.Println(trace.Debug("submit multi tx").UTC().Add("url", url).Append(t))
@@ -191,9 +185,9 @@ func (l *TAAL) SubmitMultiTX(rawTXs []string) (map[string]string, error) {
 		trail.Println(trace.Alert("error while unmarshalling mapi payload").UTC().Add("url", url).Error(err).Append(t))
 		return nil, fmt.Errorf("error while unmarshalling mapi payload: %w", err)
 	}
-	responseTXs := map[string]string{}
+	responseTXs := make([][]string, 0, len(mapiPayload.TXS))
 	for _, res := range mapiPayload.TXS {
-		responseTXs[res.TXID] = res.ResultDescription
+		responseTXs = append(responseTXs, []string{res.TXID, res.ResultDescription})
 	}
 	return responseTXs, nil
 }

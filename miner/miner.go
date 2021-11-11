@@ -57,5 +57,5 @@ type Miner interface {
 	GetStandardFee() (*Fee, error)
 	//SubmitTX submit the given raw tx to Taal MAPI and if succeed return TXID
 	SubmitTX(rawTX string) (string, error)
-	SubmitMultiTX(rawTX []string) (map[string]string, error)
+	SubmitMultiTX(rawTX []string) ([][]string, error)
 }

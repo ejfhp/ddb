@@ -11,7 +11,7 @@ import (
 )
 
 //Collect gather all the UTXO left in branches to the main address. Return the txids.
-func (t *TRH) Collect(keystore *keys.Keystore) (map[string]string, error) {
+func (t *TRH) Collect(keystore *keys.Keystore) ([]string, error) {
 	tr := trace.New().Source("collect.go", "", "cmdCollect")
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
@@ -26,30 +26,33 @@ func (t *TRH) Collect(keystore *keys.Keystore) (map[string]string, error) {
 	for _, n := range keystore.Nodes() {
 		u, err := blockchain.GetUTXO(n.Address)
 		if err != nil && err.Error() != "found no UTXO" {
-			trail.Println(trace.Alert("error while retrieving UTXO").Append(tr).UTC().Error(err))
 			return nil, fmt.Errorf("error while retrieving UTXO for address %s: %w", n.Address, err)
 		}
 		if len(u) > 0 {
 			utxos[n.Address] = u
 		}
 	}
-	var ids map[string]string
+	var ids []string
 	if len(utxos) > 0 {
 		fee, err := blockchain.EstimateStandardTXFee(len(utxos))
 		if err != nil {
-			trail.Println(trace.Alert("error while estimating collecting tx fee").Append(tr).UTC().Error(err))
 			return nil, fmt.Errorf("error while estimating collecting tx fee: %w", err)
 		}
+		//TODO COLLECT HAS ISSUES
 		collectingTX, err := ddb.NewMultiInputTX(keystore.Address(keys.Main), utxos, fee)
 		if err != nil {
-			trail.Println(trace.Alert("error while building collecting TX").Append(tr).UTC().Error(err))
 			return nil, fmt.Errorf("error while building collecting TX: %w", err)
 		}
-		ids, err = btrunk.Blockchain.Submit([]*ddb.DataTX{collectingTX})
+		txres, err := btrunk.Blockchain.Submit([]*ddb.DataTX{collectingTX})
 		if err != nil {
 			trail.Println(trace.Alert("error submitting collecting TX").Append(tr).UTC().Error(err))
 			return nil, fmt.Errorf("error submitting collecting TX: %w", err)
 		}
+		ids = make([]string, len(txres))
+		for i, tx := range txres {
+			ids[i] = tx[0]
+		}
+
 	}
 	return ids, nil
 }
