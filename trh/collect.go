@@ -29,7 +29,7 @@ func (t *TRH) Collect(keystore *keys.Keystore) ([]string, error) {
 			return nil, fmt.Errorf("error while retrieving UTXO for address %s: %w", n.Address, err)
 		}
 		if len(u) > 0 {
-			utxos[n.Address] = u
+			utxos[n.Key] = u
 		}
 	}
 	var ids []string

@@ -85,7 +85,7 @@ func NewMultiInputTX(destinationAddress string, inputs map[string][]*UTXO, fee s
 	for k, utxos := range inputs {
 		key, err := keys.DecodeWIF(k)
 		if err != nil {
-			return nil, fmt.Errorf("error decoding WIF: %w", err)
+			return nil, fmt.Errorf("error decoding WIF '%s': %w", k, err)
 		}
 		signer := &bt.InternalSigner{PrivateKey: key, SigHashFlag: 0x40 | 0x01}
 		for _, utx := range utxos {

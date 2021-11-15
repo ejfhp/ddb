@@ -23,6 +23,7 @@ type MetaEntry struct {
 	Hash      string   `json:"h"`
 	Timestamp int64    `json:"e"`
 	Notes     string   `json:"o,omitempty"`
+	Size      int      `json:"s"`
 }
 
 func NewMetaEntry(entry *Entry) *MetaEntry {
@@ -30,7 +31,7 @@ func NewMetaEntry(entry *Entry) *MetaEntry {
 		return nil
 	}
 	requestTime := time.Now().Unix()
-	meta := MetaEntry{Name: entry.Name, Labels: entry.Labels, Mime: entry.Mime, Hash: entry.Hash, Timestamp: requestTime, Notes: entry.Notes}
+	meta := MetaEntry{Name: entry.Name, Labels: entry.Labels, Mime: entry.Mime, Hash: entry.Hash, Timestamp: requestTime, Notes: entry.Notes, Size: entry.Size}
 	return &meta
 }
 
@@ -67,8 +68,10 @@ type Entry struct {
 	Hash   string
 	Data   []byte
 	Notes  string
+	Size   int
 }
 
+//NewEntryFromFile reads the entire file in memory and returns the corresponding pointer to Entry
 func NewEntryFromFile(name string, file string, labels []string, notes string) (*Entry, error) {
 	tr := trace.New().Source("entry.go", "Entry", "NewEntryFromFile")
 	data, err := ioutil.ReadFile(file)
@@ -84,7 +87,7 @@ func NewEntryFromFile(name string, file string, labels []string, notes string) (
 func NewEntryFromData(name string, mime string, data []byte, labels []string, notes string) *Entry {
 	sha := sha256.Sum256(data)
 	hash := hex.EncodeToString(sha[:])
-	ent := Entry{Name: name, Mime: mime, Hash: hash, Data: data, Labels: labels, Notes: notes}
+	ent := Entry{Name: name, Mime: mime, Hash: hash, Data: data, Labels: labels, Notes: notes, Size: len(data)}
 	return &ent
 
 }

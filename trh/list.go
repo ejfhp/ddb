@@ -8,27 +8,26 @@ import (
 	"github.com/ejfhp/ddb/miner"
 )
 
-func (t *TRH) ListAll(keystore keys.Keystore) error {
+//ListAll returns an array of all the entries found
+func (t *TRH) ListAll(keystore keys.Keystore) ([]*ddb.MetaEntry, error) {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
 	if err != nil {
-		return fmt.Errorf("cannot open cache")
+		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	var mEntries map[string][]*ddb.MetaEntry
 	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
 	mEntries, err = btrunk.ListEntries(keystore.Passwords(), false)
 	if err != nil {
-		return fmt.Errorf("error while listing MetaEntry for password: %w", err)
+		return nil, fmt.Errorf("error while listing MetaEntry for password: %w", err)
 	}
-	for pass, mes := range mEntries {
-		fmt.Printf("Entry for password '%s':\n", pass)
-		for i, me := range mes {
-			fmt.Printf("%d found entry: %s\t%s\n", i, me.Name, me.Hash)
-		}
+	mEntryFound := make([]*ddb.MetaEntry, 0)
+	for _, mes := range mEntries {
+		mEntryFound = append(mEntryFound, mes...)
 	}
-	return nil
+	return mEntryFound, nil
 }
 
 func (t *TRH) ListSinglePassword(keystore keys.Keystore, password string) error {
