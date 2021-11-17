@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/trh"
@@ -89,6 +90,9 @@ Examples:
    trh txshow 1346
    trh txshowp 1346 main
    trh collect 1346
+   trh store 1346 bitcoin.pdf "bitcoin,pdf" "test import" 200000 
+   trh listp 1346
+   trh listp 1346 main
 `)
 	fmt.Printf("\nBuilt time: %s\n", buildTimestamp)
 }
@@ -234,6 +238,45 @@ func main() {
 			}
 		}
 		mainerr = err
+	case "storefile_filepassword": //TODO complete this
+		pinPar := inputs[0]
+		filePar := inputs[1]
+		labelPar := inputs[2]
+		notePar := inputs[3]
+		spendPar := inputs[4]
+		ks, err := keys.LoadKeystore(ksf, pinPar)
+		if err != nil {
+			mainerr = err
+			break
+		}
+		labels := strings.Split(labelPar, ",")
+		lbls := make([]string, len(labels))
+		for i, l := range labels {
+			lbls[i] = strings.TrimSpace(l)
+		}
+		maxSpend, err := strconv.ParseUint(spendPar, 10, 64)
+		if err != nil {
+			mainerr = err
+			break
+		}
+		node, _ := ks.Node(keys.Main)
+		_, cost, err := th.Estimate(filePar, lbls, notePar)
+		if err != nil {
+			mainerr = err
+			break
+		}
+		if maxSpend < cost {
+			fmt.Printf("Amount to spend (%d) is not enough, estimation is: %d\n", maxSpend, cost)
+			break
+		}
+		txs, err := th.Store(ks, node, filePar, lbls, notePar, defaultHeader, maxSpend)
+		if err == nil {
+			fmt.Printf("IDs of transactions that store the file\n")
+			for num, txid := range txs {
+				fmt.Printf("%d: %s\n", num, txid)
+			}
+		}
+		mainerr = err
 	case "storefile_file":
 		pinPar := inputs[0]
 		filePar := inputs[1]
@@ -274,7 +317,39 @@ func main() {
 		}
 		mainerr = err
 	case "listfile_all":
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			mainerr = err
+			break
+		}
+		allent, err := th.ListAll(ks)
+		if err == nil {
+			fmt.Printf("Files stored tied to this keystore:\n")
+			for p, ents := range allent {
+				fmt.Printf("Password %s\n", p)
+				for i, ent := range ents {
+					fmt.Printf("%d  Name: '%s' hash: '%s'  time: %s\n", i, ent.Name, ent.Hash, time.Unix(ent.Timestamp, 0).Format("2006-01-02 15:04 EST"))
+				}
+			}
+		}
+		mainerr = err
 	case "listfile_ofpwd":
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			mainerr = err
+			break
+		}
+		allent, err := th.ListSinglePassword(ks, inputs[1])
+		if err == nil {
+			fmt.Printf("Files stored tied to this keystore:\n")
+			for p, ents := range allent {
+				fmt.Printf("Password %s\n", p)
+				for i, ent := range ents {
+					fmt.Printf("%d  Name: '%s' hash: '%s'  time: %s\n", i, ent.Name, ent.Hash, time.Unix(ent.Timestamp, 0).Format("2006-01-02 15:04 EST"))
+				}
+			}
+		}
+		mainerr = err
 	}
 	if mainerr == nil {
 		fmt.Printf("\n\nCommand terminated succesfully.\n")

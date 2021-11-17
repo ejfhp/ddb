@@ -9,7 +9,7 @@ import (
 )
 
 //ListAll returns an array of all the entries found
-func (t *TRH) ListAll(keystore keys.Keystore) ([]*ddb.MetaEntry, error) {
+func (t *TRH) ListAll(keystore *keys.Keystore) (map[string][]*ddb.MetaEntry, error) {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -23,19 +23,15 @@ func (t *TRH) ListAll(keystore keys.Keystore) ([]*ddb.MetaEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while listing MetaEntry for password: %w", err)
 	}
-	mEntryFound := make([]*ddb.MetaEntry, 0)
-	for _, mes := range mEntries {
-		mEntryFound = append(mEntryFound, mes...)
-	}
-	return mEntryFound, nil
+	return mEntries, nil
 }
 
-func (t *TRH) ListSinglePassword(keystore keys.Keystore, password string) error {
+func (t *TRH) ListSinglePassword(keystore *keys.Keystore, password string) (map[string][]*ddb.MetaEntry, error) {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
 	if err != nil {
-		return fmt.Errorf("cannot open cache")
+		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	var mEntries map[string][]*ddb.MetaEntry
@@ -43,13 +39,7 @@ func (t *TRH) ListSinglePassword(keystore keys.Keystore, password string) error 
 	passmap := map[string][32]byte{password: keystore.Password(password)}
 	mEntries, err = btrunk.ListEntries(passmap, false)
 	if err != nil {
-		return fmt.Errorf("error while listing MetaEntry for password: %w", err)
+		return nil, fmt.Errorf("error while listing MetaEntries: %w", err)
 	}
-	for pass, mes := range mEntries {
-		fmt.Printf("Entry for password '%s':\n", pass)
-		for i, me := range mes {
-			fmt.Printf("%d found entry: %s\t%s\n", i, me.Name, me.Hash)
-		}
-	}
-	return nil
+	return mEntries, nil
 }
