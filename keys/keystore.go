@@ -171,6 +171,10 @@ func (ks *Keystore) KeysAndAddresses() map[string][]string {
 
 //NodeFromPassword returns a node containing key and an address derived from the main address and the password.
 func (ks *Keystore) NodeFromPassword(password string) (*Node, error) {
+	node, exists := ks.nodes[password]
+	if exists {
+		return node, nil
+	}
 	keySeed := []byte{}
 	//The new key is a function of the main address and the current password
 	keySeed = append(keySeed, []byte(ks.Address(Main))...)
@@ -187,13 +191,18 @@ func (ks *Keystore) NodeFromPassword(password string) (*Node, error) {
 		return nil, fmt.Errorf("error while generating address: %v", err)
 	}
 	pass := passwordToBytes(password)
-	node := Node{Key: fbWIF, Address: fbAdd, Password: pass, PassName: password}
-	return &node, nil
+	node = &Node{Key: fbWIF, Address: fbAdd, Password: pass, PassName: password}
+	return node, nil
 
 }
 
-func (ks *Keystore) StoreNode(node *Node) {
-	ks.nodes[node.PassName] = node
+//StoreNode adds the node to the list if it's new. Return true if it's new and the keystore should be updated
+func (ks *Keystore) StoreNode(node *Node) bool {
+	_, exists := ks.nodes[node.PassName]
+	if !exists {
+		ks.nodes[node.PassName] = node
+	}
+	return !exists
 }
 
 func (ks *Keystore) Save(filepath string, pin string) error {

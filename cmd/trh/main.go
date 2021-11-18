@@ -238,7 +238,7 @@ func main() {
 			}
 		}
 		mainerr = err
-	case "storefile_filepassword": //TODO complete this
+	case "storefile_file":
 		pinPar := inputs[0]
 		filePar := inputs[1]
 		labelPar := inputs[2]
@@ -277,12 +277,13 @@ func main() {
 			}
 		}
 		mainerr = err
-	case "storefile_file":
+	case "storefile_filepassword":
 		pinPar := inputs[0]
-		filePar := inputs[1]
-		labelPar := inputs[2]
-		notePar := inputs[3]
-		spendPar := inputs[4]
+		pwdPar := inputs[1]
+		filePar := inputs[2]
+		labelPar := inputs[3]
+		notePar := inputs[4]
+		spendPar := inputs[5]
 		ks, err := keys.LoadKeystore(ksf, pinPar)
 		if err != nil {
 			mainerr = err
@@ -298,7 +299,19 @@ func main() {
 			mainerr = err
 			break
 		}
-		node, _ := ks.Node(keys.Main)
+		node, err := ks.NodeFromPassword(pwdPar)
+		if err != nil {
+			mainerr = err
+			break
+		}
+		needsUpdate := ks.StoreNode(node)
+		if needsUpdate {
+			err = ks.Update()
+			if err != nil {
+				mainerr = err
+				break
+			}
+		}
 		_, cost, err := th.Estimate(filePar, lbls, notePar)
 		if err != nil {
 			mainerr = err
