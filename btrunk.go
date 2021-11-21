@@ -53,7 +53,11 @@ func (bt *BTrunk) TXOfBranchedEntry(branchKey, branchAddress string, password [3
 
 		trail.Println(trace.Debug(fmt.Sprintf("Input UTXO: %d\n", u.Value.Satoshi())).Append(tr).UTC().Error(err))
 	}
-	meTX, err := NewDataTX(bt.MainKey, fBranch.BitcoinAdd, bt.MainAddress, utxo, maxAmountToSpend, mefee, metaEntryData, header)
+	maxAmountToUse, err := maxAmountToSpend.Sub(mefee)
+	if err != nil {
+		return nil, fmt.Errorf("error while calculating amount to transfer to branched chain: %v", err)
+	}
+	meTX, err := NewDataTX(bt.MainKey, fBranch.BitcoinAdd, bt.MainAddress, utxo, maxAmountToUse, mefee, metaEntryData, header)
 	if err != nil {
 		return nil, fmt.Errorf("error while making metaEntry DataTX: %v", err)
 	}

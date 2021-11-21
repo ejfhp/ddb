@@ -89,6 +89,7 @@ Examples:
    trh estimate keystore.trh "keystore,bitcoin,trh" "very important"
    trh txshow 1346
    trh txshowp 1346 main
+   trh utxos 1346
    trh collect 1346
    trh store 1346 bitcoin.pdf "bitcoin,pdf" "test import" 200000 
    trh listp 1346
