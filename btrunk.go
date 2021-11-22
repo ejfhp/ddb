@@ -21,7 +21,6 @@ type BTrunk struct {
 
 //TXOfBranchedEntry generate all the transactions needed to store the given entry. BranchKey (WIF) and branchAddress must be generated through BTrunk.GenerateKeyAndAddress().
 func (bt *BTrunk) TXOfBranchedEntry(branchKey, branchAddress string, password [32]byte, entry *Entry, header string, maxAmountToSpend satoshi.Satoshi, simulate bool) ([]*DataTX, error) {
-	tr := trace.New().Source("btrunk.go", "BTrunk", "SameKeyFBranch")
 	fBranch, err := bt.newFBranch(branchKey, branchAddress, password)
 	if err != nil {
 		return nil, fmt.Errorf("error while generating new FBranch: %v", err)
@@ -48,15 +47,11 @@ func (bt *BTrunk) TXOfBranchedEntry(branchKey, branchAddress string, password [3
 	}
 
 	allTXs := make([]*DataTX, 0)
-	//First TX with metaEntry
-	for _, u := range utxo {
-
-		trail.Println(trace.Debug(fmt.Sprintf("Input UTXO: %d\n", u.Value.Satoshi())).Append(tr).UTC().Error(err))
-	}
 	maxAmountToUse, err := maxAmountToSpend.Sub(mefee)
 	if err != nil {
 		return nil, fmt.Errorf("error while calculating amount to transfer to branched chain: %v", err)
 	}
+	//First TX with metaEntry
 	meTX, err := NewDataTX(bt.MainKey, fBranch.BitcoinAdd, bt.MainAddress, utxo, maxAmountToUse, mefee, metaEntryData, header)
 	if err != nil {
 		return nil, fmt.Errorf("error while making metaEntry DataTX: %v", err)
@@ -133,7 +128,7 @@ func (bt *BTrunk) ListEntries(password map[string][32]byte, cacheOnly bool) (map
 				meList[pass] = []*MetaEntry{}
 			}
 			me, _ := MetaEntryFromEncrypted(pwd, data)
-			if me != nil {
+			if me != nil && me.Timestamp > 0 {
 				meList[pass] = append(meList[pass], me)
 			}
 		}

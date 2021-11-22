@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	Main = "main"
+	NodeMainTrunk     = "main"
+	NodeDefaultBranch = "default"
 )
 
 type Node struct {
@@ -41,7 +42,12 @@ func NewKeystore(mainKey string, password string) (*Keystore, error) {
 		return nil, fmt.Errorf("cannot generate address from key '%s': %w", mainKey, err)
 	}
 	node := Node{Key: mainKey, Address: add, PassName: password, Password: passwordToBytes(password)}
-	ks.nodes[Main] = &node
+	ks.nodes[NodeMainTrunk] = &node
+	defaultBranchNode, err := ks.NodeFromPassword(password)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate default node from password '%s': %w", password, err)
+	}
+	ks.nodes[NodeDefaultBranch] = defaultBranchNode
 	return &ks, nil
 }
 
@@ -177,7 +183,7 @@ func (ks *Keystore) NodeFromPassword(password string) (*Node, error) {
 	}
 	keySeed := []byte{}
 	//The new key is a function of the main address and the current password
-	keySeed = append(keySeed, []byte(ks.Address(Main))...)
+	keySeed = append(keySeed, []byte(ks.Address(NodeMainTrunk))...)
 	keySeed = append(keySeed, password[:]...)
 	keySeedHash := sha256.Sum256(keySeed)
 	key, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])

@@ -260,7 +260,7 @@ func main() {
 			mainerr = err
 			break
 		}
-		node, _ := ks.Node(keys.Main)
+		node, _ := ks.Node(keys.NodeMainTrunk)
 		_, cost, err := th.Estimate(filePar, lbls, notePar)
 		if err != nil {
 			mainerr = err
