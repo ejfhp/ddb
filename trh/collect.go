@@ -20,7 +20,7 @@ func (t *TRH) Collect(keystore *keys.Keystore) ([]string, error) {
 		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.Main), MainAddress: keystore.Address(keys.Main), Blockchain: blockchain}
+	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.NodeMainTrunk), MainAddress: keystore.Address(keys.NodeMainTrunk), Blockchain: blockchain}
 
 	utxos := make(map[string][]*ddb.UTXO)
 	for _, n := range keystore.Nodes() {
@@ -39,7 +39,7 @@ func (t *TRH) Collect(keystore *keys.Keystore) ([]string, error) {
 			return nil, fmt.Errorf("error while estimating collecting tx fee: %w", err)
 		}
 		//TODO COLLECT HAS ISSUES
-		collectingTX, err := ddb.NewMultiInputTX(keystore.Address(keys.Main), utxos, fee)
+		collectingTX, err := ddb.NewMultiInputTX(keystore.Address(keys.NodeMainTrunk), utxos, fee)
 		if err != nil {
 			return nil, fmt.Errorf("error while building collecting TX: %w", err)
 		}

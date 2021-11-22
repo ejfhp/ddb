@@ -25,12 +25,24 @@ func TestKeystore_KeystoreGenFromKey(t *testing.T) {
 		t.Logf("keystore form key failed: keystore is nil")
 		t.FailNow()
 	}
-	if keystore.Key(keys.Main) != key {
-		t.Logf("unexpected key: %s", keystore.Key(keys.Main))
+	if keystore.Key(keys.NodeMainTrunk) != key {
+		t.Logf("unexpected key: %s", keystore.Key(keys.NodeMainTrunk))
 		t.FailNow()
 	}
-	if keystore.Address(keys.Main) != address {
-		t.Logf("unexpected address: %s", keystore.Address(keys.Main))
+	if keystore.Address(keys.NodeMainTrunk) != address {
+		t.Logf("unexpected address: %s", keystore.Address(keys.NodeMainTrunk))
+		t.FailNow()
+	}
+	if keystore.Key(keys.NodeDefaultBranch) == "" {
+		t.Logf("unexpected empty key: %s", keystore.Key(keys.NodeDefaultBranch))
+		t.FailNow()
+	}
+	if keystore.Address(keys.NodeMainTrunk) == "" {
+		t.Logf("unexpected empty address: %s", keystore.Address(keys.NodeDefaultBranch))
+		t.FailNow()
+	}
+	if keystore.Address(keys.NodeMainTrunk) == keystore.Address(keys.NodeDefaultBranch) {
+		t.Logf("main and default addresses shouldn't be the same: %s %s", keystore.Address(keys.NodeMainTrunk), keystore.Address(keys.NodeDefaultBranch))
 		t.FailNow()
 	}
 }

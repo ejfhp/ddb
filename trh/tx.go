@@ -68,7 +68,7 @@ func (t *TRH) ListUTXOs(keystore *keys.Keystore) (map[string]uint64, error) {
 			utxos = []*ddb.UTXO{}
 		}
 		for _, u := range utxos {
-			res[add] = uint64(u.Value.Satoshi())
+			res[add] = res[add] + uint64(u.Value.Satoshi())
 		}
 	}
 	return res, nil
