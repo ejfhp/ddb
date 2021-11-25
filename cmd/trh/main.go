@@ -260,7 +260,6 @@ func main() {
 			mainerr = err
 			break
 		}
-		node, _ := ks.Node(keys.NodeMainTrunk)
 		_, cost, err := th.Estimate(filePar, lbls, notePar)
 		if err != nil {
 			mainerr = err
@@ -270,7 +269,7 @@ func main() {
 			fmt.Printf("Amount to spend (%d) is not enough, estimation is: %d\n", maxSpend, cost)
 			break
 		}
-		txs, err := th.Store(ks, node, filePar, lbls, notePar, defaultHeader, maxSpend)
+		txs, err := th.Store(ks, keys.NodeDefaultBranch, filePar, lbls, notePar, defaultHeader, maxSpend)
 		if err == nil {
 			fmt.Printf("IDs of transactions that store the file\n")
 			for num, txid := range txs {
@@ -322,7 +321,7 @@ func main() {
 			fmt.Printf("Amount to spend (%d) is not enough, estimation is: %d\n", maxSpend, cost)
 			break
 		}
-		txs, err := th.Store(ks, node, filePar, lbls, notePar, defaultHeader, maxSpend)
+		txs, err := th.Store(ks, node.Name, filePar, lbls, notePar, defaultHeader, maxSpend)
 		if err == nil {
 			fmt.Printf("IDs of transactions that store the file\n")
 			for num, txid := range txs {

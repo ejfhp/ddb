@@ -74,15 +74,15 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 		t.Logf("failed to load keystore: %v", err)
 		t.FailNow()
 	}
-	if ks2.Address(keys.NodeMainTrunk) != destinationAddress {
-		t.Logf("load keystore has wrong address: %s", ks2.Address(keys.NodeMainTrunk))
+	if ks2.Source.Address != destinationAddress {
+		t.Logf("load keystore has wrong address: %s", ks2.Source.Address)
 		t.FailNow()
 	}
-	if ks2.Key(keys.NodeMainTrunk) != destinationKey {
-		t.Logf("load keystore has wrong key: %s", ks2.Key(keys.NodeMainTrunk))
+	if ks2.Source.Key != destinationKey {
+		t.Logf("load keystore has wrong key: %s", ks2.Source.Key)
 		t.FailNow()
 	}
-	p2 := ks2.Password(keys.NodeMainTrunk)
+	p2 := ks2.Password(password)
 	if string(p2[:]) != password {
 		t.Logf("load keystore has wrong password: %s", string(p2[:]))
 		t.FailNow()

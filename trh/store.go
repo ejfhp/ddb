@@ -10,7 +10,11 @@ import (
 	"github.com/ejfhp/ddb/satoshi"
 )
 
-func (t *TRH) Store(keystore *keys.Keystore, node *keys.Node, pathfile string, labels []string, notes string, txheader string, maxSpend uint64) ([]string, error) {
+func (t *TRH) Store(keystore *keys.Keystore, nodeName string, pathfile string, labels []string, notes string, txheader string, maxSpend uint64) ([]string, error) {
+	node, exists := keystore.Node(nodeName)
+	if !exists {
+		return nil, fmt.Errorf("node not found")
+	}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -18,7 +22,7 @@ func (t *TRH) Store(keystore *keys.Keystore, node *keys.Node, pathfile string, l
 		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	btrunk := &ddb.BTrunk{MainKey: keystore.Key(keys.NodeMainTrunk), MainAddress: keystore.Address(keys.NodeMainTrunk), Blockchain: blockchain}
+	btrunk := &ddb.BTrunk{MainKey: keystore.Source.Key, MainAddress: keystore.Source.Address, Blockchain: blockchain}
 	ent, err := ddb.NewEntryFromFile(filepath.Base(pathfile), pathfile, labels, notes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate entry from file: %w", err)

@@ -16,7 +16,7 @@ func TestKeystore_KeystoreGenFromKey(t *testing.T) {
 	pin := "0000"
 	pathname := filepath.Join(os.TempDir(), "keystore.trh")
 	th := &trh.TRH{}
-	keystore, err := th.KeystoreGenFromKey(key, password, pin, pathname)
+	keystore, err := th.KeystoreGenFromKey(pin, key, password, pathname)
 	if err != nil {
 		t.Logf("keystore form key failed: %v", err)
 		t.FailNow()
@@ -25,24 +25,24 @@ func TestKeystore_KeystoreGenFromKey(t *testing.T) {
 		t.Logf("keystore form key failed: keystore is nil")
 		t.FailNow()
 	}
-	if keystore.Key(keys.NodeMainTrunk) != key {
-		t.Logf("unexpected key: %s", keystore.Key(keys.NodeMainTrunk))
+	if keystore.Source.Key != key {
+		t.Logf("unexpected key: %s", keystore.Source.Key)
 		t.FailNow()
 	}
-	if keystore.Address(keys.NodeMainTrunk) != address {
-		t.Logf("unexpected address: %s", keystore.Address(keys.NodeMainTrunk))
+	if keystore.Source.Address != address {
+		t.Logf("unexpected address: %s", keystore.Source.Address)
 		t.FailNow()
 	}
 	if keystore.Key(keys.NodeDefaultBranch) == "" {
 		t.Logf("unexpected empty key: %s", keystore.Key(keys.NodeDefaultBranch))
 		t.FailNow()
 	}
-	if keystore.Address(keys.NodeMainTrunk) == "" {
+	if keystore.Address(keys.NodeDefaultBranch) == "" {
 		t.Logf("unexpected empty address: %s", keystore.Address(keys.NodeDefaultBranch))
 		t.FailNow()
 	}
-	if keystore.Address(keys.NodeMainTrunk) == keystore.Address(keys.NodeDefaultBranch) {
-		t.Logf("main and default addresses shouldn't be the same: %s %s", keystore.Address(keys.NodeMainTrunk), keystore.Address(keys.NodeDefaultBranch))
+	if keystore.Source.Address == keystore.Address(keys.NodeDefaultBranch) {
+		t.Logf("main and default addresses shouldn't be the same: %s %s", keystore.Source.Address, keystore.Address(keys.NodeDefaultBranch))
 		t.FailNow()
 	}
 }

@@ -17,18 +17,25 @@ import (
 )
 
 const (
-	NodeMainTrunk     = "main"
 	NodeDefaultBranch = "default"
 )
 
+type Source struct {
+	Phrase   string `json:"phrase,omitempty"`
+	KeygenID int    `json:"keygenid,omitempty"`
+	Key      string `json:"key"`
+	Address  string `json:"address"`
+	Password string `json:"password,omitempty"`
+}
 type Node struct {
 	Key      string   `json:"key"`
 	Address  string   `json:"address"`
 	Password [32]byte `json:"password"`
-	PassName string   `json:"passname"`
+	Name     string   `json:"name"`
 }
 
 type Keystore struct {
+	Source   *Source `json:"source"`
 	nodes    map[string]*Node
 	pin      string
 	pathname string
@@ -41,8 +48,8 @@ func NewKeystore(mainKey string, password string) (*Keystore, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate address from key '%s': %w", mainKey, err)
 	}
-	node := Node{Key: mainKey, Address: add, PassName: password, Password: passwordToBytes(password)}
-	ks.nodes[NodeMainTrunk] = &node
+	source := Source{Key: mainKey, Address: add, Password: password}
+	ks.Source = &source
 	defaultBranchNode, err := ks.NodeFromPassword(password)
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate default node from password '%s': %w", password, err)
@@ -183,7 +190,7 @@ func (ks *Keystore) NodeFromPassword(password string) (*Node, error) {
 	}
 	keySeed := []byte{}
 	//The new key is a function of the main address and the current password
-	keySeed = append(keySeed, []byte(ks.Address(NodeMainTrunk))...)
+	keySeed = append(keySeed, []byte(ks.Source.Address)...)
 	keySeed = append(keySeed, password[:]...)
 	keySeedHash := sha256.Sum256(keySeed)
 	key, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
@@ -197,16 +204,16 @@ func (ks *Keystore) NodeFromPassword(password string) (*Node, error) {
 		return nil, fmt.Errorf("error while generating address: %v", err)
 	}
 	pass := passwordToBytes(password)
-	node = &Node{Key: fbWIF, Address: fbAdd, Password: pass, PassName: password}
+	node = &Node{Key: fbWIF, Address: fbAdd, Password: pass, Name: password}
 	return node, nil
 
 }
 
 //StoreNode adds the node to the list if it's new. Return true if it's new and the keystore should be updated
 func (ks *Keystore) StoreNode(node *Node) bool {
-	_, exists := ks.nodes[node.PassName]
+	_, exists := ks.nodes[node.Name]
 	if !exists {
-		ks.nodes[node.PassName] = node
+		ks.nodes[node.Name] = node
 	}
 	return !exists
 }
