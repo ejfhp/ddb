@@ -1,23 +1,17 @@
 package trh
 
-import (
-	"github.com/ejfhp/ddb"
-)
+// func (t *TRH) RetrieveEntry(address string, password [32]byte, hash string) (map[string][]*ddb.MetaEntry, error) {
+// 	fb := ddb.FBranch{BitcoinAdd: address, Password: password, Blockchain: t.blockchain}
+// 	fb.DowloadAll()
+// 	var mEntries map[string][]*ddb.MetaEntry
+// 	btrunk := &ddb.BTrunk{MainKey: keystore.Source().Key, MainAddress: keystore.Source().Address, Blockchain: blockchain}
+// 	passmap := map[string][32]byte{password: keystore.Password(password)}
 
-type Retrieve struct {
-	diary *ddb.FBranch
-	// env       *Environment
-	outfolder string
-}
-
-// func NewRetrieve(env *Environment, diary *ddb.FBranch) *Retrieve {
-// 	tr := trace.New().Source("retrieve.go", "Retrieve", "newRetrieve")
-// 	if env.outFolder == "" {
-// 		trail.Println(trace.Info("Output dir not set, using local flolder").Append(tr).UTC())
-// 		env.outFolder = env.workingDir
+// 	mEntries, err = btrunk.ListEntries(passmap, false)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error while listing MetaEntries: %w", err)
 // 	}
-// 	retrieve := Retrieve{diary: diary, outfolder: env.outFolder, env: env}
-// 	return &retrieve
+// 	return mEntries, nil
 
 // }
 

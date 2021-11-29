@@ -47,12 +47,9 @@ var commands = map[string]command{
 	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"file", "comma separated labels", "notes"}},
 	"utxos":      {name: "utxo_show", description: "show all utxos", params: []string{"pin"}},
 	"txshow":     {name: "tx_showall", description: "show all transactions", params: []string{"pin"}},
-	"txshowp":    {name: "tx_showpass", description: "show transactions of password", params: []string{"pin", "password"}},
 	"collect":    {name: "collect_all", description: "collect unspent money", params: []string{"pin"}},
 	"store":      {name: "storefile_file", description: "store file", params: []string{"pin", "file", "comma separated labels", "notes", "max spend (satoshi)"}},
-	"storewithp": {name: "storefile_filepassword", description: "store file", params: []string{"pin", "password", "file", "comma separated labels", "notes", "max spend (satoshi)"}},
 	"list":       {name: "listfile_all", description: "list all files stored", params: []string{"pin"}},
-	"listp":      {name: "listfile_ofpwd", description: "list files stored with password", params: []string{"pin", "password"}},
 }
 var flagLog bool
 
@@ -180,11 +177,17 @@ func main() {
 		if err == nil {
 			tot := uint64(0)
 			fmt.Printf("UTOXs tied to this keystore:\n")
-			for id, amount := range utxos {
-				tot = tot + amount
-				fmt.Printf(" TXID: '%s' amount: '%d' satoshi\n", id, amount)
+			for add, uts := range utxos {
+				subtot := 0
+				fmt.Printf("  Address: %s\n", add)
+				for _, ut := range uts {
+					fmt.Printf("     TXID: '%s' amount: '%d' satoshi\n", ut.TXHash, ut.Value.Satoshi())
+					subtot += int(ut.Value.Satoshi())
+				}
+				fmt.Printf("  Subtot : %d\n", subtot)
+				tot += uint64(subtot)
 			}
-			fmt.Printf("Total: %d\n", tot)
+			fmt.Printf("\nTotal: %d\n", tot)
 		}
 		mainerr = err
 	case "tx_showall":
@@ -230,7 +233,7 @@ func main() {
 		txResults, err := th.Collect(ks)
 		if err == nil {
 			if len(txResults) == 0 {
-				fmt.Printf("No UTXO found and so no transaction has been submitted.\n")
+				fmt.Printf("No UTXO found in branched address so no transaction has been submitted.\n")
 				break
 			}
 			fmt.Printf("IDs of transactions to collect UTXO of the keystore:\n")

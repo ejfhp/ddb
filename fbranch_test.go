@@ -285,7 +285,6 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 		t.Fail()
 	}
 	//entries[0] is "Inferno.txt"
-	entry := entries[1]
 	name := "image.png"
 	filename := "testdata/image.png"
 	expEntry, err := ddb.NewEntryFromFile(name, filename, []string{"label1", "label2"}, "notes")
@@ -293,23 +292,28 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 		t.Logf("failed to build entry: %v", err)
 		t.Fail()
 	}
-	if entry.Name != expEntry.Name {
-		t.Logf("unexpected name for retrieved entry: %s", entry.Name)
-		t.Fail()
-	}
-	if entry.Hash != expEntry.Hash {
-		t.Logf("unexpected hash for retrieved entry: %s", entry.Hash)
-		t.Fail()
-	}
-	if entry.Mime != expEntry.Mime {
-		t.Logf("unexpected mime for retrieved entry: %s", entry.Mime)
-		t.Fail()
-	}
-	sha := sha256.Sum256(entry.Data)
-	hash := hex.EncodeToString(sha[:])
-	if entry.Hash != hash {
-		t.Logf("retrieved entry hash doesn't match with data hash: %s", hash)
-		t.Fail()
+	for _, entry := range entries {
+		if entry.Name == "Inferno.txt" {
+			continue
+		}
+		if entry.Name != expEntry.Name {
+			t.Logf("unexpected name for retrieved entry: %s", entry.Name)
+			t.Fail()
+		}
+		if entry.Hash != expEntry.Hash {
+			t.Logf("unexpected hash for retrieved entry: %s", entry.Hash)
+			t.Fail()
+		}
+		if entry.Mime != expEntry.Mime {
+			t.Logf("unexpected mime for retrieved entry: %s", entry.Mime)
+			t.Fail()
+		}
+		sha := sha256.Sum256(entry.Data)
+		hash := hex.EncodeToString(sha[:])
+		if entry.Hash != hash {
+			t.Logf("retrieved entry hash doesn't match with data hash: %s", hash)
+			t.Fail()
+		}
 	}
 
 	// err = ioutil.WriteFile("imagefromblockchain.png", entry.Data, 0644)

@@ -18,8 +18,8 @@ func (t *TRH) ListAll(keystore *keys.Keystore) (map[string][]*ddb.MetaEntry, err
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	var mEntries map[string][]*ddb.MetaEntry
-	btrunk := &ddb.BTrunk{MainKey: keystore.Source.Key, MainAddress: keystore.Source.Address, Blockchain: blockchain}
-	mEntries, err = btrunk.ListEntries(keystore.Passwords(), false)
+	btrunk := &ddb.BTrunk{MainKey: keystore.Source().Key(), MainAddress: keystore.Source().Address(), Blockchain: blockchain}
+	mEntries, err = btrunk.ListEntries(false)
 	if err != nil {
 		return nil, fmt.Errorf("error while listing MetaEntry for password: %w", err)
 	}
@@ -35,7 +35,7 @@ func (t *TRH) ListSinglePassword(keystore *keys.Keystore, password string) (map[
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	var mEntries map[string][]*ddb.MetaEntry
-	btrunk := &ddb.BTrunk{MainKey: keystore.Source.Key, MainAddress: keystore.Source.Address, Blockchain: blockchain}
+	btrunk := &ddb.BTrunk{MainKey: keystore.Source().Key(), MainAddress: keystore.Source().Address(), Blockchain: blockchain}
 	passmap := map[string][32]byte{password: keystore.Password(password)}
 	mEntries, err = btrunk.ListEntries(passmap, false)
 	if err != nil {

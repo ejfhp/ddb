@@ -20,16 +20,16 @@ func (t *TRH) Collect(keystore *keys.Keystore) ([]string, error) {
 		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	btrunk := &ddb.BTrunk{MainKey: keystore.Source.Key, MainAddress: keystore.Source.Address, Blockchain: blockchain}
+	btrunk := ddb.NewBTrunk(keystore.Source().Key(), keystore.Source().Address(), keystore.Source().Password(), blockchain)
 
 	utxos := make(map[string][]*ddb.UTXO)
 	for _, n := range keystore.Nodes() {
-		u, err := blockchain.GetUTXO(n.Address)
+		u, err := blockchain.GetUTXO(n.Address())
 		if err != nil && err.Error() != "found no UTXO" {
 			return nil, fmt.Errorf("error while retrieving UTXO for address %s: %w", n.Address, err)
 		}
 		if len(u) > 0 {
-			utxos[n.Key] = u
+			utxos[n.Key()] = u
 		}
 	}
 	var ids []string
@@ -39,11 +39,11 @@ func (t *TRH) Collect(keystore *keys.Keystore) ([]string, error) {
 			return nil, fmt.Errorf("error while estimating collecting tx fee: %w", err)
 		}
 		//TODO COLLECT HAS ISSUES
-		collectingTX, err := ddb.NewMultiInputTX(keystore.Source.Address, utxos, fee)
+		collectingTX, err := ddb.NewMultiInputTX(keystore.Source().Address(), utxos, fee)
 		if err != nil {
 			return nil, fmt.Errorf("error while building collecting TX: %w", err)
 		}
-		txres, err := btrunk.Blockchain.Submit([]*ddb.DataTX{collectingTX})
+		txres, err := blockchain.Submit([]*ddb.DataTX{collectingTX})
 		if err != nil {
 			trail.Println(trace.Alert("error submitting collecting TX").Append(tr).UTC().Error(err))
 			return nil, fmt.Errorf("error submitting collecting TX: %w", err)

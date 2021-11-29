@@ -121,7 +121,7 @@ func (fb *FBranch) GetEntriesFromTXID(txids []string, cacheOnly bool) ([]*Entry,
 	return entries, nil
 }
 
-//DownloadAll saves fb.cally all the files connected to the address. Return the number of entries saved.
+//DownloadAll retrieve all the files connected to the address. Return the number of entries retrieved.
 func (fb *FBranch) DowloadAll(outPath string, cacheOnly bool) (int, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "DownloadAll")
 	trail.Println(trace.Info("download all entries").Add("outpath", outPath).UTC().Append(tr))
@@ -139,7 +139,28 @@ func (fb *FBranch) DowloadAll(outPath string, cacheOnly bool) (int, error) {
 		ioutil.WriteFile(filepath.Join(outPath, e.Name), e.Data, 0444)
 	}
 	return len(entries), nil
+}
 
+//DownloadFile retrieve the files idintified by the given hash.
+func (fb *FBranch) DowloadFile(outPath string, hash string, cacheOnly bool) error {
+	tr := trace.New().Source("fbranch.go", "FBranch", "DownloadFile")
+	trail.Println(trace.Info("download file").Add("outpath", outPath).Add("hash", hash).UTC().Append(tr))
+	history, err := fb.Blockchain.ListTXIDs(fb.BitcoinAdd, cacheOnly)
+	if err != nil {
+		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
+		return fmt.Errorf("error getting address history: %w", err)
+	}
+	entries, err := fb.GetEntriesFromTXID(history, cacheOnly)
+	if err != nil {
+		trail.Println(trace.Alert("error retrieving entries").UTC().Error(err).Append(tr))
+		return fmt.Errorf("error retrieving entries: %w", err)
+	}
+	for _, e := range entries {
+		if e.Hash == hash {
+			ioutil.WriteFile(filepath.Join(outPath, e.Name), e.Data, 0444)
+		}
+	}
+	return nil
 }
 
 //UnpackEntryParts builds EntryPart from the OP_RETURN encrypted data of the given transactions

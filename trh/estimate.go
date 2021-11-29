@@ -21,7 +21,7 @@ func (t *TRH) Estimate(file string, labels []string, notes string) ([]*ddb.DataT
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
-	btrunk := &ddb.BTrunk{MainKey: fakeKey, MainAddress: fakeAddress, Blockchain: blockchain}
+	btrunk := &ddb.BTrunk{Key: fakeKey, Address: fakeAddress, Blockchain: blockchain}
 	ent, err := ddb.NewEntryFromFile(filepath.Base(file), file, labels, notes)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to generate entry from file: %w", err)

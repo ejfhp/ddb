@@ -1,6 +1,9 @@
 package keys_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"os"
 	"testing"
 
@@ -53,17 +56,22 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 	os.RemoveAll(keyfile)
 	pin := "trh"
 	password := "tantovalagattaallardochecilascia"
+	password2 := "lozampino"
+	hash := sha256.Sum256([]byte(password2))
 	ks, err := keys.NewKeystore(destinationKey, password)
 	if err != nil {
 		t.Logf("failed to create keystore: %v", err)
 		t.FailNow()
 	}
-	node, err := ks.NodeFromPassword(password)
-	if err != nil {
+	node, err := ks.NewNode("test", hash)
+	if err != nil || node == nil {
 		t.Logf("failed to create none: %v", err)
 		t.FailNow()
 	}
-	ks.StoreNode(node)
+	fmt.Printf("Address: %s\n", node.Address())
+	names0 := ks.Nodes()
+	nodeLen := len(names0)
+
 	err = ks.Save(keyfile, pin)
 	if err != nil {
 		t.Logf("failed to save keystore: %v", err)
@@ -74,21 +82,103 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 		t.Logf("failed to load keystore: %v", err)
 		t.FailNow()
 	}
-	if ks2.Source.Address != destinationAddress {
-		t.Logf("load keystore has wrong address: %s", ks2.Source.Address)
+	if ks2.Source() == nil {
+		t.Logf("load keystore source is nil")
 		t.FailNow()
 	}
-	if ks2.Source.Key != destinationKey {
-		t.Logf("load keystore has wrong key: %s", ks2.Source.Key)
+	if ks2.Source().Address() != destinationAddress {
+		t.Logf("load keystore has wrong address: '%s'", ks2.Source().Address())
 		t.FailNow()
 	}
-	p2 := ks2.Password(password)
-	if string(p2[:]) != password {
-		t.Logf("load keystore has wrong password: %s", string(p2[:]))
+	if ks2.Source().Key() != destinationKey {
+		t.Logf("load keystore has wrong key: '%s'", ks2.Source().Key())
+		t.FailNow()
+	}
+
+	nodes := ks2.Nodes()
+	if len(nodes) != nodeLen {
+		t.Logf("load keystore has unexpected number of nodes: %d", len(ks2.Nodes()))
+		t.FailNow()
+	}
+
+	if nodes[0].Key() != node.Key() {
+		t.Logf("load keystore has unexpected key: %s", nodes[0].Key())
+		t.FailNow()
+	}
+	if nodes[0].Address() != node.Address() {
+		t.Logf("load keystore has unexpected address: %s", nodes[0].Address())
+		t.FailNow()
+	}
+	hex := hex.EncodeToString(hash[:])
+	if nodes[0].HashHEX() != hex {
+		t.Logf("load keystore has unexpected hash: %s", nodes[0].HashHEX())
+		t.FailNow()
+	}
+	if nodes[0].Password() != node.Password() {
+		p := nodes[0].Password()
+		t.Logf("load keystore has unexpected password: %s", string(p[:]))
 		t.FailNow()
 	}
 }
 
+func TestKeyStore_Save_LoadKeystore_Unencrypted(t *testing.T) {
+	keyfile := "/tmp/keystore.trhk_unen"
+	os.RemoveAll(keyfile)
+	passwordDefault := "tantovalagattaallardochecilascia"
+	password := "lozampino"
+	ks, err := keys.NewKeystore(destinationKey, passwordDefault)
+	if err != nil {
+		t.Logf("failed to create keystore: %v", err)
+		t.FailNow()
+	}
+	hash := sha256.Sum256([]byte(password))
+	node, err := ks.NewNode("test", hash)
+	if err != nil {
+		t.Logf("failed to create none: %v", err)
+		t.FailNow()
+	}
+	err = ks.SaveUnencrypted(keyfile)
+	if err != nil {
+		t.Logf("failed to save keystore: %v", err)
+		t.FailNow()
+	}
+	ks2, err := keys.LoadKeystoreUnencrypted(keyfile)
+	if err != nil {
+		t.Logf("failed to load keystore: %v", err)
+		t.FailNow()
+	}
+	if ks2.Source() == nil {
+		t.Logf("load keystore source is nil")
+		t.FailNow()
+	}
+	if ks2.Source().Address() != destinationAddress {
+		t.Logf("load keystore has wrong address: %s", ks2.Source().Address())
+		t.FailNow()
+	}
+	if ks2.Source().Key() != destinationKey {
+		t.Logf("load keystore has wrong key: %s", ks2.Source().Key())
+		t.FailNow()
+	}
+	loadedNode := ks2.Nodes()[0]
+	if loadedNode.Key() != node.Key() {
+		t.Logf("load keystore has unexpected key: %s", loadedNode.Key())
+		t.FailNow()
+	}
+	if loadedNode.Address() != node.Address() {
+		t.Logf("load keystore has unexpected address: %s", loadedNode.Address())
+		t.FailNow()
+	}
+	hex := hex.EncodeToString(hash[:])
+	if loadedNode.HashHEX() != hex {
+		t.Logf("load keystore has unexpected hash: %s", loadedNode.HashHEX())
+		t.FailNow()
+	}
+	if loadedNode.Password() != node.Password() {
+		p := loadedNode.Password()
+		t.Logf("load keystore has unexpected password: %s", string(p[:]))
+		t.FailNow()
+	}
+}
 func TestKeyStore_GenerateKeyAndAddress(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	passwords := [][32]byte{
@@ -101,17 +191,17 @@ func TestKeyStore_GenerateKeyAndAddress(t *testing.T) {
 			t.Logf("%d - failed to generate ney keystore: %v", i, err)
 			t.FailNow()
 		}
-		node, err := ks.NodeFromPassword(string(v[:]))
+		node, err := ks.NewNode("test", v)
 		if err != nil {
 			t.Logf("%d - failed to generate key and add: %v", i, err)
 			t.FailNow()
 		}
-		b2Add, err := keys.AddressOf(node.Key)
+		b2Add, err := keys.AddressOf(node.Key())
 		if err != nil {
 			t.Logf("%d - failed to generate address from generated WIF: %v", i, err)
 			t.FailNow()
 		}
-		if b2Add != node.Address {
+		if b2Add != node.Address() {
 			t.Logf("%d - something is wrong in the key-add generation", i)
 			t.FailNow()
 		}

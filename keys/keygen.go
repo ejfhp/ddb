@@ -89,18 +89,5 @@ func FromPassphrase(passphrase string, keygenVersion int) (string, string, error
 	if err != nil {
 		return "", "", fmt.Errorf("error while generating password: %w", err)
 	}
-	return wif, passwordToString(password), nil
+	return wif, PasswordToString(password), nil
 }
-
-// func PasswordFromString(pwd string) [32]byte {
-// 	var password = [32]byte{}
-// 	for i := 0; i < len(password); i++ {
-// 		password[i] = '#'
-// 	}
-// 	copy(password[:], pwd[:])
-// 	return password
-// }
-
-// func PasswordToString(password [32]byte) string {
-// 	return strings.TrimSpace(string(password[:]))
-// }

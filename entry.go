@@ -9,57 +9,11 @@ import (
 	"math"
 	"mime"
 	"path/filepath"
-	"time"
 
 	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
-
-type MetaEntry struct {
-	Name      string   `json:"n"`
-	Labels    []string `json:"l"`
-	Mime      string   `json:"m"`
-	Hash      string   `json:"h"`
-	Timestamp int64    `json:"e"`
-	Notes     string   `json:"o,omitempty"`
-	Size      int      `json:"s"`
-}
-
-func NewMetaEntry(entry *Entry) *MetaEntry {
-	if entry == nil {
-		return nil
-	}
-	requestTime := time.Now().Unix()
-	meta := MetaEntry{Name: entry.Name, Labels: entry.Labels, Mime: entry.Mime, Hash: entry.Hash, Timestamp: requestTime, Notes: entry.Notes, Size: entry.Size}
-	return &meta
-}
-
-func MetaEntryFromEncrypted(password [32]byte, encrypted []byte) (*MetaEntry, error) {
-	encoded, err := keys.AESDecrypt(password, encrypted)
-	if err != nil {
-		return nil, fmt.Errorf("cannot decrypt data: %w", err)
-	}
-	var mentry MetaEntry
-	err = json.Unmarshal(encoded, &mentry)
-	if err != nil {
-		return nil, fmt.Errorf("cannot unmarshal data: %w", err)
-	}
-	return &mentry, nil
-}
-
-//Encrypt returns the EntryPart JSON encrypted.
-func (me *MetaEntry) Encrypt(password [32]byte) ([]byte, error) {
-	data, err := json.Marshal(me)
-	if err != nil {
-		return nil, fmt.Errorf("cannot encode MetaEntry to JSON: %w", err)
-	}
-	enc, err := keys.AESEncrypt(password, data)
-	if err != nil {
-		return nil, fmt.Errorf("cannot encrypt MetaEntry: %w", err)
-	}
-	return enc, nil
-}
 
 type Entry struct {
 	Name   string

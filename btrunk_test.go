@@ -6,20 +6,29 @@ import (
 	"testing"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/miner"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
 )
 
+const (
+	destinationAddress = "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
+	destinationKey     = "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
+)
+
 func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 	// trail.SetWriter(os.Stdout)
 	//EMPTY TEST ADDRESS
-	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
-	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
-	changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
-	changeKey := "L2mk9qzXebT1gfwUuALMJrbqBtrJxGUN5JnVeqQTGRXytqpXsPr8"
+	// changeAddress := "1EpFjTzJoNAFyJKVGATzxhgqXigUWLNWM6"
+	// changeKey := "L2mk9qzXebT1gfwUuALMJrbqBtrJxGUN5JnVeqQTGRXytqpXsPr8"
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
+	keystore, err := keys.NewKeystore(destinationKey, "mainpassword")
+	if err != nil {
+		t.Logf("failed to build keystore: %v", err)
+		t.FailNow()
+	}
 	passwords := [][32]byte{
 		{'a', ' ', '3', '2', ' ', 'b', 'y', 't', 'e', ' ', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd', ' ', 'i', 's', ' ', 'v', 'e', 'r', 'y', ' ', 'l', 'o', 'n', 'g'},
 		{'c', 'i', 'a', 'o', 'm', 'a', 'm', 'm', 'a', 'g', 'u', 'a', 'r', 'd', 'a', 'c', 'o', 'm', 'e', 'm', 'i', 'd', 'i', 'v', 'e', 'r', 't', 'o', '.', '.', '.'},
@@ -30,15 +39,20 @@ func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, nil)
 	for i, p := range passwords {
-		btrunk := &ddb.BTrunk{MainKey: destinationKey, MainAddress: destinationAddress, Blockchain: blockchain}
+		btrunk := ddb.NewBTrunk(destinationKey, destinationAddress, keystore.Source().Password(), blockchain)
 		for n, f := range files {
+			node, err := keystore.NewNode(n, p)
+			if err != nil {
+				t.Logf("%d - failed to generate node: %v", i, err)
+				t.FailNow()
+			}
 			maxToSpend := satoshi.Satoshi(10000)
 			entry, err := ddb.NewEntryFromFile(n, f, []string{"label1", "label2"}, "notes")
 			if err != nil {
 				t.Logf("%d - failed to generate entry: %v", i, err)
 				t.FailNow()
 			}
-			txs, err := btrunk.TXOfBranchedEntry(changeKey, changeAddress, p, entry, "test01234", maxToSpend, true)
+			txs, err := btrunk.TXOfBranchedEntry(node, entry, "test01234", maxToSpend, true)
 			if err != nil {
 				t.Logf("%d - failed to generate branched entry TXs: %v", i, err)
 				t.FailNow()
@@ -94,8 +108,6 @@ func TestBTrunk_TXOfBranchedEntry(t *testing.T) {
 }
 
 func TestBTrunk_ListEntries(t *testing.T) {
-	destinationAddress := "1PGh5YtRoohzcZF7WX8SJeZqm6wyaCte7X"
-	destinationKey := "L4ZaBkP1UTyxdEM7wysuPd1scHMLLf8sf8B2tcEcssUZ7ujrYWcQ"
 	trail.SetWriter(os.Stdout)
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
@@ -109,13 +121,13 @@ func TestBTrunk_ListEntries(t *testing.T) {
 		t.FailNow()
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	btrunk := &ddb.BTrunk{MainKey: destinationKey, MainAddress: destinationAddress, Blockchain: blockchain}
+	btrunk := ddb.NewBTrunk(destinationKey, destinationAddress, "mainpassword", blockchain)
 	list, err := btrunk.ListEntries(passwords, true)
 	if err != nil {
 		t.Logf("failed to list btrunk transactions: %v", err)
 		t.FailNow()
 	}
 	for i, me := range list {
-		fmt.Printf("MetaEntry %d\n: %v", i, me)
+		fmt.Printf("Entry %s\n: %v", i, me)
 	}
 }

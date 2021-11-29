@@ -20,33 +20,17 @@ func (t *TRH) ListAllTX(keystore *keys.Keystore) (map[string][]string, error) {
 		return nil, fmt.Errorf("error while loading keystore: %w", err)
 	}
 	allTXs := make(map[string][]string)
-	for _, pwd := range keystore.PassNames() {
-		txs, err := blockchain.ListTXIDs(keystore.Address(pwd), false)
+	for add := range keystore.AddressesAndKeys() {
+		txs, err := blockchain.ListTXIDs(add, false)
 		if err != nil {
 			return nil, fmt.Errorf("error while retrieving existing transactions: %w", err)
 		}
-		allTXs[pwd] = txs
+		allTXs[add] = txs
 	}
 	return allTXs, nil
 }
 
-func (t *TRH) ListSinglePasswordTX(keystore *keys.Keystore, password string) ([]string, error) {
-	woc := ddb.NewWOC()
-	taal := miner.NewTAAL()
-	cache, err := ddb.NewUserTXCache()
-	if err != nil {
-		return nil, fmt.Errorf("cannot open cache")
-	}
-	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	address := keystore.Address(password)
-	txs, err := blockchain.ListTXIDs(address, false)
-	if err != nil {
-		return nil, fmt.Errorf("error while retrieving existing transactions: %w", err)
-	}
-	return txs, nil
-}
-
-func (t *TRH) ListUTXOs(keystore *keys.Keystore) (map[string]uint64, error) {
+func (t *TRH) ListUTXOs(keystore *keys.Keystore) (map[string][]*ddb.UTXO, error) {
 	passwordAddress := map[string]string{}
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
@@ -55,10 +39,11 @@ func (t *TRH) ListUTXOs(keystore *keys.Keystore) (map[string]uint64, error) {
 		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	for _, ka := range keystore.PassNames() {
-		passwordAddress[ka] = keystore.Address(ka)
+	for _, no := range keystore.Nodes() {
+		passwordAddress[no.Name] = no.Address
 	}
-	res := make(map[string]uint64)
+	passwordAddress["Source"] = keystore.Source().Address
+	res := make(map[string][]*ddb.UTXO)
 	for _, add := range passwordAddress {
 		utxos, err := blockchain.GetUTXO(add)
 		if err != nil {
@@ -67,9 +52,7 @@ func (t *TRH) ListUTXOs(keystore *keys.Keystore) (map[string]uint64, error) {
 			}
 			utxos = []*ddb.UTXO{}
 		}
-		for _, u := range utxos {
-			res[add] = res[add] + uint64(u.Value.Satoshi())
-		}
+		res[add] = utxos
 	}
 	return res, nil
 }

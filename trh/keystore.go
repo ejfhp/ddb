@@ -30,8 +30,7 @@ func (t *TRH) KeystoreGenFromPhrase(pin string, phrase string, keygenID int, pat
 	if err != nil {
 		return nil, fmt.Errorf("error while generating keystore from passphrase '%s' with keygen '%d': %w", phrase, keygenID, err)
 	}
-	keystore.Source.Phrase = phrase
-	keystore.Source.KeygenID = keygenID
+	keystore.SetPhrase(phrase, keygenID)
 	err = keystore.Save(pathname, pin)
 	if err != nil {
 		return nil, fmt.Errorf("error while saving keystore to local file %s: %w", pathname, err)
@@ -78,22 +77,23 @@ func showKeystore(keystore *keys.Keystore) {
 	fmt.Printf("*** KEYSTORE ***\n")
 	fmt.Printf("\n")
 	fmt.Printf("    SOURCE KEY WIF\n")
-	ddb.PrintQRCode(os.Stdout, keystore.Source.Key)
-	fmt.Printf("    %s\n", keystore.Source.Key)
+	source := keystore.Source()
+	ddb.PrintQRCode(os.Stdout, source.Key())
+	fmt.Printf("    %s\n", source.Key)
 	fmt.Printf("\n")
 	fmt.Printf("    SOURCE ADDRESS\n")
-	ddb.PrintQRCode(os.Stdout, keystore.Source.Address)
-	fmt.Printf("   %s\n", keystore.Source.Address)
+	ddb.PrintQRCode(os.Stdout, source.Address())
+	fmt.Printf("   %s\n", source.Address())
 	fmt.Printf("\n")
-	fmt.Printf("   Source Bitcoin Key (WIF): %s\n", keystore.Source.Key)
-	fmt.Printf("   Source Bitcoin Address: %s\n", keystore.Source.Address)
-	fmt.Printf("   Source Password: %s\n", keystore.Source.Password)
-	if keystore.Source.Phrase != "" {
-		fmt.Printf("   Source Phrase: %s\n", keystore.Source.Phrase)
-		fmt.Printf("   Source KeygenID: %d\n", keystore.Source.KeygenID)
+	fmt.Printf("   Source Bitcoin Key (WIF): %s\n", source.Key())
+	fmt.Printf("   Source Bitcoin Address: %s\n", source.Address())
+	fmt.Printf("   Source Password: %s\n", source.Password())
+	if source.Phrase() != "" {
+		fmt.Printf("   Source Phrase: %s\n", source.Phrase())
+		fmt.Printf("   Source KeygenID: %d\n", source.KeygenID())
 	}
 	fmt.Printf("   Nodes:\n")
 	for _, n := range keystore.Nodes() {
-		fmt.Printf(" - Key: %s Address: %s  Name (password): %s (%d)\n", n.Key, n.Address, n.Name, len(n.Password))
+		fmt.Printf(" - Key: %s Address: %s  Name (password): %s (%d)\n", n.Key(), n.Address(), n.Name(), len(n.Password()))
 	}
 }

@@ -1,13 +1,15 @@
 package keys
 
 import (
+	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
+	"time"
 
 	"github.com/bitcoinsv/bsvd/bsvec"
 	"github.com/bitcoinsv/bsvd/chaincfg"
@@ -21,46 +23,168 @@ const (
 )
 
 type Source struct {
-	Phrase   string `json:"phrase,omitempty"`
-	KeygenID int    `json:"keygenid,omitempty"`
-	Key      string `json:"key"`
-	Address  string `json:"address"`
-	Password string `json:"password,omitempty"`
+	phrase   string
+	keygenID int
+	key      string
+	address  string
+	password string
 }
+
+func (so Source) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Phrase   string `json:"phrase,omitempty"`
+		KeygenID int    `json:"keygenid,omitempty"`
+		Key      string `json:"key"`
+		Address  string `json:"address"`
+		Password string `json:"password,omitempty"`
+	}{
+		Phrase:   so.phrase,
+		KeygenID: so.keygenID,
+		Key:      so.key,
+		Address:  so.address,
+		Password: so.password,
+	})
+}
+
+func (so *Source) UnmarshalJSON(data []byte) error {
+	var un struct {
+		Phrase   string `json:"phrase,omitempty"`
+		KeygenID int    `json:"keygenid,omitempty"`
+		Key      string `json:"key"`
+		Address  string `json:"address"`
+		Password string `json:"password,omitempty"`
+	}
+	err := json.Unmarshal(data, &un)
+	if err != nil {
+		return err
+	}
+	*so = Source{
+		phrase:   un.Phrase,
+		keygenID: un.KeygenID,
+		key:      un.Key,
+		address:  un.Address,
+		password: un.Password,
+	}
+	return nil
+}
+
+func (so *Source) Phrase() string {
+	return so.phrase
+}
+
+func (so *Source) KeygenID() int {
+	return so.keygenID
+}
+
+func (so *Source) Key() string {
+	return so.key
+}
+
+func (so *Source) Address() string {
+	return so.address
+}
+
+func (so *Source) Password() string {
+	return so.password
+}
+
 type Node struct {
-	Key      string   `json:"key"`
-	Address  string   `json:"address"`
-	Password [32]byte `json:"password"`
-	Name     string   `json:"name"`
+	name      string
+	key       string
+	address   string
+	password  [32]byte
+	hashHEX   string
+	timestamp int64
+}
+
+func (no Node) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Name      string   `json:"name"`
+		Key       string   `json:"key"`
+		Address   string   `json:"address"`
+		Password  [32]byte `json:"password"`
+		HashHEX   string   `json:"hashhex"`
+		Timestamp int64    `json:"timestamp"`
+	}{
+		Name:      no.name,
+		Key:       no.key,
+		Address:   no.address,
+		Password:  no.password,
+		HashHEX:   no.hashHEX,
+		Timestamp: no.timestamp,
+	})
+}
+
+func (no *Node) UnmarshalJSON(data []byte) error {
+	var un struct {
+		Name      string   `json:"name"`
+		Key       string   `json:"key"`
+		Address   string   `json:"address"`
+		Password  [32]byte `json:"password"`
+		HashHEX   string   `json:"hashhex"`
+		Timestamp int64    `json:"timestamp"`
+	}
+	err := json.Unmarshal(data, &un)
+	if err != nil {
+		return err
+	}
+	*no = Node{
+		name:      un.Name,
+		key:       un.Key,
+		address:   un.Address,
+		password:  un.Password,
+		hashHEX:   un.HashHEX,
+		timestamp: un.Timestamp,
+	}
+	return nil
+}
+
+func (no *Node) Name() string {
+	return no.name
+}
+
+func (no *Node) Key() string {
+	return no.key
+}
+
+func (no *Node) Address() string {
+	return no.address
+}
+
+func (no *Node) Password() [32]byte {
+	return no.password
+}
+
+func (no *Node) HashHEX() string {
+	return no.hashHEX
+}
+
+func (no *Node) Timestamp() time.Time {
+	return time.Unix(no.timestamp, 0)
 }
 
 type Keystore struct {
-	Source   *Source `json:"source"`
-	nodes    map[string]*Node
+	source   *Source
+	nodes    []*Node
 	pin      string
 	pathname string
 }
 
 func NewKeystore(mainKey string, password string) (*Keystore, error) {
 	ks := Keystore{}
-	ks.nodes = make(map[string]*Node)
+	ks.nodes = []*Node{}
 	add, err := AddressOf(mainKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate address from key '%s': %w", mainKey, err)
 	}
-	source := Source{Key: mainKey, Address: add, Password: password}
-	ks.Source = &source
-	defaultBranchNode, err := ks.NodeFromPassword(password)
-	if err != nil {
-		return nil, fmt.Errorf("cannot generate default node from password '%s': %w", password, err)
-	}
-	ks.nodes[NodeDefaultBranch] = defaultBranchNode
+	source := Source{key: mainKey, address: add, password: password}
+	ks.source = &source
 	return &ks, nil
 }
 
 func LoadKeystore(filepath string, pin string) (*Keystore, error) {
 	tr := trace.New().Source("keys.go", "Keystore", "LoadKeystore")
-	var pinpass = passwordToBytes(pin)
+	var pinpass = StringToPassword(pin)
 	file, err := os.Open(filepath)
 	if err != nil {
 		trail.Println(trace.Alert("cannot open Keystore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
@@ -77,7 +201,8 @@ func LoadKeystore(filepath string, pin string) (*Keystore, error) {
 		trail.Println(trace.Alert("cannot decrypt Keystore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
 		return nil, fmt.Errorf("cannot decrypt Keystore file: %w", err)
 	}
-	ks, err := UnmarshalJSON(encoded)
+	ks := &Keystore{}
+	err = ks.UnmarshalJSON(encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -99,123 +224,94 @@ func LoadKeystoreUnencrypted(filepath string) (*Keystore, error) {
 		trail.Println(trace.Alert("error while reading Keystore file").UTC().Add("filepath", filepath).Error(err).Append(tr))
 		return nil, fmt.Errorf("error while reading Keystore file: %w", err)
 	}
-	return UnmarshalJSON(read)
+	k := &Keystore{}
+	err = k.UnmarshalJSON(read)
+	return k, err
 }
 
 func (ks Keystore) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Nodes map[string]*Node `json:"nodes"`
+		Nodes  []*Node `json:"nodes"`
+		Source *Source `json:"source"`
 	}{
-		Nodes: ks.nodes,
+		Nodes:  ks.nodes,
+		Source: ks.source,
 	})
 }
 
-func UnmarshalJSON(data []byte) (*Keystore, error) {
+func (ks *Keystore) UnmarshalJSON(data []byte) error {
 	var un struct {
-		Nodes map[string]*Node `json:"nodes"`
+		Nodes  []*Node `json:"nodes"`
+		Source *Source `json:"source"`
 	}
 	err := json.Unmarshal(data, &un)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	k := Keystore{nodes: un.Nodes}
-	return &k, nil
+	*ks = Keystore{nodes: un.Nodes, source: un.Source}
+	return nil
 }
 
-func (ks *Keystore) PassNames() []string {
-	pws := make([]string, 0, len(ks.nodes))
-	for k, _ := range ks.nodes {
-		pws = append(pws, k)
-	}
-	return pws
+func (ks *Keystore) SetPhrase(passphrase string, keygenID int) {
+	ks.source.phrase = passphrase
+	ks.source.keygenID = keygenID
 }
 
-func (ks *Keystore) Nodes() []*Node {
-	ns := make([]*Node, 0, len(ks.nodes))
-	for _, n := range ks.nodes {
-		ns = append(ns, n)
-	}
-	return ns
-}
-
-func (ks *Keystore) Password(name string) [32]byte {
-	n, ok := ks.nodes[name]
-	if ok {
-		return n.Password
-	}
-	return [32]byte{}
-}
-
-func (ks *Keystore) Node(name string) (*Node, bool) {
-	n, ok := ks.nodes[name]
-	return n, ok
-}
-
-func (ks *Keystore) Passwords() map[string][32]byte {
-	pwsCopy := make(map[string][32]byte)
-	for p, n := range ks.nodes {
-		pwsCopy[p] = n.Password
-	}
-	return pwsCopy
-}
-
-func (ks *Keystore) Key(passname string) string {
-	n, ok := ks.nodes[passname]
-	if ok {
-		return n.Key
-	}
-	return ""
-}
-func (ks *Keystore) Address(passname string) string {
-	n, ok := ks.nodes[passname]
-	if ok {
-		return n.Address
-	}
-	return ""
-}
-
-func (ks *Keystore) KeysAndAddresses() map[string][]string {
-	ka := make(map[string][]string)
-	for p, n := range ks.nodes {
-		ka[p] = []string{n.Key, n.Address}
-	}
-	return ka
-}
-
-//NodeFromPassword returns a node containing key and an address derived from the main address and the password.
-func (ks *Keystore) NodeFromPassword(password string) (*Node, error) {
-	node, exists := ks.nodes[password]
-	if exists {
-		return node, nil
+//NewNode returns a node containing key, address and password derived from the source and the given hash.
+func (ks *Keystore) NewNode(entityname string, hash [32]byte) (*Node, error) {
+	if len(entityname) == 0 {
+		return nil, fmt.Errorf("entity name cannot be empty")
 	}
 	keySeed := []byte{}
-	//The new key is a function of the main address and the current password
-	keySeed = append(keySeed, []byte(ks.Source.Address)...)
-	keySeed = append(keySeed, password[:]...)
+	//The new key is a function of the main key and the given hash
+	keySeed = append(keySeed, []byte(ks.source.key)...)
+	keySeed = append(keySeed, hash[:]...)
 	keySeedHash := sha256.Sum256(keySeed)
 	key, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
-	fbwif, err := bsvutil.NewWIF(key, &chaincfg.MainNetParams, true)
+	nwif, err := bsvutil.NewWIF(key, &chaincfg.MainNetParams, true)
 	if err != nil {
 		return nil, fmt.Errorf("error while generating key: %v", err)
 	}
-	fbWIF := fbwif.String()
-	fbAdd, err := AddressOf(fbWIF)
+	nWIF := nwif.String()
+	nAdd, err := AddressOf(nWIF)
 	if err != nil {
 		return nil, fmt.Errorf("error while generating address: %v", err)
 	}
-	pass := passwordToBytes(password)
-	node = &Node{Key: fbWIF, Address: fbAdd, Password: pass, Name: password}
-	return node, nil
 
+	pwdSeed := []byte{}
+	//The new key is a function of the main password and the given hash
+	pwdSeed = append(pwdSeed, []byte(ks.source.password)...)
+	pwdSeed = append(pwdSeed, hash[:]...)
+	pwdSeedHash := sha256.Sum256(pwdSeed)
+
+	for _, n := range ks.nodes {
+		if n.key == nWIF {
+			return n, nil
+		}
+	}
+	hashhex := hex.EncodeToString(hash[:])
+	node := &Node{
+		name:      entityname,
+		timestamp: time.Now().Unix(),
+		key:       nWIF,
+		address:   nAdd,
+		password:  pwdSeedHash,
+		hashHEX:   hashhex,
+	}
+	ks.nodes = append(ks.nodes, node)
+	return node, nil
 }
 
-//StoreNode adds the node to the list if it's new. Return true if it's new and the keystore should be updated
-func (ks *Keystore) StoreNode(node *Node) bool {
-	_, exists := ks.nodes[node.Name]
-	if !exists {
-		ks.nodes[node.Name] = node
+func (ks *Keystore) Source() *Source {
+	return ks.source
+}
+
+func (ks *Keystore) Nodes() []*Node {
+	nodes := make([]*Node, len(ks.nodes))
+	for i, n := range ks.nodes {
+		nodes[i] = n
 	}
-	return !exists
+	return nodes
 }
 
 func (ks *Keystore) Save(filepath string, pin string) error {
@@ -225,7 +321,7 @@ func (ks *Keystore) Save(filepath string, pin string) error {
 		trail.Println(trace.Alert("cannot encode Keystore").UTC().Error(err).Append(tr))
 		return fmt.Errorf("cannot encode Keystore: %w", err)
 	}
-	var pinpass = passwordToBytes(pin)
+	var pinpass = StringToPassword(pin)
 	encrypted, err := AESEncrypt(pinpass, encoded)
 	if err != nil {
 		trail.Println(trace.Alert("cannot encrypt Keystore").UTC().Error(err).Append(tr))
@@ -305,6 +401,16 @@ func (ks *Keystore) Update() error {
 	return ks.Save(ks.pathname, ks.pin)
 }
 
+func StringToPassword(password string) [32]byte {
+	var pass [32]byte
+	copy(pass[:], []byte(password))
+	return pass
+}
+
+func PasswordToString(password [32]byte) string {
+	return string(bytes.Trim(password[:], "\x00"))
+}
+
 func AddressOf(wifkey string) (string, error) {
 	tr := trace.New().Source("keys.go", "", "AddressOf")
 	w, err := bsvutil.DecodeWIF(wifkey)
@@ -337,14 +443,4 @@ func DecodeWIF(wifkey string) (*bsvec.PrivateKey, error) {
 	}
 	priv := wif.PrivKey
 	return priv, nil
-}
-
-func passwordToBytes(password string) [32]byte {
-	var pass [32]byte
-	copy(pass[:], []byte(password))
-	return pass
-}
-
-func passwordToString(password [32]byte) string {
-	return strings.TrimSpace(string(password[:]))
 }

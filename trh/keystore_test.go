@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/trh"
 )
 
@@ -25,24 +24,16 @@ func TestKeystore_KeystoreGenFromKey(t *testing.T) {
 		t.Logf("keystore form key failed: keystore is nil")
 		t.FailNow()
 	}
-	if keystore.Source.Key != key {
-		t.Logf("unexpected key: %s", keystore.Source.Key)
+	if keystore.Source().Key() != key {
+		t.Logf("unexpected key: %s", keystore.Source().Key())
 		t.FailNow()
 	}
-	if keystore.Source.Address != address {
-		t.Logf("unexpected address: %s", keystore.Source.Address)
+	if keystore.Source().Address() != address {
+		t.Logf("unexpected address: %s", keystore.Source().Address())
 		t.FailNow()
 	}
-	if keystore.Key(keys.NodeDefaultBranch) == "" {
-		t.Logf("unexpected empty key: %s", keystore.Key(keys.NodeDefaultBranch))
-		t.FailNow()
-	}
-	if keystore.Address(keys.NodeDefaultBranch) == "" {
-		t.Logf("unexpected empty address: %s", keystore.Address(keys.NodeDefaultBranch))
-		t.FailNow()
-	}
-	if keystore.Source.Address == keystore.Address(keys.NodeDefaultBranch) {
-		t.Logf("main and default addresses shouldn't be the same: %s %s", keystore.Source.Address, keystore.Address(keys.NodeDefaultBranch))
+	if keystore.Source().Password() != password {
+		t.Logf("unexpected password: %s", keystore.Source().Password())
 		t.FailNow()
 	}
 }

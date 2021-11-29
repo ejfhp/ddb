@@ -22,7 +22,7 @@ func (t *TRH) Store(keystore *keys.Keystore, nodeName string, pathfile string, l
 		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	btrunk := &ddb.BTrunk{MainKey: keystore.Source.Key, MainAddress: keystore.Source.Address, Blockchain: blockchain}
+	btrunk := &ddb.BTrunk{Key: keystore.Source().Key, Address: keystore.Source().Address, Blockchain: blockchain}
 	ent, err := ddb.NewEntryFromFile(filepath.Base(pathfile), pathfile, labels, notes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate entry from file: %w", err)
