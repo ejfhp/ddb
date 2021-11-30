@@ -9,6 +9,7 @@ import (
 	"math"
 	"mime"
 	"path/filepath"
+	"strings"
 
 	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/trail"
@@ -16,13 +17,13 @@ import (
 )
 
 type Entry struct {
-	Name   string
-	Labels []string
-	Mime   string
-	Hash   string
-	Data   []byte
-	Notes  string
-	Size   int
+	Name     string
+	Labels   []string
+	Mime     string
+	DataHash string
+	Data     []byte
+	Notes    string
+	Size     int
 }
 
 //NewEntryFromFile reads the entire file in memory and returns the corresponding pointer to Entry
@@ -41,9 +42,17 @@ func NewEntryFromFile(name string, file string, labels []string, notes string) (
 func NewEntryFromData(name string, mime string, data []byte, labels []string, notes string) *Entry {
 	sha := sha256.Sum256(data)
 	hash := hex.EncodeToString(sha[:])
-	ent := Entry{Name: name, Mime: mime, Hash: hash, Data: data, Labels: labels, Notes: notes, Size: len(data)}
+	ent := Entry{Name: name, Mime: mime, DataHash: hash, Data: data, Labels: labels, Notes: notes, Size: len(data)}
 	return &ent
+}
 
+func (e *Entry) HashOfEntry() [32]byte {
+	tohash := []byte(e.DataHash)
+	tohash = append(tohash, []byte(e.Name)...)
+	tohash = append(tohash, []byte(e.Notes)...)
+	tohash = append(tohash, []byte(strings.Join(e.Labels, ""))...)
+	sha := sha256.Sum256(tohash)
+	return sha
 }
 
 //ToParts decompose the Entry in an array of EntryPart.
@@ -68,7 +77,7 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 			if end > len(e.Data)-1 {
 				end = len(e.Data)
 			}
-			ep := EntryPart{Name: e.Name, Hash: e.Hash, Mime: e.Mime, IdxPart: i, NumPart: numParts, Size: (end - start), Data: e.Data[start:end]}
+			ep := EntryPart{Name: e.Name, Hash: e.DataHash, Mime: e.Mime, IdxPart: i, NumPart: numParts, Size: (end - start), Data: e.Data[start:end]}
 			encData, err := ep.Encrypt(password)
 			if err != nil {
 				trail.Println(trace.Alert("error while encrypting").UTC().Append(tr).Error(err))
@@ -108,7 +117,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 			continue
 		}
 		numPart := pa[0].NumPart
-		entry := Entry{Name: pa[0].Name, Mime: pa[0].Mime, Hash: pa[0].Hash}
+		entry := Entry{Name: pa[0].Name, Mime: pa[0].Mime, DataHash: pa[0].Hash}
 		data := make([]byte, 0)
 		for i := 0; i < numPart; i++ {
 			if pa[i] == nil {
@@ -119,9 +128,9 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 		}
 		nh := sha256.Sum256(data)
 		nhash := hex.EncodeToString(nh[:])
-		if nhash != entry.Hash {
-			trail.Println(trace.Alert("hash of decoded entry doesn't match").UTC().Add("new hash", nhash).Add("hash", entry.Hash))
-			return nil, fmt.Errorf("hash of decoded entry doesn't match stored:%s  new:%s", entry.Hash, nhash)
+		if nhash != entry.DataHash {
+			trail.Println(trace.Alert("hash of decoded entry doesn't match").UTC().Add("new hash", nhash).Add("hash", entry.DataHash))
+			return nil, fmt.Errorf("hash of decoded entry doesn't match stored:%s  new:%s", entry.DataHash, nhash)
 		}
 		entry.Data = data
 		entries = append(entries, &entry)

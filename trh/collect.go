@@ -20,7 +20,6 @@ func (t *TRH) Collect(keystore *keys.Keystore) ([]string, error) {
 		return nil, fmt.Errorf("cannot open cache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	btrunk := ddb.NewBTrunk(keystore.Source().Key(), keystore.Source().Address(), keystore.Source().Password(), blockchain)
 
 	utxos := make(map[string][]*ddb.UTXO)
 	for _, n := range keystore.Nodes() {

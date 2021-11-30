@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ejfhp/ddb"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/miner"
 )
 
@@ -12,9 +13,11 @@ type TRH struct {
 	explorer   ddb.Explorer
 	cache      *ddb.TXCache
 	blockchain *ddb.Blockchain
+	btrunk     *ddb.BTrunk
+	keystore   *keys.Keystore
 }
 
-func New() (*TRH, error) {
+func New(keystore *keys.Keystore) (*TRH, error) {
 	woc := ddb.NewWOC()
 	taal := miner.NewTAAL()
 	cache, err := ddb.NewUserTXCache()
@@ -22,5 +25,6 @@ func New() (*TRH, error) {
 		return nil, fmt.Errorf("cannot create TXCache")
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	return &TRH{miner: taal, explorer: woc, cache: cache, blockchain: blockchain}, nil
+	btrunk := ddb.NewBTrunk(keystore.Source().Key(), keystore.Source().Address(), keystore.Source().Password(), blockchain)
+	return &TRH{miner: taal, explorer: woc, cache: cache, blockchain: blockchain, btrunk: btrunk, keystore: keystore}, nil
 }
