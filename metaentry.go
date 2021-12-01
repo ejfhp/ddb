@@ -33,7 +33,7 @@ func NewMetaEntry(node *keys.Node, entry *Entry) *MetaEntry {
 		Address:   node.Address(),
 		Labels:    entry.Labels,
 		Mime:      entry.Mime,
-		Hash:      entry.Hash,
+		Hash:      entry.DataHash,
 		Timestamp: requestTime,
 		Notes:     entry.Notes,
 		Size:      entry.Size}

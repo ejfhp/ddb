@@ -19,7 +19,7 @@ func TestMetaEntry_Encrypt_MetaEntryFromEncrypted(t *testing.T) {
 	}
 	eh := sha256.Sum256(bytes)
 	ehash := hex.EncodeToString(eh[:])
-	ent := &ddb.Entry{Name: fil, Data: bytes, Hash: ehash}
+	ent := &ddb.Entry{Name: fil, Data: bytes, DataHash: ehash}
 	keystore, err := keys.NewKeystore(destinationKey, "mainpassword")
 	if err != nil {
 		t.Logf("failed to build keystore: %v", err)

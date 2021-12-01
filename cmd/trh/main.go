@@ -44,7 +44,7 @@ var commands = map[string]command{
 	"kfromuncry": {name: "keystore_fromunenecrypted", description: "keystore load from unencrypted", params: []string{"pin"}},
 	"kgenfromkp": {name: "keystore_fromkeypass", description: "keystore generate from key and password", params: []string{"pin", "key", "password"}},
 	"kgenfromph": {name: "keystore_frompassphrase", description: "keystore generate from phrase", params: []string{"pin", "phrase"}},
-	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"file", "comma separated labels", "notes"}},
+	"estimate":   {name: "estimate_file", description: "estimate cost to store file", params: []string{"pin", "file", "comma separated labels", "notes"}},
 	"utxos":      {name: "utxo_show", description: "show all utxos", params: []string{"pin"}},
 	"txshow":     {name: "tx_showall", description: "show all transactions", params: []string{"pin"}},
 	"collect":    {name: "collect_all", description: "collect unspent money", params: []string{"pin"}},
@@ -83,7 +83,7 @@ Examples:
    trh kfromuncry 1346
    trh kgenfromkp 1346 Kxn6wiqVGzGjMq7JA8m9fxRdukwzzjGgYkXir5eyRwvvrRs7GZKZ therabbithole 
    trh kgenfromph 1346 "Lunedi 8 Novembre 2021"
-   trh estimate keystore.trh "keystore,bitcoin,trh" "very important"
+   trh estimate 1346 keystore.trh "keystore,bitcoin,trh" "very important"
    trh txshow 1346
    trh txshowp 1346 main
    trh utxos 1346
@@ -124,7 +124,11 @@ func main() {
 	fmt.Printf("%s: %s\n", command.name, command.description)
 	fmt.Printf("\n")
 	var mainerr error
-	th := &trh.TRH{}
+	th, err := trh.New(nil)
+	if err != nil {
+		fmt.Printf("Fatal error: %v\n", err)
+		os.Exit(1)
+	}
 	switch command.name {
 	case "keystore_show":
 		mainerr = th.KeystoreShow(inputs[0], ksf)
@@ -153,6 +157,12 @@ func main() {
 			fmt.Printf("Keystore created: %s\n", ksf)
 		}
 	case "estimate_file":
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			mainerr = err
+			break
+		}
+		th.SetKeystore(ks)
 		filePar := inputs[0]
 		labelPar := inputs[1]
 		notePar := inputs[2]
@@ -161,7 +171,7 @@ func main() {
 		for i, l := range labels {
 			lbls[i] = strings.TrimSpace(l)
 		}
-		txs, cost, err := th.Estimate(filePar, lbls, notePar)
+		txs, cost, err := th.Simulate(filePar, filePar, lbls, notePar, defaultHeader, 10000000)
 		if err == nil {
 			fmt.Printf("Estimated cost: %d satoshi\n", cost)
 			fmt.Printf("Estimated num of txs: %d\n", len(txs))
@@ -173,6 +183,7 @@ func main() {
 			mainerr = err
 			break
 		}
+		th.SetKeystore(ks)
 		utxos, err := th.ListUTXOs(ks)
 		if err == nil {
 			tot := uint64(0)
@@ -196,31 +207,16 @@ func main() {
 			mainerr = err
 			break
 		}
+		th.SetKeystore(ks)
 		alltxs, err := th.ListAllTX(ks)
 		if err == nil {
 			fmt.Printf("IDs of transactions tied to this keystore:\n")
-			for pwd, txs := range alltxs {
-				fmt.Printf(" Password: '%s' address: '%s'\n", pwd, ks.Address(pwd))
-				fmt.Printf("Number of transactions found: %d\n", len(txs))
+			for address, txs := range alltxs {
+				fmt.Printf(" Address: '%s'\n", address)
+				fmt.Printf(" Number of transactions found: %d\n", len(txs))
 				for _, id := range txs {
 					fmt.Printf("  %s\n", id)
 				}
-			}
-		}
-		mainerr = err
-	case "tx_showpass":
-		ks, err := keys.LoadKeystore(ksf, inputs[0])
-		if err != nil {
-			mainerr = err
-			break
-		}
-		txs, err := th.ListSinglePasswordTX(ks, inputs[1])
-		fmt.Printf("Number of transactions found: %d\n", len(txs))
-		if err == nil {
-			fmt.Printf("IDs of transactions tied to this keystore:\n")
-			fmt.Printf(" Password: '%s' address: '%s'\n", inputs[1], ks.Address(inputs[1]))
-			for _, id := range txs {
-				fmt.Printf("  %s\n", id)
 			}
 		}
 		mainerr = err
@@ -230,6 +226,7 @@ func main() {
 			mainerr = err
 			break
 		}
+		th.SetKeystore(ks)
 		txResults, err := th.Collect(ks)
 		if err == nil {
 			if len(txResults) == 0 {
@@ -253,6 +250,7 @@ func main() {
 			mainerr = err
 			break
 		}
+		th.SetKeystore(ks)
 		labels := strings.Split(labelPar, ",")
 		lbls := make([]string, len(labels))
 		for i, l := range labels {
@@ -263,7 +261,7 @@ func main() {
 			mainerr = err
 			break
 		}
-		_, cost, err := th.Estimate(filePar, lbls, notePar)
+		_, cost, err := th.Simulate(filePar, filePar, lbls, notePar, defaultHeader, 10000000)
 		if err != nil {
 			mainerr = err
 			break
@@ -272,59 +270,7 @@ func main() {
 			fmt.Printf("Amount to spend (%d) is not enough, estimation is: %d\n", maxSpend, cost)
 			break
 		}
-		txs, err := th.Store(ks, keys.NodeDefaultBranch, filePar, lbls, notePar, defaultHeader, maxSpend)
-		if err == nil {
-			fmt.Printf("IDs of transactions that store the file\n")
-			for num, txid := range txs {
-				fmt.Printf("%d: %s\n", num, txid)
-			}
-		}
-		mainerr = err
-	case "storefile_filepassword":
-		pinPar := inputs[0]
-		pwdPar := inputs[1]
-		filePar := inputs[2]
-		labelPar := inputs[3]
-		notePar := inputs[4]
-		spendPar := inputs[5]
-		ks, err := keys.LoadKeystore(ksf, pinPar)
-		if err != nil {
-			mainerr = err
-			break
-		}
-		labels := strings.Split(labelPar, ",")
-		lbls := make([]string, len(labels))
-		for i, l := range labels {
-			lbls[i] = strings.TrimSpace(l)
-		}
-		maxSpend, err := strconv.ParseUint(spendPar, 10, 64)
-		if err != nil {
-			mainerr = err
-			break
-		}
-		node, err := ks.NodeFromPassword(pwdPar)
-		if err != nil {
-			mainerr = err
-			break
-		}
-		needsUpdate := ks.StoreNode(node)
-		if needsUpdate {
-			err = ks.Update()
-			if err != nil {
-				mainerr = err
-				break
-			}
-		}
-		_, cost, err := th.Estimate(filePar, lbls, notePar)
-		if err != nil {
-			mainerr = err
-			break
-		}
-		if maxSpend < cost {
-			fmt.Printf("Amount to spend (%d) is not enough, estimation is: %d\n", maxSpend, cost)
-			break
-		}
-		txs, err := th.Store(ks, node.Name, filePar, lbls, notePar, defaultHeader, maxSpend)
+		txs, err := th.Store(filePar, filePar, lbls, notePar, defaultHeader, maxSpend)
 		if err == nil {
 			fmt.Printf("IDs of transactions that store the file\n")
 			for num, txid := range txs {
@@ -338,6 +284,7 @@ func main() {
 			mainerr = err
 			break
 		}
+		th.SetKeystore(ks)
 		allent, err := th.ListAll(ks)
 		if err == nil {
 			fmt.Printf("Files stored tied to this keystore:\n")
@@ -355,6 +302,7 @@ func main() {
 			mainerr = err
 			break
 		}
+		th.SetKeystore(ks)
 		allent, err := th.ListSinglePassword(ks, inputs[1])
 		if err == nil {
 			fmt.Printf("Files stored tied to this keystore:\n")

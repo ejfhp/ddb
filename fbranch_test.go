@@ -240,8 +240,8 @@ func TestFBranch_GetEntryFromTXID_Text(t *testing.T) {
 		t.Logf("unexpected name for retrieved entry: %s", entry.Name)
 		t.Fail()
 	}
-	if entry.Hash != expEntry.Hash {
-		t.Logf("unexpected hash for retrieved entry: %s", entry.Hash)
+	if entry.DataHash != expEntry.DataHash {
+		t.Logf("unexpected hash for retrieved entry: %s", entry.DataHash)
 		t.Fail()
 	}
 	if entry.Mime != expEntry.Mime {
@@ -300,8 +300,8 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 			t.Logf("unexpected name for retrieved entry: %s", entry.Name)
 			t.Fail()
 		}
-		if entry.Hash != expEntry.Hash {
-			t.Logf("unexpected hash for retrieved entry: %s", entry.Hash)
+		if entry.DataHash != expEntry.DataHash {
+			t.Logf("unexpected hash for retrieved entry: %s", entry.DataHash)
 			t.Fail()
 		}
 		if entry.Mime != expEntry.Mime {
@@ -310,7 +310,7 @@ func TestFBranch_GetEntryFromTXID_Image(t *testing.T) {
 		}
 		sha := sha256.Sum256(entry.Data)
 		hash := hex.EncodeToString(sha[:])
-		if entry.Hash != hash {
+		if entry.DataHash != hash {
 			t.Logf("retrieved entry hash doesn't match with data hash: %s", hash)
 			t.Fail()
 		}
@@ -342,7 +342,7 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 	bytes := []byte("just a test")
 	sha := sha256.Sum256(bytes)
 	hash := hex.EncodeToString(sha[:])
-	entry := &ddb.Entry{Name: name, Mime: fm, Hash: hash, Data: bytes}
+	entry := &ddb.Entry{Name: name, Mime: fm, DataHash: hash, Data: bytes}
 	txs, err := fbranch.ProcessEntry(entry, Helper_FakeTX(t).UTXOs(), "123456789")
 	t.Logf("txs len: %d", len(txs))
 	if err != nil {
@@ -373,8 +373,8 @@ func TestFBranch_ProcessAndGetEntry_Text(t *testing.T) {
 		t.Logf("unexpected mime: %s != %s", fm, ents[0].Mime)
 		t.FailNow()
 	}
-	if ents[0].Hash != hash {
-		t.Logf("unexpected hash: %s != %s", hash, ents[0].Hash)
+	if ents[0].DataHash != hash {
+		t.Logf("unexpected hash: %s != %s", hash, ents[0].DataHash)
 		t.FailNow()
 	}
 	shaOut := sha256.Sum256(ents[0].Data)
@@ -408,7 +408,7 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 	imageSha := sha256.Sum256(image)
 	imageHash := hex.EncodeToString(imageSha[:])
 	fm := mime.TypeByExtension(filepath.Ext(name))
-	entry := &ddb.Entry{Name: name, Mime: fm, Hash: imageHash, Data: image}
+	entry := &ddb.Entry{Name: name, Mime: fm, DataHash: imageHash, Data: image}
 	txs, err := fbranch.ProcessEntry(entry, Helper_FakeTX(t).UTXOs(), "123456789")
 	txids := make([]string, len(txs))
 	for i, t := range txs {
@@ -439,8 +439,8 @@ func TestFBranch_ProcessAndGetEntry_Image(t *testing.T) {
 		t.Logf("unexpected mime: %s != %s", fm, ents[0].Mime)
 		t.Fail()
 	}
-	if ents[0].Hash != imageHash {
-		t.Logf("unexpected hash: %s != %s", imageHash, ents[0].Hash)
+	if ents[0].DataHash != imageHash {
+		t.Logf("unexpected hash: %s != %s", imageHash, ents[0].DataHash)
 		t.Fail()
 	}
 	shaOut := sha256.Sum256(ents[0].Data)

@@ -121,13 +121,15 @@ func TestBTrunk_ListEntries(t *testing.T) {
 		t.FailNow()
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
-	btrunk := ddb.NewBTrunk(destinationKey, destinationAddress, "mainpassword", blockchain)
-	list, err := btrunk.ListEntries(passwords, true)
-	if err != nil {
-		t.Logf("failed to list btrunk transactions: %v", err)
-		t.FailNow()
-	}
-	for i, me := range list {
-		fmt.Printf("Entry %s\n: %v", i, me)
+	for _, p := range passwords {
+		btrunk := ddb.NewBTrunk(destinationKey, destinationAddress, string(p[:]), blockchain)
+		list, err := btrunk.ListEntries(true)
+		if err != nil {
+			t.Logf("failed to list btrunk transactions: %v", err)
+			t.FailNow()
+		}
+		for i, me := range list {
+			fmt.Printf("Entry %d\n: %v", i, me)
+		}
 	}
 }

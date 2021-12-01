@@ -28,3 +28,7 @@ func New(keystore *keys.Keystore) (*TRH, error) {
 	btrunk := ddb.NewBTrunk(keystore.Source().Key(), keystore.Source().Address(), keystore.Source().Password(), blockchain)
 	return &TRH{miner: taal, explorer: woc, cache: cache, blockchain: blockchain, btrunk: btrunk, keystore: keystore}, nil
 }
+
+func (t *TRH) SetKeystore(keystore *keys.Keystore) {
+	t.keystore = keystore
+}

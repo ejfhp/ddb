@@ -119,7 +119,7 @@ func (bt *BTrunk) getUTXOs(simulate bool) ([]*UTXO, error) {
 }
 
 //ListEntries of the files stored with the given passwords.
-func (bt *BTrunk) ListEntries(password map[string][32]byte, cacheOnly bool) (map[string][]*MetaEntry, error) {
+func (bt *BTrunk) ListEntries(cacheOnly bool) ([]*MetaEntry, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "ListEntries")
 
 	trail.Println(trace.Debug("listing transactions for main address").Append(tr).UTC().Add("address", bt.address))
@@ -127,7 +127,7 @@ func (bt *BTrunk) ListEntries(password map[string][32]byte, cacheOnly bool) (map
 	if err != nil {
 		return nil, fmt.Errorf("error while listing BTrunk transactions: %v", err)
 	}
-	meList := map[string][]*MetaEntry{}
+	meList := []*MetaEntry{}
 	for _, TXID := range TXIDs {
 		tx, err := bt.blockchain.GetTX(TXID, cacheOnly)
 		if err != nil {
@@ -137,14 +137,9 @@ func (bt *BTrunk) ListEntries(password map[string][32]byte, cacheOnly bool) (map
 		if err != nil {
 			trail.Println(trace.Warning("error while getting transaction data").Append(tr).UTC().Error(err))
 		}
-		for pass, pwd := range password {
-			if meList[pass] == nil {
-				meList[pass] = []*MetaEntry{}
-			}
-			me, _ := MetaEntryFromEncrypted(pwd, data)
-			if me != nil && me.Timestamp > 0 {
-				meList[pass] = append(meList[pass], me)
-			}
+		me, _ := MetaEntryFromEncrypted(bt.passBytes, data)
+		if me != nil && me.Timestamp > 0 {
+			meList = append(meList, me)
 		}
 	}
 	return meList, nil

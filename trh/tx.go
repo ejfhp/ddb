@@ -20,12 +20,12 @@ func (t *TRH) ListAllTX(keystore *keys.Keystore) (map[string][]string, error) {
 		return nil, fmt.Errorf("error while loading keystore: %w", err)
 	}
 	allTXs := make(map[string][]string)
-	for add := range keystore.AddressesAndKeys() {
-		txs, err := blockchain.ListTXIDs(add, false)
+	for _, node := range keystore.Nodes() {
+		txs, err := blockchain.ListTXIDs(node.Address(), false)
 		if err != nil {
 			return nil, fmt.Errorf("error while retrieving existing transactions: %w", err)
 		}
-		allTXs[add] = txs
+		allTXs[node.Address()] = txs
 	}
 	return allTXs, nil
 }
@@ -40,9 +40,9 @@ func (t *TRH) ListUTXOs(keystore *keys.Keystore) (map[string][]*ddb.UTXO, error)
 	}
 	blockchain := ddb.NewBlockchain(taal, woc, cache)
 	for _, no := range keystore.Nodes() {
-		passwordAddress[no.Name] = no.Address
+		passwordAddress[no.Name()] = no.Address()
 	}
-	passwordAddress["Source"] = keystore.Source().Address
+	passwordAddress["Source"] = keystore.Source().Address()
 	res := make(map[string][]*ddb.UTXO)
 	for _, add := range passwordAddress {
 		utxos, err := blockchain.GetUTXO(add)

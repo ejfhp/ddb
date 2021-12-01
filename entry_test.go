@@ -128,7 +128,7 @@ func TestEntry_EntriesFromParts(t *testing.T) {
 		}
 		eh := sha256.Sum256(bytes)
 		ehash := hex.EncodeToString(eh[:])
-		ent := ddb.Entry{Name: fil, Data: bytes, Hash: ehash}
+		ent := ddb.Entry{Name: fil, Data: bytes, DataHash: ehash}
 		pts, err := ent.ToParts(password, partLen)
 		if err != nil {
 			t.Logf("cannot get entry parts: %v", err)
@@ -221,7 +221,7 @@ func TestEntry_EncodedToAndReadFromDataTX(t *testing.T) {
 	imageSha := sha256.Sum256(image)
 	imageHash := hex.EncodeToString(imageSha[:])
 	mime := mime.TypeByExtension(filepath.Ext(name))
-	e := ddb.Entry{Name: name, Hash: imageHash, Mime: mime, Data: image}
+	e := ddb.Entry{Name: name, DataHash: imageHash, Mime: mime, Data: image}
 	parts, err := e.ToParts(password, 1000)
 	if err != nil {
 		t.Logf("Entry to parts failed: %v", err)

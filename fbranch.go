@@ -156,7 +156,7 @@ func (fb *FBranch) DowloadFile(outPath string, hash string, cacheOnly bool) erro
 		return fmt.Errorf("error retrieving entries: %w", err)
 	}
 	for _, e := range entries {
-		if e.Hash == hash {
+		if e.DataHash == hash {
 			ioutil.WriteFile(filepath.Join(outPath, e.Name), e.Data, 0444)
 		}
 	}
