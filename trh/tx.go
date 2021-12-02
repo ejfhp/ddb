@@ -20,6 +20,11 @@ func (t *TRH) ListAllTX(keystore *keys.Keystore) (map[string][]string, error) {
 		return nil, fmt.Errorf("error while loading keystore: %w", err)
 	}
 	allTXs := make(map[string][]string)
+	sourcetxs, err := blockchain.ListTXIDs(keystore.Source().Address(), false)
+	if err != nil {
+		return nil, fmt.Errorf("error while retrieving existing transactions: %w", err)
+	}
+	allTXs[keystore.Source().Address()] = sourcetxs
 	for _, node := range keystore.Nodes() {
 		txs, err := blockchain.ListTXIDs(node.Address(), false)
 		if err != nil {

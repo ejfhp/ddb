@@ -96,6 +96,8 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 			fits = true
 		}
 	}
+
+	trail.Println(trace.Alert("entryParts generated").UTC().Append(tr).Add("maxSize", fmt.Sprintf("%d", maxSize)).Add("numparts", fmt.Sprintf("%d", len(entryParts))).Add("entrysize", fmt.Sprintf("%d", len(e.Data))))
 	return entryParts, nil
 }
 

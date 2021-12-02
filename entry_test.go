@@ -3,6 +3,7 @@ package ddb_test
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"mime"
 	"path/filepath"
@@ -47,6 +48,7 @@ func TestEntry_ToParts(t *testing.T) {
 	}
 	for in, fil := range inputs {
 		bytes, err := ioutil.ReadFile(fil[0])
+		fmt.Printf("File len: %d  maxSize: %d\n", len(bytes), partsizes[in][0])
 		hash := make([]byte, 64)
 		sha := sha256.Sum256(bytes)
 		hex.Encode(hash, sha[:])
@@ -62,6 +64,7 @@ func TestEntry_ToParts(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%d: error making entryParts of test file: %v", in, err)
 		}
+		fmt.Printf("File len: %d  maxSize: %d numparts: %d\n", len(bytes), partsizes[in][0], len(parts))
 		if len(parts) != partsizes[in][1] {
 			t.Fatalf("%d: wrong num of entries: %d != %d", in, len(parts), partsizes[in][1])
 		}

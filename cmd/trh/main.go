@@ -85,12 +85,10 @@ Examples:
    trh kgenfromph 1346 "Lunedi 8 Novembre 2021"
    trh estimate 1346 keystore.trh "keystore,bitcoin,trh" "very important"
    trh txshow 1346
-   trh txshowp 1346 main
    trh utxos 1346
    trh collect 1346
    trh store 1346 bitcoin.pdf "bitcoin,pdf" "test import" 200000 
-   trh listp 1346
-   trh listp 1346 main
+   trh list 1346
 `)
 	fmt.Printf("\nBuilt time: %s\n", buildTimestamp)
 }
@@ -124,11 +122,7 @@ func main() {
 	fmt.Printf("%s: %s\n", command.name, command.description)
 	fmt.Printf("\n")
 	var mainerr error
-	th, err := trh.New(nil)
-	if err != nil {
-		fmt.Printf("Fatal error: %v\n", err)
-		os.Exit(1)
-	}
+	th := trh.NewWithoutKeystore()
 	switch command.name {
 	case "keystore_show":
 		mainerr = th.KeystoreShow(inputs[0], ksf)
@@ -162,7 +156,11 @@ func main() {
 			mainerr = err
 			break
 		}
-		th.SetKeystore(ks)
+		err = th.SetKeystore(ks)
+		if err != nil {
+			fmt.Printf("Fatal error: %v\n", err)
+			os.Exit(1)
+		}
 		filePar := inputs[0]
 		labelPar := inputs[1]
 		notePar := inputs[2]
@@ -183,7 +181,11 @@ func main() {
 			mainerr = err
 			break
 		}
-		th.SetKeystore(ks)
+		err = th.SetKeystore(ks)
+		if err != nil {
+			fmt.Printf("Fatal error: %v\n", err)
+			os.Exit(1)
+		}
 		utxos, err := th.ListUTXOs(ks)
 		if err == nil {
 			tot := uint64(0)
@@ -207,9 +209,17 @@ func main() {
 			mainerr = err
 			break
 		}
-		th.SetKeystore(ks)
+		err = th.SetKeystore(ks)
+		if err != nil {
+			fmt.Printf("Fatal error: %v\n", err)
+			os.Exit(1)
+		}
 		alltxs, err := th.ListAllTX(ks)
-		if err == nil {
+		if err != nil {
+			mainerr = err
+			break
+		}
+		if len(alltxs) > 0 {
 			fmt.Printf("IDs of transactions tied to this keystore:\n")
 			for address, txs := range alltxs {
 				fmt.Printf(" Address: '%s'\n", address)
@@ -218,6 +228,8 @@ func main() {
 					fmt.Printf("  %s\n", id)
 				}
 			}
+		} else {
+			fmt.Printf("No TXs found.\n")
 		}
 		mainerr = err
 	case "collect_all":
@@ -226,7 +238,11 @@ func main() {
 			mainerr = err
 			break
 		}
-		th.SetKeystore(ks)
+		err = th.SetKeystore(ks)
+		if err != nil {
+			fmt.Printf("Fatal error: %v\n", err)
+			os.Exit(1)
+		}
 		txResults, err := th.Collect(ks)
 		if err == nil {
 			if len(txResults) == 0 {
@@ -250,7 +266,11 @@ func main() {
 			mainerr = err
 			break
 		}
-		th.SetKeystore(ks)
+		err = th.SetKeystore(ks)
+		if err != nil {
+			fmt.Printf("Fatal error: %v\n", err)
+			os.Exit(1)
+		}
 		labels := strings.Split(labelPar, ",")
 		lbls := make([]string, len(labels))
 		for i, l := range labels {
@@ -284,33 +304,16 @@ func main() {
 			mainerr = err
 			break
 		}
-		th.SetKeystore(ks)
+		err = th.SetKeystore(ks)
+		if err != nil {
+			fmt.Printf("Fatal error: %v\n", err)
+			os.Exit(1)
+		}
 		allent, err := th.ListAll(ks)
 		if err == nil {
 			fmt.Printf("Files stored tied to this keystore:\n")
-			for p, ents := range allent {
-				fmt.Printf("Password %s\n", p)
-				for i, ent := range ents {
-					fmt.Printf("%d  Name: '%s' hash: '%s'  time: %s\n", i, ent.Name, ent.Hash, time.Unix(ent.Timestamp, 0).Format("2006-01-02 15:04 EST"))
-				}
-			}
-		}
-		mainerr = err
-	case "listfile_ofpwd":
-		ks, err := keys.LoadKeystore(ksf, inputs[0])
-		if err != nil {
-			mainerr = err
-			break
-		}
-		th.SetKeystore(ks)
-		allent, err := th.ListSinglePassword(ks, inputs[1])
-		if err == nil {
-			fmt.Printf("Files stored tied to this keystore:\n")
-			for p, ents := range allent {
-				fmt.Printf("Password %s\n", p)
-				for i, ent := range ents {
-					fmt.Printf("%d  Name: '%s' hash: '%s'  time: %s\n", i, ent.Name, ent.Hash, time.Unix(ent.Timestamp, 0).Format("2006-01-02 15:04 EST"))
-				}
+			for i, ent := range allent {
+				fmt.Printf("%d  Name: '%s' hash: '%s'  time: %s\n", i, ent.Name, ent.Hash, time.Unix(ent.Timestamp, 0).Format("2006-01-02 15:04 EST"))
 			}
 		}
 		mainerr = err

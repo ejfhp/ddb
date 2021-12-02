@@ -11,7 +11,6 @@ import (
 	"github.com/ejfhp/trail/trace"
 )
 
-//TODO Implemtnet send multi tx and package miners api
 type TAAL struct {
 	BaseURL string
 	fees    Fees
