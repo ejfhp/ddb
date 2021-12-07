@@ -41,13 +41,15 @@ func TestEntry_ToParts(t *testing.T) {
 	inputs := [][]string{
 		{"testdata/test.txt", "text/plain; charset=utf-8"},
 		{"testdata/image.png", "image/png"},
+		{"testdata/test.txt", "text/plain; charset=utf-8"},
 	}
 	partsizes := [][]int{
-		{500, 5},
-		{2000, 4},
+		{500, 4},
+		{1500, 4},
+		{10000, 1},
 	}
-	for in, fil := range inputs {
-		bytes, err := ioutil.ReadFile(fil[0])
+	for in, input := range inputs {
+		bytes, err := ioutil.ReadFile(input[0])
 		fmt.Printf("File len: %d  maxSize: %d\n", len(bytes), partsizes[in][0])
 		hash := make([]byte, 64)
 		sha := sha256.Sum256(bytes)
@@ -56,7 +58,7 @@ func TestEntry_ToParts(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%d: error reading test file: %v", in, err)
 		}
-		entry, err := ddb.NewEntryFromFile(fil[0], fil[0], []string{"label1", "label2"}, "notes")
+		entry, err := ddb.NewEntryFromFile(input[0], input[0], []string{"label1", "label2"}, "notes")
 		if err != nil {
 			t.Fatalf("%d: error making entry of test file: %v", in, err)
 		}
@@ -69,39 +71,40 @@ func TestEntry_ToParts(t *testing.T) {
 			t.Fatalf("%d: wrong num of entries: %d != %d", in, len(parts), partsizes[in][1])
 		}
 		var data []byte
-		for i, f := range parts {
+		for i, part := range parts {
 			if data == nil {
 				data = make([]byte, 0)
 			}
-			if f.Mime != fil[1] {
-				t.Logf("%d - wrong mime, should be %s but is %s ", i, fil[1], f.Mime)
-				t.Fail()
+			if part.Mime != input[1] {
+				t.Logf("%d - wrong mime, should be %s but is %s ", i, input[1], part.Mime)
+				t.FailNow()
 			}
-			if f.IdxPart != i {
-				t.Logf("%d - wrong idxpart, should be %d but is %d ", i, i, f.IdxPart)
-				t.Fail()
+			if part.IdxPart != i {
+				t.Logf("%d - wrong idxpart, should be %d but is %d ", i, i, part.IdxPart)
+				t.FailNow()
 			}
-			if f.NumPart != partsizes[in][1] {
-				t.Logf("%d - wrong numpart, should be %d but is %d ", i, partsizes[in][1], f.NumPart)
-				t.Fail()
+			if part.NumPart != partsizes[in][1] {
+				t.Logf("%d - wrong numpart, should be %d but is %d ", i, partsizes[in][1], part.NumPart)
+				t.FailNow()
 			}
-			if f.Hash != string(hash) {
-				t.Logf("%d - wrong hash, \nexp %s \ngot %s ", i, string(hash), f.Hash)
-				t.Fail()
+			if part.Hash != string(hash) {
+				t.Logf("%d - wrong hash, \nexp %s \ngot %s ", i, string(hash), part.Hash)
+				t.FailNow()
 			}
-			if len(f.Data) != f.Size {
-				t.Logf("%d - wrong size, %d but len data is %d ", i, f.Size, len(f.Data))
-				t.Fail()
+			if len(part.Data) != part.Size {
+				t.Logf("%d - wrong size, %d but len data is %d ", i, part.Size, len(part.Data))
+				t.FailNow()
 
 			}
+			fmt.Printf("Appending data: %d\n", len(part.Data))
 			//fmt.Printf("'%s'\n", hex.EncodeToString(f.Data))
 			// t.Logf("%d name:%s mime:%s part:%d/%d size:%d len(data):%d hash:%s\n", i, f.Name, f.Mime, f.IdxPart, f.NumPart, f.Size, len(f.Data), f.Hash)
-			data = append(data, f.Data...)
+			data = append(data, part.Data...)
 		}
 		endLen := len(data)
 		if initLen != endLen {
 			t.Logf("initLen != endLen => %d != %d ", initLen, endLen)
-			t.Fail()
+			t.FailNow()
 
 		}
 		readhash := make([]byte, 64)
@@ -110,7 +113,7 @@ func TestEntry_ToParts(t *testing.T) {
 		// fmt.Println(string(data))
 		if string(string(readhash)) != string(hash) {
 			t.Logf("the read file has wrong hash \nexp %s\n got %s", string(hash), string(readhash))
-			t.Fail()
+			t.FailNow()
 		}
 	}
 }

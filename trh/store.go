@@ -17,9 +17,13 @@ func (t *TRH) Store(name string, pathfile string, labels []string, notes string,
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate new node: %w", err)
 	}
+	t.keystore.Update()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate new node: %w", err)
+	}
 	txs, err := t.btrunk.TXOfBranchedEntry(node, ent, txheader, satoshi.Satoshi(maxSpend), false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate txs for entry: %w", err)
+		return nil, fmt.Errorf("failed to update keystore: %w", err)
 	}
 	totFee := satoshi.Satoshi(0)
 	for i, t := range txs {

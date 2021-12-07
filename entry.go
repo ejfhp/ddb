@@ -66,11 +66,12 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 	//Find the correct size for entry data
 	fits := false
 	divisions := int(math.Ceil(float64(len(e.Data)) / float64(maxSize)))
-	numParts := divisions + 1
+	numParts := divisions
+	// fmt.Printf("Estimated div: %d\n", numParts)
 	entryParts := make([]*EntryPart, 0, numParts)
 	for !fits {
-		partSize := len(e.Data) / divisions
-		// fmt.Printf("Division: %d   PartSize: %d len(data): %d  MaxSize: %d\n", division, partSize, len(e.Data), maxSize)
+		partSize := int(math.Ceil(float64(len(e.Data)) / float64(divisions)))
+		// fmt.Printf("Division: %d   PartSize: %d len(data): %d  MaxSize: %d\n", divisions, partSize, len(e.Data), maxSize)
 		for i := 0; i < numParts; i++ {
 			start := i * partSize
 			end := start + partSize
@@ -83,16 +84,16 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 				trail.Println(trace.Alert("error while encrypting").UTC().Append(tr).Error(err))
 				return nil, fmt.Errorf("error while encrypting: %w", err)
 			}
-			// fmt.Printf("encodedData: %d  maxSize: %d\n", len(encData), maxSize)
+			// fmt.Printf("Encdata %d > %d\n", len(encData), maxSize)
 			if len(encData) > maxSize {
 				fits = false
 				divisions++
-				numParts = divisions + 1
+				numParts++
 				entryParts = entryParts[:0]
 				break
 			}
 			entryParts = append(entryParts, &ep)
-			// fmt.Printf("appended entry: %d\n", ep.IdxPart)
+			// fmt.Printf("appended entry data len: %d start-end: %d:%d\n", len(ep.Data), start, end)
 			fits = true
 		}
 	}

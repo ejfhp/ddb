@@ -14,6 +14,7 @@ import (
 	"github.com/bitcoinsv/bsvd/bsvec"
 	"github.com/bitcoinsv/bsvd/chaincfg"
 	"github.com/bitcoinsv/bsvutil"
+	"github.com/ejfhp/ddb/errs"
 	"github.com/ejfhp/trail"
 	"github.com/ejfhp/trail/trace"
 )
@@ -312,6 +313,15 @@ func (ks *Keystore) Nodes() []*Node {
 		nodes[i] = n
 	}
 	return nodes
+}
+
+func (ks *Keystore) GetNode(hash string) (*Node, error) {
+	for _, n := range ks.nodes {
+		if n.hashHEX == hash {
+			return n, nil
+		}
+	}
+	return nil, errs.ErrNotFound
 }
 
 func (ks *Keystore) Save(filepath string, pin string) error {

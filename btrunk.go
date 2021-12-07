@@ -144,3 +144,20 @@ func (bt *BTrunk) ListEntries(cacheOnly bool) ([]*MetaEntry, error) {
 	}
 	return meList, nil
 }
+
+func (bt *BTrunk) GetEntry(node *keys.Node, hash string, outputFolder string, cacheOnly bool) ([]*Entry, error) {
+	tr := trace.New().Source("btrunk.go", "BTrunk", "GetEntry")
+
+	trail.Println(trace.Debug("listing transactions for main address").Append(tr).UTC().Add("address", bt.address))
+	TXIDs, err := bt.blockchain.ListTXIDs(bt.address, cacheOnly)
+	if err != nil {
+		return nil, fmt.Errorf("error while listing FBranch transactions: %v", err)
+	}
+	fb := FBranch{BitcoinWIF: node.Key(), BitcoinAdd: node.Address(), Password: node.Password(), Blockchain: bt.blockchain}
+	entries, err := fb.GetEntriesFromTXIDs(TXIDs, cacheOnly)
+	if err != nil {
+		trail.Println(trace.Alert("error while getting entry").Append(tr).UTC().Error(err).Add("hash", hash))
+		return nil, fmt.Errorf("error while getting file with hash '%s': %w", hash, err)
+	}
+	return entries, nil
+}

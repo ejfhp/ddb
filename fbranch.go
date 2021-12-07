@@ -100,8 +100,8 @@ func (fb *FBranch) packEntryParts(header string, parts []*EntryPart, utxos []*UT
 	return dataTXs, nil
 }
 
-//GetEntriesFromTXID retrieve all the Entries fully contained in the transactions with the given IDs.
-func (fb *FBranch) GetEntriesFromTXID(txids []string, cacheOnly bool) ([]*Entry, error) {
+//GetEntriesFromTXIDs retrieve all the Entries fully contained in the transactions with the given IDs.
+func (fb *FBranch) GetEntriesFromTXIDs(txids []string, cacheOnly bool) ([]*Entry, error) {
 	tr := trace.New().Source("fbranch.go", "FBranch", "RetrievingEntries")
 	trail.Println(trace.Info("retrieving TXs from the blockchain and extracting entries").Add("len txids", fmt.Sprintf("%d", len(txids))).UTC().Append(tr))
 	txs, err := fb.Blockchain.GetTXs(txids, cacheOnly)
@@ -130,7 +130,7 @@ func (fb *FBranch) DowloadAll(outPath string, cacheOnly bool) (int, error) {
 		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
 		return 0, fmt.Errorf("error getting address history: %w", err)
 	}
-	entries, err := fb.GetEntriesFromTXID(history, cacheOnly)
+	entries, err := fb.GetEntriesFromTXIDs(history, cacheOnly)
 	if err != nil {
 		trail.Println(trace.Alert("error retrieving entries").UTC().Error(err).Append(tr))
 		return 0, fmt.Errorf("error retrieving entries: %w", err)
@@ -150,7 +150,7 @@ func (fb *FBranch) DowloadFile(outPath string, hash string, cacheOnly bool) erro
 		trail.Println(trace.Alert("error getting address history").UTC().Error(err).Append(tr))
 		return fmt.Errorf("error getting address history: %w", err)
 	}
-	entries, err := fb.GetEntriesFromTXID(history, cacheOnly)
+	entries, err := fb.GetEntriesFromTXIDs(history, cacheOnly)
 	if err != nil {
 		trail.Println(trace.Alert("error retrieving entries").UTC().Error(err).Append(tr))
 		return fmt.Errorf("error retrieving entries: %w", err)

@@ -79,7 +79,7 @@ func showKeystore(keystore *keys.Keystore) {
 	fmt.Printf("    SOURCE KEY WIF\n")
 	source := keystore.Source()
 	ddb.PrintQRCode(os.Stdout, source.Key())
-	fmt.Printf("    %s\n", source.Key)
+	fmt.Printf("    %s\n", source.Key())
 	fmt.Printf("\n")
 	fmt.Printf("    SOURCE ADDRESS\n")
 	ddb.PrintQRCode(os.Stdout, source.Address())
@@ -94,6 +94,6 @@ func showKeystore(keystore *keys.Keystore) {
 	}
 	fmt.Printf("   Nodes:\n")
 	for _, n := range keystore.Nodes() {
-		fmt.Printf(" - Key: %s Address: %s  Name (password): %s (%d)\n", n.Key(), n.Address(), n.Name(), len(n.Password()))
+		fmt.Printf(" - Key: %s Address: %s  Name: %s (%d)\n", n.Key(), n.Address(), n.Name(), len(n.Password()))
 	}
 }
