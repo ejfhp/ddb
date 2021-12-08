@@ -39,12 +39,8 @@ func (t *TRH) KeystoreGenFromPhrase(pin string, phrase string, keygenID int, pat
 	return keystore, nil
 }
 
-func (t *TRH) KeystoreShow(pin string, pathname string) error {
-	keystore, err := keys.LoadKeystore(pathname, pin)
-	if err != nil {
-		return fmt.Errorf("error while loading keystore: %w", err)
-	}
-	showKeystore(keystore)
+func (t *TRH) KeystoreShow() error {
+	showKeystore(t.keystore)
 	return nil
 }
 
@@ -94,6 +90,6 @@ func showKeystore(keystore *keys.Keystore) {
 	}
 	fmt.Printf("   Nodes:\n")
 	for _, n := range keystore.Nodes() {
-		fmt.Printf(" - Key: %s Address: %s  Name: %s (%d)\n", n.Key(), n.Address(), n.Name(), len(n.Password()))
+		fmt.Printf(" - Key: %s Address: %s  Name: %s (%d)  Hash:  %s\n", n.Key(), n.Address(), n.Name(), len(n.Password()), n.ID())
 	}
 }

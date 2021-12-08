@@ -13,9 +13,10 @@ type MetaEntry struct {
 	Password  [32]byte `json:"p"`
 	Key       string   `json:"k"`
 	Address   string   `json:"a"`
+	EntryHash string   `json:"y"`
 	Labels    []string `json:"l"`
 	Mime      string   `json:"m"`
-	Hash      string   `json:"h"`
+	DataHash  string   `json:"h"`
 	Timestamp int64    `json:"e"`
 	Notes     string   `json:"o,omitempty"`
 	Size      int      `json:"s"`
@@ -31,9 +32,10 @@ func NewMetaEntry(node *keys.Node, entry *Entry) *MetaEntry {
 		Password:  node.Password(),
 		Key:       node.Key(),
 		Address:   node.Address(),
+		EntryHash: node.ID(),
 		Labels:    entry.Labels,
 		Mime:      entry.Mime,
-		Hash:      entry.DataHash,
+		DataHash:  entry.DataHash,
 		Timestamp: requestTime,
 		Notes:     entry.Notes,
 		Size:      entry.Size}

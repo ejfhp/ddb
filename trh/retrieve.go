@@ -2,18 +2,26 @@ package trh
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+
+	"github.com/ejfhp/ddb"
 )
 
-func (t *TRH) ExportFile(hash string, outfolder string, cacheOnly bool) error {
-	node, err := t.keystore.GetNode(hash)
+func (t *TRH) RetrieveFile(entryhash string, outFolder string, cacheOnly bool) (*ddb.Entry, error) {
+	node, err := t.keystore.GetNode(entryhash)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("error getting node of hash %s: %w", entryhash, err)
 	}
-	err = t.btrunk.ExportFile(node, hash, outfolder, cacheOnly)
+	entry, err := t.btrunk.GetEntry(node, cacheOnly)
 	if err != nil {
-		return fmt.Errorf("error while exporting file: %w", err)
+		return nil, fmt.Errorf("error while retrieving entries file: %w", err)
 	}
-	return nil
+	err = ioutil.WriteFile(filepath.Join(outFolder, entry.Name), entry.Data, 0444)
+	if err != nil {
+		return nil, fmt.Errorf("error while saving entry: %w", err)
+	}
+	return entry, err
 }
 
 // func (cr *Retrieve) RetrieveAll() (int, error) {

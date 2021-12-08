@@ -50,6 +50,7 @@ var commands = map[string]command{
 	"collect":    {name: "collect_all", description: "collect unspent money", params: []string{"pin"}},
 	"store":      {name: "storefile_file", description: "store file", params: []string{"pin", "file", "comma separated labels", "notes", "max spend (satoshi)"}},
 	"list":       {name: "listfile_all", description: "list all files stored", params: []string{"pin"}},
+	"get":        {name: "retrieve_file", description: "get file", params: []string{"pin", "entryhash", "outfolder"}},
 }
 var flagLog bool
 
@@ -125,7 +126,17 @@ func main() {
 	th := trh.NewWithoutKeystore()
 	switch command.name {
 	case "keystore_show":
-		mainerr = th.KeystoreShow(inputs[0], ksf)
+		ks, err := keys.LoadKeystore(ksf, inputs[0])
+		if err != nil {
+			mainerr = err
+			break
+		}
+		err = th.SetKeystore(ks)
+		if err != nil {
+			fmt.Printf("Fatal error: %v\n", err)
+			os.Exit(1)
+		}
+		mainerr = th.KeystoreShow()
 	case "keystore_tounencrypted":
 		ksfu := ksf + ".plain"
 		mainerr = th.KeystoreSaveUnencrypted(inputs[0], ksf, ksfu)
@@ -312,9 +323,35 @@ func main() {
 		allent, err := th.ListAll(ks)
 		if err == nil {
 			fmt.Printf("Files stored tied to this keystore:\n")
-			for i, ent := range allent {
-				fmt.Printf("%d  Name: '%s' hash: '%s'  time: %s\n", i, ent.Name, ent.Hash, time.Unix(ent.Timestamp, 0).Format("2006-01-02 15:04 EST"))
+			for i, metaent := range allent {
+				fmt.Printf("%d  Name: '%s' entryhash: '%s'  time: %s\n", i, metaent.Name, metaent.EntryHash, time.Unix(metaent.Timestamp, 0).Format("2006-01-02 15:04 EST"))
 			}
+		}
+		mainerr = err
+	case "retrieve_file":
+		pinPar := inputs[0]
+		entryhashPar := inputs[1]
+		outFolderPar := inputs[2]
+		ks, err := keys.LoadKeystore(ksf, pinPar)
+		if err != nil {
+			mainerr = err
+			break
+		}
+		err = th.SetKeystore(ks)
+		if err != nil {
+			fmt.Printf("Fatal error: %v\n", err)
+			os.Exit(1)
+		}
+		ent, err := th.RetrieveFile(entryhashPar, outFolderPar, false)
+		if err == nil && ent != nil {
+			fmt.Printf("File retrieved:\n")
+			fmt.Printf("Name: %s\n", ent.Name)
+			fmt.Printf("Hash: %s\n", ent.DataHash)
+			fmt.Printf("Mime: %s\n", ent.Mime)
+			fmt.Printf("Notes: %s\n", ent.Notes)
+			fmt.Printf("Labels: %s\n", strings.Join(ent.Labels, ","))
+			fmt.Printf("Size (B): %d\n", ent.Size)
+			fmt.Printf("Saved as: %s\n", filepath.Join(outFolderPar, ent.Name))
 		}
 		mainerr = err
 	}

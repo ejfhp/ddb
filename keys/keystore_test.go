@@ -110,8 +110,8 @@ func TestKeyStore_Save_LoadKeystore(t *testing.T) {
 		t.FailNow()
 	}
 	hex := hex.EncodeToString(hash[:])
-	if nodes[0].HashHEX() != hex {
-		t.Logf("load keystore has unexpected hash: %s", nodes[0].HashHEX())
+	if nodes[0].ID() != hex {
+		t.Logf("load keystore has unexpected hash: %s", nodes[0].ID())
 		t.FailNow()
 	}
 	if nodes[0].Password() != node.Password() {
@@ -169,8 +169,8 @@ func TestKeyStore_Save_LoadKeystore_Unencrypted(t *testing.T) {
 		t.FailNow()
 	}
 	hex := hex.EncodeToString(hash[:])
-	if loadedNode.HashHEX() != hex {
-		t.Logf("load keystore has unexpected hash: %s", loadedNode.HashHEX())
+	if loadedNode.ID() != hex {
+		t.Logf("load keystore has unexpected hash: %s", loadedNode.ID())
 		t.FailNow()
 	}
 	if loadedNode.Password() != node.Password() {

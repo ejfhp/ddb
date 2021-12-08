@@ -3,6 +3,7 @@ package ddb
 import (
 	"fmt"
 
+	"github.com/ejfhp/ddb/errs"
 	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/satoshi"
 	"github.com/ejfhp/trail"
@@ -35,10 +36,11 @@ func NewBTrunk(key, address, password string, blockchain *Blockchain) *BTrunk {
 
 //TXOfBranchedEntry generate all the transactions needed to store the given entry. BranchKey (WIF) and branchAddress must be generated through BTrunk.GenerateKeyAndAddress().
 func (bt *BTrunk) TXOfBranchedEntry(node *keys.Node, entry *Entry, header string, maxAmountToSpend satoshi.Satoshi, simulate bool) ([]*DataTX, error) {
-	fBranch, err := bt.newFBranch(node.Key(), node.Address(), node.Password())
-	if err != nil {
-		return nil, fmt.Errorf("error while generating new FBranch: %v", err)
-	}
+	// fBranch, err := bt.newFBranch(node.Key(), node.Address(), node.Password())
+	fBranch := FBranch{BitcoinWIF: node.Key(), BitcoinAdd: node.Address(), Password: node.Password(), Blockchain: bt.blockchain}
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error while generating new FBranch: %v", err)
+	// }
 	metaEntry := NewMetaEntry(node, entry)
 	metaEntryData, err := metaEntry.Encrypt(bt.passBytes)
 	if err != nil {
@@ -92,12 +94,12 @@ func (bt *BTrunk) TXOfBranchedEntry(node *keys.Node, entry *Entry, header string
 	return allTXs, nil
 }
 
-func (bt *BTrunk) newFBranch(wif, address string, password [32]byte) (*FBranch, error) {
-	tr := trace.New().Source("btrunk.go", "BTrunk", "NewFBranch")
-	trail.Println(trace.Debug("generating new FBranch").UTC().Append(tr).Add("address", address))
-	fb := FBranch{BitcoinWIF: wif, BitcoinAdd: address, Password: password, Blockchain: bt.blockchain}
-	return &fb, nil
-}
+// func (bt *BTrunk) newFBranch(wif, address string, password [32]byte) (*FBranch, error) {
+// 	tr := trace.New().Source("btrunk.go", "BTrunk", "NewFBranch")
+// 	trail.Println(trace.Debug("generating new FBranch").UTC().Append(tr).Add("address", address))
+// 	fb := FBranch{BitcoinWIF: wif, BitcoinAdd: address, Password: password, Blockchain: bt.blockchain}
+// 	return &fb, nil
+// }
 
 func (bt *BTrunk) getUTXOs(simulate bool) ([]*UTXO, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "getUTXOs")
@@ -145,19 +147,23 @@ func (bt *BTrunk) ListEntries(cacheOnly bool) ([]*MetaEntry, error) {
 	return meList, nil
 }
 
-func (bt *BTrunk) GetEntry(node *keys.Node, hash string, outputFolder string, cacheOnly bool) ([]*Entry, error) {
+func (bt *BTrunk) GetEntry(node *keys.Node, cacheOnly bool) (*Entry, error) {
 	tr := trace.New().Source("btrunk.go", "BTrunk", "GetEntry")
 
-	trail.Println(trace.Debug("listing transactions for main address").Append(tr).UTC().Add("address", bt.address))
-	TXIDs, err := bt.blockchain.ListTXIDs(bt.address, cacheOnly)
+	trail.Println(trace.Debug("listing transactions for node address").Append(tr).UTC().Add("address", node.Address()))
+	TXIDs, err := bt.blockchain.ListTXIDs(node.Address(), cacheOnly)
 	if err != nil {
 		return nil, fmt.Errorf("error while listing FBranch transactions: %v", err)
 	}
+	trail.Println(trace.Debug("TXs found").Append(tr).UTC().Add("num of TXs found", fmt.Sprintf("%d", len(TXIDs))))
 	fb := FBranch{BitcoinWIF: node.Key(), BitcoinAdd: node.Address(), Password: node.Password(), Blockchain: bt.blockchain}
 	entries, err := fb.GetEntriesFromTXIDs(TXIDs, cacheOnly)
 	if err != nil {
-		trail.Println(trace.Alert("error while getting entry").Append(tr).UTC().Error(err).Add("hash", hash))
-		return nil, fmt.Errorf("error while getting file with hash '%s': %w", hash, err)
+		trail.Println(trace.Alert("error while getting entry").Append(tr).UTC().Error(err))
+		return nil, fmt.Errorf("error while getting entry: %w", err)
 	}
-	return entries, nil
+	if len(entries) > 0 {
+		return entries[0], nil
+	}
+	return nil, errs.ErrNotFound
 }

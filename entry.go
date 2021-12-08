@@ -79,6 +79,10 @@ func (e *Entry) ToParts(password [32]byte, maxSize int) ([]*EntryPart, error) {
 				end = len(e.Data)
 			}
 			ep := EntryPart{Name: e.Name, Hash: e.DataHash, Mime: e.Mime, IdxPart: i, NumPart: numParts, Size: (end - start), Data: e.Data[start:end]}
+			if i == 0 {
+				ep.Labels = e.Labels
+				ep.Notes = e.Notes
+			}
 			encData, err := ep.Encrypt(password)
 			if err != nil {
 				trail.Println(trace.Alert("error while encrypting").UTC().Append(tr).Error(err))
@@ -120,7 +124,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 			continue
 		}
 		numPart := pa[0].NumPart
-		entry := Entry{Name: pa[0].Name, Mime: pa[0].Mime, DataHash: pa[0].Hash}
+		entry := Entry{Name: pa[0].Name, Mime: pa[0].Mime, DataHash: pa[0].Hash, Labels: pa[0].Labels, Notes: pa[0].Notes}
 		data := make([]byte, 0)
 		for i := 0; i < numPart; i++ {
 			if pa[i] == nil {
@@ -136,6 +140,7 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 			return nil, fmt.Errorf("hash of decoded entry doesn't match stored:%s  new:%s", entry.DataHash, nhash)
 		}
 		entry.Data = data
+		entry.Size = len(data)
 		entries = append(entries, &entry)
 	}
 	return entries, nil
@@ -143,14 +148,15 @@ func EntriesFromParts(parts []*EntryPart) ([]*Entry, error) {
 
 //EntryPart is the payload of a single transaction, it can contains an entire file or be a single part of a multi entry file.
 type EntryPart struct {
-	Name    string   `json:"n"` //name of file
-	Labels  []string `json:"l"` //labels
-	Hash    string   `json:"h"` //hash of file
-	Mime    string   `json:"m"` //mime type of file
-	IdxPart int      `json:"i"` //index of part idx of numpart
-	NumPart int      `json:"t"` //total number of parts that compose the entire file
-	Size    int      `json:"s"` //size of data
-	Data    []byte   `json:"d"` //data part of the file
+	Name    string   `json:"n,omitempty"` //name of file
+	Labels  []string `json:"l,omitempty"` //labels
+	Notes   string   `json:"o,omitempty"` //notes
+	Hash    string   `json:"h,omitempty"` //hash of file
+	Mime    string   `json:"m,omitempty"` //mime type of file
+	IdxPart int      `json:"i"`           //index of part idx of numpart
+	NumPart int      `json:"t"`           //total number of parts that compose the entire file
+	Size    int      `json:"s"`           //size of data
+	Data    []byte   `json:"d"`           //data part of the file
 }
 
 //EntryPartFromEncodedData return the EntryPart decoded from the given json

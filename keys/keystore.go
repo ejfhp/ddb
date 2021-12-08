@@ -94,7 +94,7 @@ type Node struct {
 	key       string
 	address   string
 	password  [32]byte
-	hashHEX   string
+	id        string
 	timestamp int64
 }
 
@@ -111,7 +111,7 @@ func (no Node) MarshalJSON() ([]byte, error) {
 		Key:       no.key,
 		Address:   no.address,
 		Password:  no.password,
-		HashHEX:   no.hashHEX,
+		HashHEX:   no.id,
 		Timestamp: no.timestamp,
 	})
 }
@@ -134,7 +134,7 @@ func (no *Node) UnmarshalJSON(data []byte) error {
 		key:       un.Key,
 		address:   un.Address,
 		password:  un.Password,
-		hashHEX:   un.HashHEX,
+		id:        un.HashHEX,
 		timestamp: un.Timestamp,
 	}
 	return nil
@@ -156,8 +156,8 @@ func (no *Node) Password() [32]byte {
 	return no.password
 }
 
-func (no *Node) HashHEX() string {
-	return no.hashHEX
+func (no *Node) ID() string {
+	return no.id
 }
 
 func (no *Node) Timestamp() time.Time {
@@ -258,15 +258,15 @@ func (ks *Keystore) SetPhrase(passphrase string, keygenID int) {
 	ks.source.keygenID = keygenID
 }
 
-//NewNode returns a node containing key, address and password derived from the source and the given hash.
-func (ks *Keystore) NewNode(entityname string, hash [32]byte) (*Node, error) {
+//NewNode returns a node containing key, address and password derived from the source and the given entity hash.
+func (ks *Keystore) NewNode(entityname string, entityhash [32]byte) (*Node, error) {
 	if len(entityname) == 0 {
 		return nil, fmt.Errorf("entity name cannot be empty")
 	}
 	keySeed := []byte{}
 	//The new key is a function of the main key and the given hash
 	keySeed = append(keySeed, []byte(ks.source.key)...)
-	keySeed = append(keySeed, hash[:]...)
+	keySeed = append(keySeed, entityhash[:]...)
 	keySeedHash := sha256.Sum256(keySeed)
 	key, _ := bsvec.PrivKeyFromBytes(bsvec.S256(), keySeedHash[:])
 	nwif, err := bsvutil.NewWIF(key, &chaincfg.MainNetParams, true)
@@ -282,7 +282,7 @@ func (ks *Keystore) NewNode(entityname string, hash [32]byte) (*Node, error) {
 	pwdSeed := []byte{}
 	//The new key is a function of the main password and the given hash
 	pwdSeed = append(pwdSeed, []byte(ks.source.password)...)
-	pwdSeed = append(pwdSeed, hash[:]...)
+	pwdSeed = append(pwdSeed, entityhash[:]...)
 	pwdSeedHash := sha256.Sum256(pwdSeed)
 
 	for _, n := range ks.nodes {
@@ -290,18 +290,20 @@ func (ks *Keystore) NewNode(entityname string, hash [32]byte) (*Node, error) {
 			return n, nil
 		}
 	}
-	hashhex := hex.EncodeToString(hash[:])
+	id := hex.EncodeToString(entityhash[:])
 	node := &Node{
 		name:      entityname,
 		timestamp: time.Now().Unix(),
 		key:       nWIF,
 		address:   nAdd,
 		password:  pwdSeedHash,
-		hashHEX:   hashhex,
+		id:        id,
 	}
 	ks.nodes = append(ks.nodes, node)
 	return node, nil
 }
+
+//GetNodeHash derives node hash from entity hash
 
 func (ks *Keystore) Source() *Source {
 	return ks.source
@@ -317,7 +319,7 @@ func (ks *Keystore) Nodes() []*Node {
 
 func (ks *Keystore) GetNode(hash string) (*Node, error) {
 	for _, n := range ks.nodes {
-		if n.hashHEX == hash {
+		if n.id == hash {
 			return n, nil
 		}
 	}
