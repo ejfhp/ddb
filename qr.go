@@ -2,6 +2,8 @@ package ddb
 
 import (
 	"fmt"
+	"image"
+	"image/color"
 	"io"
 	"strings"
 
@@ -49,4 +51,24 @@ func writeLine(w io.Writer, line []string) {
 	w.Write([]byte(strings.Join(border, "")))
 	w.Write([]byte("\n"))
 
+}
+
+//QRCodeImage returns the smallest image of the qrcode, it has then to be scaled
+func QRCodeImage(text string) (image.Image, error) {
+	code, err := qr.Encode(text, qr.M)
+	if err != nil {
+		return nil, fmt.Errorf("error while generating QRCode: %w", err)
+	}
+	size := code.Size
+	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	for y := 0; y <= size; y++ {
+		for x := 0; x <= size; x++ {
+			if code.Black(x, y) {
+				img.Set(x, y, color.Black)
+			} else {
+				img.Set(x, y, color.White)
+			}
+		}
+	}
+	return img, nil
 }
