@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/ejfhp/ddb/keys"
 	"github.com/ejfhp/ddb/trh"
 )
 
@@ -17,6 +18,7 @@ type TRHD struct {
 	Menu       *PanelMenu
 	MainWindow fyne.Window
 	TRH        *trh.TRH
+	Keystore   *keys.Keystore
 }
 
 func NewTRHD(mainwin fyne.Window, menu *PanelMenu, Keys *PanelKeys) *TRHD {
