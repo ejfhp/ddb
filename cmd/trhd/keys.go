@@ -55,7 +55,28 @@ func (pk *PanelKeys) Init(trhd *TRHD) {
 
 }
 
-func (pk *PanelKeys) keystoreSelected(file fyne.URIReadCloser, err error) {
+func (pk *PanelKeys) setKeystore(ks *keys.Keystore) error {
+	err := pk.TRHD.TRH.SetKeystore(ks)
+	if err != nil {
+		return fmt.Errorf("cannot set Keystore: %v", err)
+	}
+	qrImgK, err := ddb.QRCodeImage(ks.Source().Key())
+	if err != nil {
+		return fmt.Errorf("cannot generate Key QRCode: %v", err)
+	}
+	qrImgA, err := ddb.QRCodeImage(ks.Source().Address())
+	if err != nil {
+		return fmt.Errorf("cannot generate Address QRCode: %v", err)
+	}
+	pk.QRKey.Image = qrImgK
+	pk.QRAddress.Image = qrImgA
+	fmt.Printf("Image width: %d\n", qrImgA.Bounds().Dx())
+	pk.Panel.Refresh()
+	return nil
+}
+
+func (pk *PanelKeys) clickButtonOpenKeystore(file fyne.URIReadCloser, err error) {
+	//TODO rifattorizzare in modo che questo sia il metodo associato al bottone open
 	if err != nil {
 		fmt.Printf("error while opening keystore file")
 	}
@@ -77,32 +98,16 @@ func (pk *PanelKeys) keystoreSelected(file fyne.URIReadCloser, err error) {
 			fmt.Printf("No PIN Provided\n")
 			return
 		}
-		pk.setKeystore(file.URI().Path(), pin)
+		ks, err := keys.LoadKeystore(file.URI().Path(), pin)
+		if err != nil {
+			fmt.Printf("cannot load keystore: %v", err)
+			dialog.NewError(err, pk.TRHD.MainWindow).Show()
+			return
+		}
+		pk.setKeystore(ks)
 
 	}()
 
-}
-
-func (pk *PanelKeys) setKeystore(file string, pin string) {
-	ks, err := keys.LoadKeystore(file, pin)
-	if err != nil {
-		fmt.Printf("Cannot load keystore")
-	}
-	pk.TRHD.TRH.SetKeystore(ks)
-	qrImgK, err := ddb.QRCodeImage(ks.Source().Key())
-	if err != nil {
-		fmt.Printf("Cannot generate Key QRCode")
-		dialog.NewError(err, pk.TRHD.MainWindow)
-	}
-	qrImgA, err := ddb.QRCodeImage(ks.Source().Address())
-	if err != nil {
-		fmt.Printf("Cannot generate Address QRCode")
-		dialog.NewError(err, pk.TRHD.MainWindow)
-	}
-	pk.QRKey.Image = qrImgK
-	pk.QRAddress.Image = qrImgA
-	fmt.Printf("Image width: %d\n", qrImgA.Bounds().Dx())
-	pk.Panel.Refresh()
 }
 
 func (pk *PanelKeys) clickButtonNewKeystore() {
@@ -176,39 +181,44 @@ func (pk *PanelKeys) clickButtonNewKeystore() {
 		res := <-resCh
 		close(resCh)
 		if len(res) == 0 {
-			fmt.Printf("No params provided\n")
+			fmt.Printf("no params provided\n")
 			return
 		}
-		if err := pk.createNewKeystore(res); err != nil {
+		ks, err := pk.createNewKeystore(res)
+		if err != nil {
 			fmt.Printf("error creating new keystore: %v", err)
-			dialog.NewError(err, pk.TRHD.MainWindow)
+			dialog.NewError(err, pk.TRHD.MainWindow).Show()
+			return
+		}
+		err = pk.setKeystore(ks)
+		if err != nil {
+			fmt.Printf("error setting keystore: %v", err)
+			dialog.NewError(err, pk.TRHD.MainWindow).Show()
+			return
 		}
 		dialNewKs.Hide()
 	}()
 }
 
-func (pk *PanelKeys) createNewKeystore(init []string) error {
+func (pk *PanelKeys) createNewKeystore(init []string) (*keys.Keystore, error) {
+	var ks *keys.Keystore
+	var err error
 	switch len(init) {
 	case 3:
 		fmt.Printf("creating keystore from phrase: %s", init[0])
 		ksPathName := filepath.Join(getKeystorePath(), init[2]+".trh")
-		ks, err := pk.TRHD.TRH.KeystoreGenFromPhrase(init[1], init[0], 3, ksPathName)
-		if err != nil {
-			return fmt.Errorf("cannot create keystore: %w", err)
-		}
-		fmt.Printf("create keystore: %s\n", ksPathName)
-		pk.TRHD.Keystore = ks
+		fmt.Printf("keystore pathname: %s\n", ksPathName)
+		ks, err = pk.TRHD.TRH.KeystoreGenFromPhrase(init[1], init[0], 3, ksPathName)
 	case 4:
 		fmt.Printf("creating keystore from key and password: %s", init[1])
 		ksPathName := filepath.Join(getKeystorePath(), init[3]+".trh")
-		ks, err := pk.TRHD.TRH.KeystoreGenFromKey(init[2], init[0], init[1], ksPathName)
-		if err != nil {
-			return fmt.Errorf("cannot create keystore: %w", err)
-		}
-		fmt.Printf("create keystore: %s\n", ksPathName)
-		pk.TRHD.Keystore = ks
+		fmt.Printf("keystore pathname: %s\n", ksPathName)
+		ks, err = pk.TRHD.TRH.KeystoreGenFromKey(init[2], init[0], init[1], ksPathName)
 	}
-	return nil
+	if err != nil {
+		err = fmt.Errorf("cannot create keystore: %w", err)
+	}
+	return ks, err
 }
 
 func getKeystorePath() string {
